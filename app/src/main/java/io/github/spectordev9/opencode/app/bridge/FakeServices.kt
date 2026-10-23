@@ -1,0 +1,476 @@
+package io.github.spectordev9.opencode.app.bridge
+
+import io.github.spectordev9.opencode.core.bridge.BridgeCommandHandler
+import io.github.spectordev9.opencode.core.bridge.BridgeCommandNames
+import io.github.spectordev9.opencode.core.bridge.BridgeError
+import io.github.spectordev9.opencode.core.bridge.CommandEnvelope
+import io.github.spectordev9.opencode.core.bridge.ResultEnvelope
+import io.github.spectordev9.opencode.core.common.ApiError
+import io.github.spectordev9.opencode.core.common.ApiResult
+import io.github.spectordev9.opencode.core.common.ErrorCode
+import io.github.spectordev9.opencode.core.common.PtyId
+import io.github.spectordev9.opencode.core.common.ProcessId
+import io.github.spectordev9.opencode.core.common.RuntimeId
+import io.github.spectordev9.opencode.core.common.SecretRef
+import io.github.spectordev9.opencode.core.common.TrashId
+import io.github.spectordev9.opencode.core.diagnostics.DiagnosticEvent
+import io.github.spectordev9.opencode.core.diagnostics.DiagnosticLevel
+import io.github.spectordev9.opencode.core.diagnostics.DiagnosticReport
+import io.github.spectordev9.opencode.core.diagnostics.DiagnosticsService
+import io.github.spectordev9.opencode.core.gateway.GatewayHealth
+import io.github.spectordev9.opencode.core.gateway.GatewayOperation
+import io.github.spectordev9.opencode.core.gateway.OpenCodeGateway
+import io.github.spectordev9.opencode.core.gateway.ServerEvent
+import io.github.spectordev9.opencode.core.git.GitBranch
+import io.github.spectordev9.opencode.core.git.GitChange
+import io.github.spectordev9.opencode.core.git.GitChangeKind
+import io.github.spectordev9.opencode.core.git.GitCommitResult
+import io.github.spectordev9.opencode.core.git.GitDiff
+import io.github.spectordev9.opencode.core.git.GitService
+import io.github.spectordev9.opencode.core.git.GitStatus
+import io.github.spectordev9.opencode.core.runtime.ManagedProcess
+import io.github.spectordev9.opencode.core.runtime.ProcessExit
+import io.github.spectordev9.opencode.core.runtime.ProcessSpec
+import io.github.spectordev9.opencode.core.runtime.RuntimeInfo
+import io.github.spectordev9.opencode.core.runtime.RuntimeManager
+import io.github.spectordev9.opencode.core.runtime.RuntimeProfile
+import io.github.spectordev9.opencode.core.runtime.RuntimeState
+import io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus
+import io.github.spectordev9.opencode.core.security.LogScrubber
+import io.github.spectordev9.opencode.core.security.LoopbackAuth
+import io.github.spectordev9.opencode.core.security.LoopbackCredential
+import io.github.spectordev9.opencode.core.security.SecretStore
+import io.github.spectordev9.opencode.core.supervisor.ServerEndpoint
+import io.github.spectordev9.opencode.core.supervisor.ServerHealth
+import io.github.spectordev9.opencode.core.supervisor.ServerState
+import io.github.spectordev9.opencode.core.supervisor.ServerStateStatus
+import io.github.spectordev9.opencode.core.supervisor.ServerSupervisor
+import io.github.spectordev9.opencode.core.terminal.PtyEvent
+import io.github.spectordev9.opencode.core.terminal.PtySession
+import io.github.spectordev9.opencode.core.terminal.PtyService
+import io.github.spectordev9.opencode.core.terminal.PtySize
+import io.github.spectordev9.opencode.core.terminal.PtySpec
+import io.github.spectordev9.opencode.core.workspace.Chunk
+import io.github.spectordev9.opencode.core.workspace.Entry
+import io.github.spectordev9.opencode.core.workspace.EntryKind
+import io.github.spectordev9.opencode.core.workspace.Precondition
+import io.github.spectordev9.opencode.core.workspace.WriteReceipt
+import io.github.spectordev9.opencode.core.workspace.WorkspaceService
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.util.Locale
+import java.util.UUID
+import kotlin.math.min
+
+private fun ByteArray.sha256(): String = java.security.MessageDigest.getInstance("SHA-256")
+    .digest(this)
+    .joinToString("") { "%02x".format(it) }
+
+private fun Map<String, Any?>.string(name: String): String =
+    this[name]?.toString() ?: throw IllegalArgumentException("missing $name")
+
+private fun Map<String, Any?>.optionalString(name: String): String? =
+    this[name]?.toString()
+
+private fun commandError(command: CommandEnvelope, apiError: ApiError): ResultEnvelope.Error =
+    ResultEnvelope.Error(
+        id = command.id,
+        error = BridgeError(
+            code = apiError.code,
+            message = apiError.message,
+            upstreamStatus = apiError.upstreamStatus,
+        ),
+    )
+
+private fun commandOk(command: CommandEnvelope, value: Any?): ResultEnvelope.Ok<Any?> =
+    ResultEnvelope.Ok(id = command.id, value = value)
+
+class FakeRuntimeService : RuntimeManager {
+    private val stateFlow = MutableStateFlow(
+        RuntimeState(
+            status = RuntimeStateStatus.READY,
+            version = "1.19.3",
+        ),
+    )
+
+    override val state: StateFlow<RuntimeState> = stateFlow.asStateFlow()
+    override val profile: RuntimeProfile = RuntimeProfile.A_DIRECT
+
+    override suspend fun ensureReady(): ApiResult<RuntimeInfo> = ApiResult.Success(
+        RuntimeInfo(
+            id = RuntimeId("fake-runtime"),
+            version = "1.19.3",
+            profile = profile,
+            rootPath = "/data/local/tmp/opencode",
+            manifestSha256 = "abc123",
+            openCodeSha256 = "def456",
+        ),
+    )
+
+    override fun spawn(spec: ProcessSpec): ApiResult<ManagedProcess> = ApiResult.Success(
+        object : ManagedProcess {
+            override val id: ProcessId = ProcessId(UUID.randomUUID().toString())
+            override val pid: Long? = 1L
+            override val isAlive: Boolean = true
+
+            override fun signal(signal: Int): ApiResult<Unit> = ApiResult.Success(Unit)
+
+            override suspend fun waitFor(): ProcessExit = ProcessExit(exitCode = 0, signal = null)
+
+            override suspend fun terminate(graceMillis: Long): ApiResult<Unit> = ApiResult.Success(Unit)
+        },
+    )
+}
+
+class FakeServerSupervisor : ServerSupervisor {
+    private val stateFlow = MutableStateFlow(
+        ServerState(
+            status = ServerStateStatus.HEALTHY,
+            endpoint = ServerEndpoint("127.0.0.1", 4097),
+            version = "1.19.3",
+        ),
+    )
+
+    override val state: StateFlow<ServerState> = stateFlow.asStateFlow()
+
+    override suspend fun start(): ApiResult<ServerEndpoint> = ApiResult.Success(ServerEndpoint("127.0.0.1", 4097))
+
+    override suspend fun stop(graceMillis: Long): ApiResult<Unit> {
+        stateFlow.value = ServerState(status = ServerStateStatus.STOPPED)
+        return ApiResult.Success(Unit)
+    }
+
+    override suspend fun restart(): ApiResult<ServerEndpoint> = start()
+}
+
+class FakeWorkspaceService : WorkspaceService {
+    private val files = linkedMapOf<String, ByteArray>()
+    private val trash = linkedMapOf<String, ByteArray>()
+
+    override suspend fun list(path: String): ApiResult<List<Entry>> {
+        val prefix = path.removeSuffix("/")
+        val entries = files.keys
+            .filter { it == prefix || it.startsWith(prefix + "/") }
+            .map { fullPath ->
+                val bytes = files[fullPath] ?: ByteArray(0)
+                Entry(
+                    path = fullPath,
+                    name = fullPath.substringAfterLast('/'),
+                    kind = EntryKind.FILE,
+                    sizeBytes = bytes.size.toLong(),
+                    modifiedAtEpochMillis = System.currentTimeMillis(),
+                )
+            }
+        return ApiResult.Success(entries)
+    }
+
+    override suspend fun stat(path: String): ApiResult<Entry> {
+        val bytes = files[path] ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing path $path"))
+        return ApiResult.Success(
+            Entry(
+                path = path,
+                name = path.substringAfterLast('/'),
+                kind = EntryKind.FILE,
+                sizeBytes = bytes.size.toLong(),
+                modifiedAtEpochMillis = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    override suspend fun readRange(path: String, offset: Long, length: Int): ApiResult<Chunk> {
+        val bytes = files[path] ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing path $path"))
+        val from = offset.coerceAtLeast(0L)
+        val safeLength = maxOf(0, length)
+        val to = min(bytes.size.toLong(), from + safeLength.toLong()).toInt()
+        val slice = bytes.copyOfRange(from.toInt(), to)
+        return ApiResult.Success(Chunk(offset = from, bytes = slice, endOfFile = to >= bytes.size))
+    }
+
+    override suspend fun write(path: String, data: ByteArray, expect: Precondition): ApiResult<WriteReceipt> {
+        val previous = files[path]
+        if (previous != null && expect is Precondition.Match && previous.size.toLong() != expect.sizeBytes) {
+            return ApiResult.Failure(ApiError(ErrorCode.E_CONFLICT, "write precondition failed for $path"))
+        }
+        files[path] = data.copyOf()
+        return ApiResult.Success(
+            WriteReceipt(
+                path = path,
+                sizeBytes = data.size.toLong(),
+                modifiedAtEpochMillis = System.currentTimeMillis(),
+                sha256 = data.sha256(),
+            ),
+        )
+    }
+
+    override suspend fun mkdir(path: String): ApiResult<Entry> {
+        files[path] = ByteArray(0)
+        return ApiResult.Success(
+            Entry(
+                path = path,
+                name = path.substringAfterLast('/'),
+                kind = EntryKind.DIRECTORY,
+                sizeBytes = 0L,
+                modifiedAtEpochMillis = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    override suspend fun rename(from: String, to: String): ApiResult<Entry> {
+        val data = files.remove(from) ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing path $from"))
+        files[to] = data
+        return ApiResult.Success(
+            Entry(
+                path = to,
+                name = to.substringAfterLast('/'),
+                kind = EntryKind.FILE,
+                sizeBytes = data.size.toLong(),
+                modifiedAtEpochMillis = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    override suspend fun move(from: String, to: String): ApiResult<Entry> = rename(from, to)
+
+    override suspend fun trash(path: String): ApiResult<TrashId> {
+        val data = files.remove(path) ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing path $path"))
+        val id = TrashId(UUID.randomUUID().toString())
+        trash[id.value] = data
+        return ApiResult.Success(id)
+    }
+
+    override suspend fun restore(id: TrashId): ApiResult<Entry> {
+        val data = trash.remove(id.value) ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing trash id $id"))
+        val path = "/restored/${UUID.randomUUID()}"
+        files[path] = data
+        return ApiResult.Success(
+            Entry(path, path.substringAfterLast('/'), EntryKind.FILE, data.size.toLong(), System.currentTimeMillis()),
+        )
+    }
+
+    override suspend fun search(path: String, query: String, limit: Int): ApiResult<List<Entry>> {
+        val results = files.keys
+            .filter { it.contains(query, ignoreCase = true) }
+            .take(limit)
+            .map { fullPath ->
+                val data = files[fullPath] ?: ByteArray(0)
+                Entry(fullPath, fullPath.substringAfterLast('/'), EntryKind.FILE, data.size.toLong(), System.currentTimeMillis())
+            }
+        return ApiResult.Success(results)
+    }
+}
+
+class FakeGitService : GitService {
+    override suspend fun status(repositoryPath: String): ApiResult<GitStatus> = ApiResult.Success(
+        GitStatus(
+            branch = "main",
+            commit = "abc123",
+            ahead = 0,
+            behind = 0,
+            changes = listOf(
+                GitChange(path = "$repositoryPath/README.md", kind = GitChangeKind.UNTRACKED, staged = false, unstaged = true),
+            ),
+        ),
+    )
+
+    override suspend fun diff(repositoryPath: String, path: String?, staged: Boolean): ApiResult<GitDiff> =
+        ApiResult.Success(GitDiff(path = path, patch = "# fake diff\n", binary = false, truncated = false))
+
+    override suspend fun initialize(repositoryPath: String): ApiResult<Unit> = ApiResult.Success(Unit)
+
+    override suspend fun fetch(repositoryPath: String, remote: String?): ApiResult<Unit> = ApiResult.Success(Unit)
+
+    override suspend fun pull(repositoryPath: String, remote: String?, branch: String?): ApiResult<Unit> = ApiResult.Success(Unit)
+
+    override suspend fun branches(repositoryPath: String): ApiResult<List<GitBranch>> = ApiResult.Success(
+        listOf(GitBranch("main", true), GitBranch("feature/fake", false)),
+    )
+
+    override suspend fun checkout(repositoryPath: String, ref: String): ApiResult<Unit> = ApiResult.Success(Unit)
+
+    override suspend fun commit(repositoryPath: String, message: String, paths: List<String>): ApiResult<GitCommitResult> =
+        ApiResult.Success(GitCommitResult(hash = "deadbeef", subject = message))
+}
+
+class FakePtyService : PtyService {
+    override fun open(spec: PtySpec): ApiResult<PtySession> {
+        val session = object : PtySession {
+            override val id: PtyId = PtyId(UUID.randomUUID().toString())
+            override val events: Flow<PtyEvent> = MutableSharedFlow<PtyEvent>(extraBufferCapacity = 32, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+            override fun write(bytes: ByteArray): ApiResult<Unit> = ApiResult.Success(Unit)
+
+            override fun resize(size: PtySize): ApiResult<Unit> = ApiResult.Success(Unit)
+
+            override fun signal(signal: Int): ApiResult<Unit> = ApiResult.Success(Unit)
+
+            override fun close() = Unit
+        }
+        return ApiResult.Success(session)
+    }
+}
+
+class FakeSecretStore : SecretStore {
+    private val values = linkedMapOf<String, CharArray>()
+
+    override suspend fun put(ref: SecretRef, secret: CharArray): ApiResult<Unit> {
+        values[ref.value] = secret.copyOf()
+        return ApiResult.Success(Unit)
+    }
+
+    override suspend fun get(ref: SecretRef): ApiResult<CharArray> =
+        values[ref.value]?.copyOf()?.let { ApiResult.Success(it) }
+            ?: ApiResult.Failure(ApiError(ErrorCode.E_AUTH, "missing secret ${ref.value}"))
+
+    override suspend fun delete(ref: SecretRef): ApiResult<Unit> {
+        values.remove(ref.value)
+        return ApiResult.Success(Unit)
+    }
+}
+
+class FakeLoopbackAuth : LoopbackAuth {
+    override suspend fun provision(secretRef: SecretRef): ApiResult<LoopbackCredential> = ApiResult.Success(
+        LoopbackCredential(username = "opencode", password = "opencode".toCharArray()),
+    )
+
+    override fun authorizationHeader(credential: LoopbackCredential): String =
+        "Basic ${credential.username}:${credential.password.concatToString()}"
+
+    override fun verify(authorizationHeader: String, credential: LoopbackCredential): Boolean =
+        authorizationHeader.contains(credential.username)
+}
+
+class FakeDiagnosticsService : DiagnosticsService {
+    private val events = MutableSharedFlow<DiagnosticEvent>(extraBufferCapacity = 32, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    override fun record(event: DiagnosticEvent) {
+        events.tryEmit(event)
+    }
+
+    override fun observe(): Flow<DiagnosticEvent> = events
+
+    override suspend fun export(): ApiResult<DiagnosticReport> = ApiResult.Success(
+        DiagnosticReport(
+            generatedAtEpochMillis = System.currentTimeMillis(),
+            appVersion = "0.0.0",
+            runtimeVersion = "1.19.3",
+            openCodeVersion = "1.19.3",
+            events = emptyList(),
+        ),
+    )
+}
+
+class FakeGateway : OpenCodeGateway {
+    override suspend fun <T> call(operation: GatewayOperation<T>): ApiResult<T> {
+        val value: T = when (operation.name) {
+            BridgeCommandNames.RUNTIME_STATUS -> "ready" as T
+            BridgeCommandNames.SESSION_PROMPT_ASYNC -> "accepted" as T
+            else -> "ok" as T
+        }
+        return ApiResult.Success(value)
+    }
+
+    override fun events(directory: String?): Flow<ServerEvent> = MutableSharedFlow<ServerEvent>()
+
+    override suspend fun health(): ApiResult<GatewayHealth> = ApiResult.Success(
+        GatewayHealth(version = "1.19.3", endpointPort = 4097),
+    )
+}
+
+class FakeLogScrubber : LogScrubber {
+    override fun scrub(value: String): String = value
+        .replace("(?i)password".toRegex(), "[REDACTED]")
+        .replace("(?i)token".toRegex(), "[REDACTED]")
+}
+
+class AppBridgeCommandHandler(
+    private val runtime: RuntimeManager = FakeRuntimeService(),
+    private val supervisor: ServerSupervisor = FakeServerSupervisor(),
+    private val workspace: WorkspaceService = FakeWorkspaceService(),
+    private val git: GitService = FakeGitService(),
+    private val terminal: PtyService = FakePtyService(),
+    private val secrets: SecretStore = FakeSecretStore(),
+    private val loopbackAuth: LoopbackAuth = FakeLoopbackAuth(),
+    private val diagnostics: DiagnosticsService = FakeDiagnosticsService(),
+    private val gateway: OpenCodeGateway = FakeGateway(),
+    private val scrubber: LogScrubber = FakeLogScrubber(),
+) : BridgeCommandHandler {
+    override suspend fun handle(command: CommandEnvelope): ResultEnvelope {
+        return when (command.name) {
+            BridgeCommandNames.RUNTIME_STATUS -> {
+                val state = runtime.state.value
+                commandOk(
+                    command,
+                    mapOf(
+                        "status" to state.status.name.lowercase(Locale.ROOT),
+                        "version" to (state.version ?: "unknown"),
+                    ),
+                )
+            }
+            BridgeCommandNames.RUNTIME_START -> when (val ready = runtime.ensureReady()) {
+                is ApiResult.Success -> commandOk(command, mapOf("status" to "ready", "id" to ready.value.id.value))
+                is ApiResult.Failure -> commandError(command, ready.error)
+            }
+            BridgeCommandNames.RUNTIME_EXPORT_DIAGNOSTICS -> when (val report = diagnostics.export()) {
+                is ApiResult.Success -> commandOk(command, report.value)
+                is ApiResult.Failure -> commandError(command, report.error)
+            }
+            BridgeCommandNames.SESSION_PROMPT_ASYNC -> {
+                val sessionId = command.args.string("sessionId")
+                val prompt = command.args.string("prompt")
+                commandOk(command, mapOf("sessionId" to sessionId, "prompt" to scrubber.scrub(prompt), "accepted" to true))
+            }
+            BridgeCommandNames.WORKSPACE_LIST -> when (val result = workspace.list(command.args.string("path"))) {
+                is ApiResult.Success -> commandOk(command, result.value)
+                is ApiResult.Failure -> commandError(command, result.error)
+            }
+            BridgeCommandNames.WORKSPACE_WRITE -> {
+                val path = command.args.string("path")
+                val data = (command.args["content"] ?: command.args["data"] ?: "").toString().toByteArray()
+                when (val result = workspace.write(path, data, Precondition.None)) {
+                    is ApiResult.Success -> commandOk(command, result.value)
+                    is ApiResult.Failure -> commandError(command, result.error)
+                }
+            }
+            BridgeCommandNames.WORKSPACE_READ_RANGE -> {
+                val path = command.args.string("path")
+                val offset = command.args["offset"]?.toString()?.toLongOrNull() ?: 0L
+                val length = command.args["length"]?.toString()?.toIntOrNull() ?: 4096
+                when (val result = workspace.readRange(path, offset, length)) {
+                    is ApiResult.Success -> commandOk(command, result.value)
+                    is ApiResult.Failure -> commandError(command, result.error)
+                }
+            }
+            BridgeCommandNames.GIT_STATUS -> when (val result = git.status(command.args.string("repositoryPath"))) {
+                is ApiResult.Success -> commandOk(command, result.value)
+                is ApiResult.Failure -> commandError(command, result.error)
+            }
+            BridgeCommandNames.TERMINAL_OPEN -> {
+                val executable = command.args.string("executable")
+                val workingDir = command.args.string("workingDirectory")
+                val rows = command.args["rows"]?.toString()?.toIntOrNull() ?: 24
+                val cols = command.args["columns"]?.toString()?.toIntOrNull() ?: 80
+                when (
+                    val result = terminal.open(
+                        PtySpec(
+                            executable = executable,
+                            workingDirectory = workingDir,
+                            initialSize = PtySize(rows = rows, columns = cols),
+                            name = command.args.optionalString("name"),
+                        ),
+                    )
+                ) {
+                    is ApiResult.Success -> commandOk(command, mapOf("ptyId" to result.value.id.value))
+                    is ApiResult.Failure -> commandError(command, result.error)
+                }
+            }
+            BridgeCommandNames.SETTINGS_GET -> commandOk(command, mapOf("key" to (command.args["key"]?.toString() ?: ""), "value" to "default"))
+            BridgeCommandNames.SETTINGS_SET -> commandOk(command, mapOf("key" to command.args.string("key"), "value" to command.args["value"].toString()))
+            else -> commandError(command, ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "unsupported command: ${command.name}"))
+        }
+    }
+}
