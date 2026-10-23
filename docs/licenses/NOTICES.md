@@ -179,7 +179,7 @@ CC-BY attribution:
 
 ## Known gaps
 
-- Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc (LGPL-2.1-only); Bun's LICENSE.md describes relinking. LGPL object-file/source-offer compliance needs legal review before release.
+- Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc (LGPL-2.1-only); the opencode ELF has no shared JSC/tinycc NEEDED entries and embeds JSC source paths. Bun's LICENSE.md describes source/relink steps; whether object files must also be offered needs legal review before release.
 - The OpenCode dependency SBOM is a production/optional lockfile closure; verify the bundled set against the binary at release and keep CC-BY attribution notices current.
 - PRoot dynamically links libtalloc.so.2. The pinned talloc 2.5.0 source is LGPL-3.0-or-later, while the Termux deb copyright symlink points to GPL-3.0.txt; treat the upstream source as authoritative and review the packaging discrepancy.
 - PRoot and libtalloc are pinned to Termux packages; verify each published deb was built from the pinned source before release.

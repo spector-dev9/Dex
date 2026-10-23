@@ -45,9 +45,16 @@ LICENSE.md: https://github.com/oven-sh/bun/blob/main/LICENSE.md.
 Bun's other bundled libraries are listed in NOTICES.md; review
 their licenses before release.
 
+The `opencode` ELF's `NEEDED` entries are `libstdc++.so.6`,
+`libc.musl-aarch64.so.1` and `libgcc_s.so.1`; no shared
+JavaScriptCore or tinycc is listed, and JavaScriptCore source paths
+are embedded in the binary. This confirms static linkage of the
+LGPL components.
+
 Bun 1.3.14 source archive:
 https://github.com/oven-sh/bun/archive/refs/tags/bun-v1.3.14.tar.gz
-(commit 0d9b296af33f2b851fcbf4df3e9ec89751734ba4).
+(commit 0d9b296af33f2b851fcbf4df3e9ec89751734ba4; sha256
+112a5915992807f04b183854d360c2bf87ac7c1587fb5da3c560bdbb75b8c92e).
 
 ## OpenCode dependency closure
 

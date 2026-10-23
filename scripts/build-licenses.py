@@ -241,6 +241,7 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
 
     runtime_binary = artifacts / f"opencode-{version}" / manifest["binary"]
     detected_bun = bun_version(runtime_binary) if runtime_binary.is_file() else None
+    bun_source = manifest.get("bun", {}).get("source", {})
 
     bun_license = ROOT / "docs" / "licenses" / "texts" / "Bun-LICENSE.md"
     bundled = (
@@ -290,10 +291,24 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
                 references=[
                     {"type": "license", "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"},
                     {"type": "vcs", "url": "https://github.com/oven-sh/bun"},
+                    *(
+                        [{"type": "source-distribution", "url": bun_source["url"]}]
+                        if bun_source.get("url")
+                        else []
+                    ),
                 ],
                 properties=[
                     {"name": "bun:detected-from", "value": manifest["binary"]},
                     {"name": "bun:statically-links", "value": "JavaScriptCore (LGPL-2.0-only), tinycc (LGPL-2.1-only)"},
+                    *(
+                        [
+                            {"name": "source:sha256", "value": bun_source.get("sha256", "")},
+                            {"name": "source:ref", "value": bun_source.get("tag", "")},
+                            {"name": "source:commit", "value": bun_source.get("commit", "")},
+                        ]
+                        if bun_source.get("url")
+                        else []
+                    ),
                 ],
                 component_type="application",
             )
@@ -401,8 +416,10 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
 
     known_gaps = [
         "Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc "
-        "(LGPL-2.1-only); Bun's LICENSE.md describes relinking. LGPL "
-        "object-file/source-offer compliance needs legal review before release.",
+        "(LGPL-2.1-only); the opencode ELF has no shared JSC/tinycc NEEDED "
+        "entries and embeds JSC source paths. Bun's LICENSE.md describes "
+        "source/relink steps; whether object files must also be offered "
+        "needs legal review before release.",
         "The OpenCode dependency SBOM is a production/optional lockfile "
         "closure; verify the bundled set against the binary at release and "
         "keep CC-BY attribution notices current.",
@@ -445,6 +462,7 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
         "packages": packages,
         "licenseSummary": dict(sorted(license_summary.items())),
         "knownGaps": known_gaps,
+        "bun": {"version": detected_bun, "source": bun_source},
         "alpine": {
             "version": alpine_version,
             "rootfsSha256": rootfs_hash,
@@ -712,10 +730,24 @@ def source_offer(data: dict) -> str:
         "Bun's other bundled libraries are listed in NOTICES.md; review",
         "their licenses before release.",
         "",
-        "Bun 1.3.14 source archive:",
-        "https://github.com/oven-sh/bun/archive/refs/tags/bun-v1.3.14.tar.gz",
-        "(commit 0d9b296af33f2b851fcbf4df3e9ec89751734ba4).",
+        "The `opencode` ELF's `NEEDED` entries are `libstdc++.so.6`,",
+        "`libc.musl-aarch64.so.1` and `libgcc_s.so.1`; no shared",
+        "JavaScriptCore or tinycc is listed, and JavaScriptCore source paths",
+        "are embedded in the binary. This confirms static linkage of the",
+        "LGPL components.",
         "",
+    ]
+    bun = data.get("bun", {})
+    bun_source = bun.get("source", {})
+    if bun_source.get("url"):
+        lines += [
+            f"Bun {bun.get('version') or ''} source archive:",
+            bun_source["url"],
+            f"(commit {bun_source.get('commit', 'unknown')}; sha256",
+            f"{bun_source.get('sha256', 'not recorded')}).",
+            "",
+        ]
+    lines += [
         "## OpenCode dependency closure",
         "",
         "The production/optional lockfile closure contains no GPL/AGPL",
@@ -748,6 +780,7 @@ def main() -> int:
                 "alpine": data["alpine"],
                 "runtime": data["runtime"],
                 "androidLibs": data["androidLibs"],
+                "bun": data["bun"],
                 "bunBundled": data["bunBundled"],
                 "packages": data["packages"],
                 "licenseSummary": data["licenseSummary"],

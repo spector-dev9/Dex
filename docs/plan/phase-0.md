@@ -36,9 +36,10 @@ Status: **Phase 0 complete. Phase 2 in progress.**
   libraries/polyfills, pinned PRoot/libtalloc/libandroid-shmem, a
   67-component main CycloneDX 1.5 SBOM, an 849-package OpenCode
   dependency SBOM, per-package Alpine copyright notices, notices,
-  license texts and a source-offer draft. Open blockers: Bun statically
-  links LGPL JavaScriptCore/tinycc; libtalloc is LGPL-3.0-or-later;
-  verify the dependency closure against the built binary.
+  license texts and a source-offer draft. Bun 1.3.14 source is pinned and
+  its static JSC/tinycc linkage confirmed; PRoot dynamically links
+  libtalloc. Open blockers: Bun LGPL object-file/source-offer review and
+  verification of the dependency closure against the built binary.
 
 ## Remaining skeleton (Phase 1, after G0 decisions)
 

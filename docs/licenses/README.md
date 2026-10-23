@@ -72,6 +72,7 @@ python3 scripts/build-licenses.py
 - [x] Generate a CycloneDX SBOM for the runtime and rootfs.
 - [x] Generate a CycloneDX SBOM for OpenCode's production dependency
       closure from the pinned `bun.lock`.
+- [x] Pin Bun 1.3.14 source/commit and record the source archive hash.
 - [x] Generate an Alpine package license inventory from the installed
       DB and APKINDEX repo mapping, including source URLs.
 - [x] Collect per-package Alpine copyright notices from pinned
@@ -118,6 +119,9 @@ python3 scripts/build-licenses.py
 - [x] Confirmed PRoot dynamically links `libtalloc.so.2` and
       `libandroid-shmem.so` with `readelf -d`; talloc source is
       LGPL-3.0-or-later.
+- [x] Confirmed the `opencode` ELF has no shared JSC/tinycc dependency
+      and embeds JavaScriptCore source paths, consistent with Bun's
+      static LGPL linkage.
 - [ ] Release notes state the exact runtime version, hashes and license
       changes.
 - [ ] SEC-5 result: no unfixed critical/high vulnerabilities.
@@ -127,8 +131,10 @@ python3 scripts/build-licenses.py
 The generated draft is [SOURCE-OFFER.md](SOURCE-OFFER.md). The final
 release must replace placeholders with the release URL and contact:
 
-> This release includes PRoot (GPL-2.0-or-later) and Alpine packages under
-> GPL/LGPL/MPL licenses. Corresponding source is available at
+> This release includes PRoot (GPL-2.0-or-later), libtalloc
+> (LGPL-3.0-or-later), Bun's statically linked LGPL components, and
+> Alpine packages under GPL/LGPL/MPL licenses. Corresponding source is
+> available at
 > `<repository/release URL>` and, on request, from `<contact>` for at
 > least three years from the date of distribution. The offer is valid
 > for anyone who received this binary.
@@ -136,10 +142,12 @@ release must replace placeholders with the release URL and contact:
 ## Known release blockers
 
 1. **Bun LGPL components.** JavaScriptCore (LGPL-2.0-only) and tinycc
-   (LGPL-2.1-only) are statically linked into the Bun binary. Resolve
-   the relink/object-file or source-offer requirement before release.
-   Bun's other bundled libraries are listed in `NOTICES.md`; their
-   versions and presence still need release-time verification.
+   (LGPL-2.1-only) are statically linked into the Bun binary; the
+   `opencode` ELF has no shared JSC/tinycc dependency. Bun 1.3.14 source
+   is pinned, but legal review must decide whether its source/relink
+   steps satisfy the object-file/source-offer requirement. Bun's other
+   bundled libraries are listed in `NOTICES.md`; their versions and
+   presence still need release-time verification.
 2. **OpenCode closure accuracy.** The SBOM follows `bun.lock` install
    paths and aggregates duplicate versions, but it is not a binary scan.
    Verify the bundled set and CC-BY notices at release.
