@@ -37,3 +37,9 @@ Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc
 LICENSE.md: https://github.com/oven-sh/bun/blob/main/LICENSE.md.
 Bun's other bundled libraries are listed in NOTICES.md; review
 their licenses before release.
+
+## OpenCode dependency closure
+
+The production/optional lockfile closure contains no GPL/AGPL
+packages. MPL/AFL dual-licensed packages are used under their
+permissive options; CC-BY attribution is recorded in NOTICES.md.

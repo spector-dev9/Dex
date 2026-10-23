@@ -19,7 +19,14 @@ def fail(message: str) -> "NoReturn":
 
 
 def main() -> int:
-    for name in ("components.json", "sbom.cdx.json", "NOTICES.md", "SOURCE-OFFER.md"):
+    for name in (
+        "components.json",
+        "sbom.cdx.json",
+        "opencode-deps.json",
+        "opencode-deps.cdx.json",
+        "NOTICES.md",
+        "SOURCE-OFFER.md",
+    ):
         if not (LICENSES / name).is_file():
             fail(f"missing docs/licenses/{name}")
 
@@ -72,6 +79,42 @@ def main() -> int:
         if required not in names:
             fail(f"SBOM is missing {required}")
 
+    deps = json.loads((LICENSES / "opencode-deps.json").read_text(encoding="utf-8"))
+    deps_sbom = json.loads((LICENSES / "opencode-deps.cdx.json").read_text(encoding="utf-8"))
+    if deps.get("schema") != 1:
+        fail("unsupported OpenCode dependency schema")
+    if deps["source"]["sha256"] != manifest["source"]["sha256"]:
+        fail("OpenCode dependency SBOM source hash does not match the manifest")
+    if deps["packageCount"] != len(deps["packages"]):
+        fail("OpenCode dependency package count mismatch")
+    if deps["instanceCount"] != sum(len(item["installPaths"]) for item in deps["packages"]):
+        fail("OpenCode dependency install-path count mismatch")
+    if deps["workspaceCount"] != sum(1 for item in deps["packages"] if item["workspace"]):
+        fail("OpenCode dependency workspace count mismatch")
+    if deps["externalCount"] != sum(1 for item in deps["packages"] if not item["workspace"]):
+        fail("OpenCode dependency external count mismatch")
+    if len({item["purl"] for item in deps["packages"]}) != deps["packageCount"]:
+        fail("OpenCode dependency purls are not unique")
+    if sum(deps["licenseSummary"].values()) != deps["packageCount"]:
+        fail("OpenCode dependency license summary does not cover every package")
+    if deps["unresolvedLicenses"]:
+        fail("OpenCode dependency SBOM has unresolved licenses")
+    if deps["unresolvedPackages"]:
+        fail("OpenCode dependency SBOM has unresolved packages")
+    if len(deps_sbom.get("components") or []) != deps["packageCount"]:
+        fail("OpenCode dependency SBOM component count mismatch")
+    if len({item["bom-ref"] for item in deps_sbom["components"]}) != deps["packageCount"]:
+        fail("OpenCode dependency SBOM bom-refs are not unique")
+    if deps_sbom["metadata"]["component"]["version"] != manifest["version"]:
+        fail("OpenCode dependency SBOM version mismatch")
+    deps_names = {item["name"] for item in deps["packages"]}
+    for required in ("caniuse-lite", "spdx-exceptions", "dompurify", "json-schema", "type-fest"):
+        if required not in deps_names:
+            fail(f"OpenCode dependency SBOM is missing {required}")
+    for item in deps["packages"]:
+        if "GPL" in item["license"] or "AGPL" in item["license"]:
+            fail(f"unreviewed copyleft dependency: {item['name']} ({item['license']})")
+
     texts = LICENSES / "texts"
     for text in (
         "MIT.txt",
@@ -80,6 +123,8 @@ def main() -> int:
         "GPL-3.0-only.txt",
         "LGPL-3.0-or-later.txt",
         "BSD-3-Clause.txt",
+        "CC-BY-3.0.txt",
+        "CC-BY-4.0.txt",
         "Bun-LICENSE.md",
     ):
         if not (texts / text).is_file():
@@ -101,7 +146,8 @@ def main() -> int:
 
     print(
         f"license artifacts ok: {len(inventory['packages'])} Alpine packages, "
-        f"{len(components)} SBOM components"
+        f"{len(components)} main SBOM components, {deps['packageCount']} "
+        f"OpenCode dependency packages"
     )
     return 0
 

@@ -403,9 +403,9 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
         "Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc "
         "(LGPL-2.1-only); Bun's LICENSE.md describes relinking. LGPL "
         "object-file/source-offer compliance needs legal review before release.",
-        "OpenCode's embedded JavaScript dependencies are not listed in the "
-        "community tarball; generate a transitive SBOM from upstream tag "
-        f"v{version}.",
+        "The OpenCode dependency SBOM is a production/optional lockfile "
+        "closure; verify the bundled set against the binary at release and "
+        "keep CC-BY attribution notices current.",
         "libtalloc is LGPL-3.0-or-later and is linked by PRoot; review "
         "relink/source-offer duties together with the Bun LGPL components.",
         "PRoot and libtalloc are pinned to Termux packages; verify each "
@@ -555,6 +555,40 @@ def notices(data: dict) -> str:
     ]
     for license_id, count in data["licenseSummary"].items():
         lines.append(f"| {license_id} | {count} |")
+    deps_path = ROOT / "docs" / "licenses" / "opencode-deps.json"
+    if deps_path.is_file():
+        deps = json.loads(deps_path.read_text(encoding="utf-8"))
+        lines += [
+            "",
+            "## OpenCode dependency closure",
+            "",
+            f"The production/optional closure of `packages/opencode` contains "
+            f"{deps['packageCount']} unique npm and workspace packages at "
+            f"{deps['instanceCount']} install paths.",
+            "",
+            "Full inventory: [opencode-deps.json](opencode-deps.json); SBOM:",
+            "[opencode-deps.cdx.json](opencode-deps.cdx.json).",
+            "",
+            "| License | Packages |",
+            "| --- | --- |",
+        ]
+        for license_id, count in deps["licenseSummary"].items():
+            lines.append(f"| {license_id} | {count} |")
+        lines += [
+            "",
+            "Attribution is required for `caniuse-lite` (CC-BY-4.0) and",
+            "`spdx-exceptions` (CC-BY-3.0). Dual-licensed packages",
+            "(`dompurify`: MPL-2.0 OR Apache-2.0; `json-schema`: AFL-2.1 OR",
+            "BSD-3-Clause; `type-fest`: MIT OR CC0-1.0) are used under the",
+            "permissive option. No GPL/AGPL packages were found in this closure.",
+            "",
+            "CC-BY attribution:",
+            "",
+            "- `caniuse-lite` — caniuse-lite contributors, CC-BY-4.0,",
+            "  <https://github.com/browserslist/caniuse-lite>.",
+            "- `spdx-exceptions` — SPDX contributors, CC-BY-3.0,",
+            "  <https://github.com/kemitchell/spdx-exceptions.json>.",
+        ]
     lines += [
         "",
         "## Known gaps",
@@ -575,6 +609,8 @@ def notices(data: dict) -> str:
         "LGPL-2.1-only",
         "LGPL-3.0-or-later",
         "BSD-3-Clause",
+        "CC-BY-3.0",
+        "CC-BY-4.0",
     ]
     lines += [
         "",
@@ -644,6 +680,12 @@ def source_offer(data: dict) -> str:
         "LICENSE.md: https://github.com/oven-sh/bun/blob/main/LICENSE.md.",
         "Bun's other bundled libraries are listed in NOTICES.md; review",
         "their licenses before release.",
+        "",
+        "## OpenCode dependency closure",
+        "",
+        "The production/optional lockfile closure contains no GPL/AGPL",
+        "packages. MPL/AFL dual-licensed packages are used under their",
+        "permissive options; CC-BY attribution is recorded in NOTICES.md.",
         "",
     ]
     return "\n".join(lines)

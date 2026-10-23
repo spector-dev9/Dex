@@ -1,8 +1,9 @@
 # Licensing and distribution compliance (S9)
 
-Status: draft. Inventory, CycloneDX SBOM, notices and a source-offer
-draft were generated on 2026-10-23. The checklist must be complete
-before the first public release. It supports ADR 0001 (D1) and SEC-5.
+Status: draft. Inventory, two CycloneDX SBOMs, notices and a
+source-offer draft were generated on 2026-10-23. The checklist must be
+complete before the first public release. It supports ADR 0001 (D1)
+and SEC-5.
 
 ## Components in the shipped APK
 
@@ -10,6 +11,7 @@ before the first public release. It supports ADR 0001 (D1) and SEC-5.
 | --- | --- | --- | --- | --- |
 | OpenCode | 1.19.3 | MIT | Upstream release / `anomalyco/opencode` | Include copyright and permission notice |
 | Community Termux artifact | 1.19.3 | MIT | `C04-wq/opencode-termux` release | Include notice; confirm bundled dependency notices |
+| OpenCode npm closure | 1.19.3 lockfile | permissive + CC-BY | npm registry | See `opencode-deps.*`; include CC-BY attribution |
 | Bun runtime inside artifact | 1.3.14 | MIT | Bun | Include Bun LICENSE and SBOM |
 | Bun bundled libraries/polyfills | bundled | mixed | Bun | Listed in `NOTICES.md`; verify presence at release |
 | JavaScriptCore/WebKit (inside Bun) | bundled | LGPL-2.0-only | Bun/WebKit | LGPL relink/source-offer review; Bun LICENSE |
@@ -33,7 +35,13 @@ offer is a release blocker until reviewed.
 
 - [components.json](components.json) — machine-readable inventory
   (runtime, Alpine packages, licenses, source URLs).
-- [sbom.cdx.json](sbom.cdx.json) — CycloneDX 1.5 SBOM.
+- [sbom.cdx.json](sbom.cdx.json) — CycloneDX 1.5 SBOM for the app,
+  runtime, Bun libraries, Android libraries and Alpine rootfs.
+- [opencode-deps.json](opencode-deps.json) — 849-package production
+  dependency closure of `packages/opencode` (835 external packages,
+  1,066 install paths).
+- [opencode-deps.cdx.json](opencode-deps.cdx.json) — CycloneDX 1.5
+  SBOM for that closure.
 - [NOTICES.md](NOTICES.md) — human-readable third-party notices.
 - [SOURCE-OFFER.md](SOURCE-OFFER.md) — draft GPL/LGPL/MPL source offer.
 - [texts/](texts/) — license texts and `SHA256SUMS`.
@@ -42,6 +50,7 @@ Regenerate after any runtime, rootfs or dependency change:
 
 ```bash
 python3 scripts/fetch-runtime.py --alpine --android-libs
+python3 scripts/build-opencode-sbom.py   # network; caches npm metadata
 python3 scripts/build-licenses.py
 ```
 
@@ -59,10 +68,14 @@ python3 scripts/build-licenses.py
 ### Notices and source
 
 - [x] Generate a CycloneDX SBOM for the runtime and rootfs.
+- [x] Generate a CycloneDX SBOM for OpenCode's production dependency
+      closure from the pinned `bun.lock`.
 - [x] Generate an Alpine package license inventory from the installed
       DB and APKINDEX repo mapping, including source URLs.
 - [x] Copy MIT, Apache-2.0, GPL-2.0 and other required texts into
       `docs/licenses/texts/`.
+- [x] Include CC-BY attribution and license texts for `caniuse-lite`
+      and `spdx-exceptions`.
 - [ ] Add the license texts to an in-app "Open source licenses" screen.
 - [ ] Publish the PRoot corresponding source (or a written offer) with
       each release.
@@ -120,8 +133,9 @@ release must replace placeholders with the release URL and contact:
    the relink/object-file or source-offer requirement before release.
    Bun's other bundled libraries are listed in `NOTICES.md`; their
    versions and presence still need release-time verification.
-2. **OpenCode transitive dependencies.** The tarball has no notices;
-   generate an SBOM from upstream tag `v1.19.3`.
+2. **OpenCode closure accuracy.** The SBOM follows `bun.lock` install
+   paths and aggregates duplicate versions, but it is not a binary scan.
+   Verify the bundled set and CC-BY notices at release.
 3. **libtalloc LGPL.** PRoot links libtalloc 2.5.0 under
    LGPL-3.0-or-later. Resolve relink/source-offer duties before release.
 4. **Alpine copyright notices.** License IDs are known; per-package
@@ -139,4 +153,5 @@ release must replace placeholders with the release URL and contact:
    verification account?
 4. Does distributing the Bun binary require shipping relinkable object
    files, or is Bun's published source/relink path sufficient?
-5. Where is the OpenCode `v1.19.3` dependency SBOM published?
+5. Does the binary include every package in the lockfile closure? Verify
+   at release and trim or annotate the SBOM accordingly.

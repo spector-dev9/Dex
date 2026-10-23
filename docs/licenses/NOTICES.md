@@ -115,10 +115,46 @@ verified and versions are not pinned.
 | MPL-2.0 AND MIT | 1 |
 | Zlib | 1 |
 
+## OpenCode dependency closure
+
+The production/optional closure of `packages/opencode` contains 849 unique npm and workspace packages at 1066 install paths.
+
+Full inventory: [opencode-deps.json](opencode-deps.json); SBOM:
+[opencode-deps.cdx.json](opencode-deps.cdx.json).
+
+| License | Packages |
+| --- | --- |
+| (AFL-2.1 OR BSD-3-Clause) | 1 |
+| (MIT OR CC0-1.0) | 1 |
+| (MPL-2.0 OR Apache-2.0) | 1 |
+| 0BSD | 1 |
+| Apache-2.0 | 150 |
+| BSD-2-Clause | 12 |
+| BSD-3-Clause | 21 |
+| BlueOak-1.0.0 | 12 |
+| CC-BY-3.0 | 1 |
+| CC-BY-4.0 | 1 |
+| CC0-1.0 | 1 |
+| ISC | 85 |
+| MIT | 562 |
+
+Attribution is required for `caniuse-lite` (CC-BY-4.0) and
+`spdx-exceptions` (CC-BY-3.0). Dual-licensed packages
+(`dompurify`: MPL-2.0 OR Apache-2.0; `json-schema`: AFL-2.1 OR
+BSD-3-Clause; `type-fest`: MIT OR CC0-1.0) are used under the
+permissive option. No GPL/AGPL packages were found in this closure.
+
+CC-BY attribution:
+
+- `caniuse-lite` — caniuse-lite contributors, CC-BY-4.0,
+  <https://github.com/browserslist/caniuse-lite>.
+- `spdx-exceptions` — SPDX contributors, CC-BY-3.0,
+  <https://github.com/kemitchell/spdx-exceptions.json>.
+
 ## Known gaps
 
 - Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc (LGPL-2.1-only); Bun's LICENSE.md describes relinking. LGPL object-file/source-offer compliance needs legal review before release.
-- OpenCode's embedded JavaScript dependencies are not listed in the community tarball; generate a transitive SBOM from upstream tag v1.19.3.
+- The OpenCode dependency SBOM is a production/optional lockfile closure; verify the bundled set against the binary at release and keep CC-BY attribution notices current.
 - libtalloc is LGPL-3.0-or-later and is linked by PRoot; review relink/source-offer duties together with the Bun LGPL components.
 - PRoot and libtalloc are pinned to Termux packages; verify each published deb was built from the pinned source before release.
 - Alpine packages do not all ship license files; copyright notices must be collected from the APKBUILD/upstream sources.
@@ -141,6 +177,8 @@ verified and versions are not pinned.
 | LGPL-2.1-only | [texts/LGPL-2.1-only.txt](texts/LGPL-2.1-only.txt) |
 | LGPL-3.0-or-later | [texts/LGPL-3.0-or-later.txt](texts/LGPL-3.0-or-later.txt) |
 | BSD-3-Clause | [texts/BSD-3-Clause.txt](texts/BSD-3-Clause.txt) |
+| CC-BY-3.0 | [texts/CC-BY-3.0.txt](texts/CC-BY-3.0.txt) |
+| CC-BY-4.0 | [texts/CC-BY-4.0.txt](texts/CC-BY-4.0.txt) |
 | Bun bundled components | [texts/Bun-LICENSE.md](texts/Bun-LICENSE.md) |
 
 MIT and Apache-2.0 texts are generic; the copyright notices above

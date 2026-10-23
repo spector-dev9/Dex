@@ -43,11 +43,12 @@ machine.
 - D1 accepted: GitHub Releases + Obtainium first, self-hosted F-Droid
   after reproducible builds, Play deferred; app code Apache-2.0.
 - Generated a 14-package Alpine license inventory, a 67-component
-  CycloneDX 1.5 SBOM (including Bun's bundled libraries and pinned
-  Android libraries), notices, license texts and a source-offer draft
-  under [docs/licenses](docs/licenses/README.md).
+  main CycloneDX 1.5 SBOM, an 849-package OpenCode dependency SBOM,
+  notices, license texts and a source-offer draft under
+  [docs/licenses](docs/licenses/README.md).
 - Open blockers: Bun statically links LGPL JavaScriptCore/tinycc;
-  libtalloc is LGPL-3.0-or-later; OpenCode's transitive SBOM is missing.
+  libtalloc is LGPL-3.0-or-later; verify the dependency closure against
+  the built binary.
 
 ## Intended architecture (provisional)
 

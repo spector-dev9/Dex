@@ -375,7 +375,7 @@
   ],
   "knownGaps": [
     "Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc (LGPL-2.1-only); Bun's LICENSE.md describes relinking. LGPL object-file/source-offer compliance needs legal review before release.",
-    "OpenCode's embedded JavaScript dependencies are not listed in the community tarball; generate a transitive SBOM from upstream tag v1.19.3.",
+    "The OpenCode dependency SBOM is a production/optional lockfile closure; verify the bundled set against the binary at release and keep CC-BY attribution notices current.",
     "libtalloc is LGPL-3.0-or-later and is linked by PRoot; review relink/source-offer duties together with the Bun LGPL components.",
     "PRoot and libtalloc are pinned to Termux packages; verify each published deb was built from the pinned source before release.",
     "Alpine packages do not all ship license files; copyright notices must be collected from the APKBUILD/upstream sources.",
