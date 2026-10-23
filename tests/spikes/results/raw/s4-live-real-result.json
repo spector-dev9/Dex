@@ -1,0 +1,39 @@
+{
+  "sessionID": "ses_e9856db51ffeKt9K114ZiYyvhW",
+  "elapsedMs": 51396,
+  "connections": 501,
+  "chunks": 708,
+  "drops": 500,
+  "dropsAtIdle": 102,
+  "dropsAfterIdle": 398,
+  "target": 500,
+  "idle": true,
+  "finalTextChars": 8042,
+  "finalWords": 1250,
+  "modelMessages": 2,
+  "authoritativeMessages": 2,
+  "reconnectP95Ms": 59,
+  "reconnectMaxMs": 287,
+  "reconnectFailures": 0,
+  "equal": true,
+  "actualHash": "bcb0da016050876c3861409a36ddb1a2e6537ed4a1d7ab58ccc808ba546053a0",
+  "authoritativeHash": "bcb0da016050876c3861409a36ddb1a2e6537ed4a1d7ab58ccc808ba546053a0",
+  "statuses": [
+    "connecting",
+    "open",
+    "resyncing",
+    "reconnecting",
+    "stopped"
+  ],
+  "eventCounts": {
+    "server.connected": 501,
+    "session.updated": 4,
+    "message.updated": 4,
+    "message.part.updated": 6,
+    "session.status": 3,
+    "synthetic": 500,
+    "message.part.delta": 1053,
+    "session.diff": 1,
+    "session.idle": 1
+  }
+}

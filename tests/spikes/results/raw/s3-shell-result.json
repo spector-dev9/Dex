@@ -1,0 +1,26 @@
+{
+  "sessionID": "ses_e98407fcaffeesPkOsMF1xXAyN",
+  "serverVersion": "1.19.3",
+  "model": "opencode/deepseek-v4.1-flash-free",
+  "shellSource": "SHELL environment variable",
+  "wrapper": "runtime/tmp/s3/shell-wrapper",
+  "marker": "-c printf S3-AGENT-OK\n",
+  "toolCalls": [
+    {
+      "tool": "bash",
+      "input": {
+        "command": "printf S3-AGENT-OK"
+      },
+      "status": "completed",
+      "output": "S3-AGENT-OK",
+      "metadata": {
+        "output": "S3-AGENT-OK",
+        "exit": 0,
+        "truncated": false
+      }
+    }
+  ],
+  "assistantText": [
+    "S3-AGENT-OK"
+  ]
+}

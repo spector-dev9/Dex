@@ -23,6 +23,12 @@ documents them. D10 (native PtyService) can still stand — the terminal
 must work when the server is down — but its rationale must be revised
 at G0: it is no longer "avoid an undocumented endpoint".
 
+Runtime check: `POST /pty` on the host 1.19.3 build returns 500 because
+the bundled `bun-pty` library is glibc-linked and bionic cannot relocate
+`gnu_get_libc_version`. The routes are documented but unusable on this
+artifact; native PTY is now a hard requirement, not only an offline
+fallback.
+
 ## Authentication (`OPENCODE_SERVER_PASSWORD`)
 
 | Request | No password set | Password `test-secret` |

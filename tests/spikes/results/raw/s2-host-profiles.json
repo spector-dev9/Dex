@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-23",
+  "scope": "host-only smoke; not a device run and not the full S2 benchmark",
+  "runtime": "opencode 1.19.3, Alpine 3.20.3, PRoot 5.1.107.98",
+  "profileA": {
+    "launch": "pinned musl loader + binary directly on host",
+    "coldStartMs": 6266,
+    "idleRssKb": 320268,
+    "promptMs": 4958,
+    "postPromptRssKb": 515528,
+    "health": {
+      "healthy": true,
+      "version": "1.19.3"
+    },
+    "promptTokens": 26
+  },
+  "profileB": {
+    "launch": "same binary inside PRoot Alpine, /opt/opencode copied, /lib/ld-musl-aarch64.so.1 symlink",
+    "coldStartMs": 3281,
+    "prootRssKb": 3644,
+    "promptMs": 3638,
+    "health": {
+      "healthy": true,
+      "version": "1.19.3"
+    },
+    "promptTokens": 26,
+    "postPromptRssKb": 492492
+  },
+  "caveat": "single host samples; RSS after prompt differs in timing; Profile B copy is a test convenience, not the packaging decision",
+  "notTested": [
+    "device thermal/background behavior",
+    "git status on 10k-file repo",
+    "npm test through agent",
+    "Tier A/B/C matrix"
+  ]
+}

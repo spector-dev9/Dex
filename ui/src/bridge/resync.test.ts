@@ -146,3 +146,93 @@ test("events before any connect are applied live", () => {
   assert.equal(controller.receive(partEvent(1, 1, 1, 1)), "applied");
   assert.equal(controller.model.snapshot().messages.length, 1);
 });
+
+function deltaEvent(
+  sequence: number,
+  message: number,
+  part: number,
+  delta: string,
+): SessionEvent {
+  return {
+    id: `evt_delta_${sequence}`,
+    type: "message.part.delta",
+    properties: {
+      sessionID: "ses_1",
+      messageID: `msg_${message}`,
+      partID: `prt_${message}_${part}`,
+      field: "text",
+      delta,
+    },
+  };
+}
+
+test("live text deltas accumulate until the authoritative part update", () => {
+  const model = new TranscriptModel();
+
+  model.apply({
+    id: "evt_start",
+    type: "message.part.updated",
+    properties: {
+      part: {
+        id: "prt_1_1",
+        messageID: "msg_1",
+        type: "text",
+        text: "",
+        time: { start: 100 },
+      },
+    },
+  });
+  model.apply(deltaEvent(2, 1, 1, "MOCK-00000 "));
+  model.apply(deltaEvent(3, 1, 1, "MOCK-00001 "));
+
+  assert.equal(
+    model.snapshot().messages[0].parts[0].text,
+    "MOCK-00000 MOCK-00001 ",
+  );
+
+  model.apply(partEvent(4, 1, 1, 200));
+  assert.equal(model.snapshot().messages[0].parts[0].text, "message 1 part 1 revision 200");
+});
+
+test("buffered text deltas replay onto a snapshot without creating parts twice", async () => {
+  const controller = new ResyncController();
+  controller.receive({
+    id: "evt_conn",
+    type: "server.connected",
+    properties: {},
+  });
+
+  controller.receive(deltaEvent(2, 1, 1, "world"));
+  await controller.finishResync(() => ({
+    messages: [
+      {
+        id: "msg_1",
+        parts: [{ id: "prt_1_1", text: "hello ", revision: 100 }],
+      },
+    ],
+  }));
+
+  assert.deepEqual(controller.model.snapshot(), {
+    messages: [
+      {
+        id: "msg_1",
+        parts: [{ id: "prt_1_1", text: "hello world", revision: 100 }],
+      },
+    ],
+  });
+});
+
+test("non-text deltas are ignored", () => {
+  const model = new TranscriptModel();
+  model.apply({
+    id: "evt_delta_reasoning",
+    type: "message.part.delta",
+    properties: {
+      messageID: "msg_1",
+      partID: "prt_1_1",
+      field: "reasoning",
+      delta: "hidden",
+    },
+  });
+  assert.deepEqual(model.snapshot(), { messages: [] });
+});

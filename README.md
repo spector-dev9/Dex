@@ -31,12 +31,27 @@ machine.
   reconnect delivers a fresh `server.connected`; directory-scoped
   `/event?directory=…` is accepted.
 - The SSE parser, resync algorithm and gateway client (Basic auth,
-  directory scoping, backoff, 60 s idle watchdog) pass 27 tests,
-  including 500 randomized drop scenarios (simulation, not a live
-  prompt stream).
+  directory scoping, backoff, 60 s idle watchdog) pass 30 tests,
+  including 500 randomized drop scenarios, live 500-drop mock-provider
+  and hosted-model runs (p95 reconnect 59 ms; final transcript
+  identical), and an authenticated 500-drop reconnect loop.
+- The live OpenCode event shape uses `message.part.delta` for token
+  text and a final `message.part.updated` with the full part; the bridge
+  now handles both.
+- The agent's bash tool honors a `SHELL` wrapper and entered the PRoot
+  Alpine guest (`pwd` = `/root`, exit 0); app-sandbox/native-PTY
+  identity remains untested.
+- Both Profile A and Profile B start and complete a mock round trip on
+  the host. Profile B's PRoot server is viable; device/git/npm/thermal
+  comparisons remain before choosing a default.
 - The pinned `/doc` lists all 36 planned endpoints; PTY routes are
   documented there (correcting spec F3), and 51 `/api/*` paths exist
-  that Section 4.1 does not mention.
+  that Section 4.1 does not mention. Server `/pty` creation fails on
+  Android because its bundled `bun-pty` library is glibc-linked, so the
+  native PTY in D10 is a hard requirement.
+- A nightly contract-drift workflow compares the latest upstream `/doc`
+  with the pinned contract; a local check against 1.19.4 found no
+  breaking drift.
 
 ## S9 progress
 
@@ -78,8 +93,8 @@ environment audit for details.
 
 ## Next step
 
-1. Run the live STR-5 fault-injection test during a streaming prompt
-   (needs provider credentials and an app/UI session).
+1. Run the S3 guest wrapper and native PTY inside the app sandbox, and
+   compare agent-shell/PTY `pwd`, `node -v` and `PATH`.
 2. Resolve the S9 blockers (Bun/libtalloc LGPL, Alpine notices,
    trademark) and complete the licensing checklist, then freeze D1/D4/D5
    at G0.

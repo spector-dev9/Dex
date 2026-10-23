@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-23",
+  "server": "opencode 1.19.3 pinned, unsecured",
+  "provider": "opencode/deepseek-v4.1-flash-free",
+  "guest": {
+    "rootfs": "Alpine 3.20.3 minirootfs",
+    "rootfsSha256": "041fa34a81788242df9e78fa69b97ab45b8ec47ddbf88864755610414a7bf3de",
+    "proot": "5.1.107.98",
+    "prootSha256": "29de40efea4daa2a6168b617915206511c63e8d46bf5f4b07d48723441ef7f3b",
+    "command": "runtime/tmp/s3/guest-wrapper -c ...",
+    "cwd": "/root",
+    "path": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "alpineRelease": "3.20.3"
+  },
+  "agentTool": {
+    "command": "pwd; printf S3-GUEST-OK",
+    "output": "/root\nS3-GUEST-OK",
+    "exit": 0,
+    "marker": "-c pwd; printf S3-GUEST-OK"
+  },
+  "serverPty": {
+    "hostShellStatus": 500,
+    "guestWrapperStatus": 500,
+    "error": "ERR_DLOPEN_FAILED: gnu_get_libc_version: symbol not found",
+    "note": "bun-pty native library did not load on this Android host; D10 already selects a native PtyService, so this is not a dependency of S3.",
+    "detail": "bundled bun-pty native library is glibc-linked; fails under Android bionic even when server stdout is a TTY"
+  }
+}

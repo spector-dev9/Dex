@@ -1,0 +1,141 @@
+name: Contract drift
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: contract-drift
+  cancel-in-progress: false
+
+jobs:
+  upstream:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Resolve latest upstream release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh api repos/anomalyco/opencode/releases/latest --jq .tag_name)
+          url=$(gh api repos/anomalyco/opencode/releases/latest \
+            --jq '.assets[] | select(.name == "opencode-linux-x64.tar.gz") | .browser_download_url')
+          test -n "$tag"
+          test -n "$url"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Download and extract runtime
+        env:
+          URL: ${{ steps.release.outputs.url }}
+        run: |
+          curl -fsSL "$URL" -o "$RUNNER_TEMP/opencode.tar.gz"
+          mkdir -p "$RUNNER_TEMP/runtime"
+          tar -xzf "$RUNNER_TEMP/opencode.tar.gz" -C "$RUNNER_TEMP/runtime"
+          binary=$(find "$RUNNER_TEMP/runtime" -maxdepth 2 -type f -name opencode -print -quit)
+          test -n "$binary"
+          chmod +x "$binary"
+          echo "OPENCODE_BIN=$binary" >> "$GITHUB_ENV"
+
+      - name: Capture live /doc
+        run: |
+          mkdir -p "$RUNNER_TEMP/home"
+          HOME="$RUNNER_TEMP/home" \
+          XDG_CONFIG_HOME="$RUNNER_TEMP/home/.config" \
+          XDG_DATA_HOME="$RUNNER_TEMP/home/.local/share" \
+          XDG_CACHE_HOME="$RUNNER_TEMP/home/.cache" \
+          TMPDIR="$RUNNER_TEMP" \
+          SHELL=/bin/sh \
+          OPENCODE_DISABLE_AUTOUPDATE=1 \
+          OPENCODE_DISABLE_MODELS_FETCH=1 \
+          OPENCODE_DISABLE_LSP_DOWNLOAD=1 \
+          OPENCODE_DISABLE_DEFAULT_PLUGINS=1 \
+          OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER=1 \
+            "$OPENCODE_BIN" serve --hostname 127.0.0.1 --port 4096 \
+            > "$RUNNER_TEMP/server.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/server.pid"
+
+          healthy=0
+          for _ in $(seq 1 60); do
+            if curl -fsS --max-time 2 http://127.0.0.1:4096/global/health >/dev/null; then
+              healthy=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$healthy" -ne 1 ]; then
+            cat "$RUNNER_TEMP/server.log"
+            exit 1
+          fi
+          curl -fsS --max-time 30 http://127.0.0.1:4096/doc -o "$RUNNER_TEMP/latest-doc.json"
+          python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["openapi"], len(d.get("paths", {})))' \
+            "$RUNNER_TEMP/latest-doc.json" > "$RUNNER_TEMP/doc-summary.txt"
+          cat "$RUNNER_TEMP/doc-summary.txt"
+
+      - name: Compare against pinned contract
+        id: drift
+        continue-on-error: true
+        run: |
+          python3 scripts/check-contract-drift.py \
+            --doc "$RUNNER_TEMP/latest-doc.json" \
+            --report "$RUNNER_TEMP/drift.md" \
+            --json "$RUNNER_TEMP/drift.json"
+
+      - name: Open or update drift issue
+        if: steps.drift.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          gh label create contract-drift --color B60205 \
+            --description "Upstream OpenCode /doc drift report" 2>/dev/null || true
+          {
+            echo "Latest release: \`$TAG\`"
+            echo
+            cat "$RUNNER_TEMP/drift.md" 2>/dev/null || echo "Drift check failed before a report was produced."
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > "$RUNNER_TEMP/issue.md"
+          existing=$(gh issue list --label contract-drift --state open \
+            --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file "$RUNNER_TEMP/issue.md"
+          else
+            gh issue create --title "Contract drift: upstream OpenCode /doc" \
+              --label contract-drift --body-file "$RUNNER_TEMP/issue.md"
+          fi
+
+      - name: Close stale drift issue on success
+        if: steps.drift.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          existing=$(gh issue list --label contract-drift --state open \
+            --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" \
+              --comment "Latest release \`$TAG\` passed the pinned-contract check."
+          fi
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/server.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/server.pid")" 2>/dev/null || true
+          fi
+
+      - name: Fail job on breaking drift
+        if: steps.drift.outcome == 'failure'
+        run: exit 1

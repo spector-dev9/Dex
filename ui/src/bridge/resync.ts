@@ -14,9 +14,11 @@
  *      and guarded by per-part revision.
  *   5. Leave buffering mode; apply subsequent events live.
  *
- * Duplicate events are ignored by id. Stale part updates (lower
- * revision than the model) are ignored, so a snapshot that is newer
- * than a buffered event cannot regress it.
+ * Duplicate events are ignored by id. Text deltas are appended to their
+ * part; a later `message.part.updated` with a newer revision is
+ * authoritative. Stale part updates (lower revision than the model) are
+ * ignored, so a snapshot that is newer than a buffered event cannot
+ * regress it.
  */
 
 import type { ServerEvent } from "./sse.ts";
@@ -49,6 +51,15 @@ interface MessageRecord {
   parts: Map<string, PartRecord>;
 }
 
+function partRevision(time: unknown): number {
+  if (!time || typeof time !== "object") return 0;
+  const value = time as Record<string, unknown>;
+  for (const key of ["updated", "end", "start"]) {
+    if (typeof value[key] === "number") return value[key] as number;
+  }
+  return 0;
+}
+
 export class TranscriptModel {
   private messages = new Map<string, MessageRecord>();
   private applied = 0;
@@ -58,6 +69,10 @@ export class TranscriptModel {
   }
 
   apply(event: SessionEvent): void {
+    if (event.type === "message.part.delta") {
+      this.applyDelta(event);
+      return;
+    }
     if (event.type !== "message.part.updated") return;
     const part = event.properties.part;
     if (!part || typeof part !== "object") return;
@@ -69,21 +84,42 @@ export class TranscriptModel {
     ) {
       return;
     }
-    const time = value.time;
-    const revision =
-      time && typeof time === "object" && typeof (time as Record<string, unknown>).updated === "number"
-        ? ((time as Record<string, unknown>).updated as number)
-        : 0;
+    const revision = partRevision(value.time);
 
-    let message = this.messages.get(value.messageID);
-    if (!message) {
-      message = { id: value.messageID, parts: new Map() };
-      this.messages.set(value.messageID, message);
-    }
+    const message = this.message(value.messageID);
     const existing = message.parts.get(value.id);
     if (existing && existing.revision > revision) return;
     message.parts.set(value.id, { id: value.id, text: value.text, revision });
     this.applied += 1;
+  }
+
+  private applyDelta(event: SessionEvent): void {
+    if (event.properties.field !== "text") return;
+    const { messageID, partID, delta } = event.properties;
+    if (
+      typeof messageID !== "string" ||
+      typeof partID !== "string" ||
+      typeof delta !== "string"
+    ) {
+      return;
+    }
+    const message = this.message(messageID);
+    const existing = message.parts.get(partID);
+    message.parts.set(partID, {
+      id: partID,
+      text: (existing?.text ?? "") + delta,
+      revision: existing?.revision ?? 0,
+    });
+    this.applied += 1;
+  }
+
+  private message(id: string): MessageRecord {
+    let message = this.messages.get(id);
+    if (!message) {
+      message = { id, parts: new Map() };
+      this.messages.set(id, message);
+    }
+    return message;
   }
 
   replace(snapshot: TranscriptSnapshot): void {

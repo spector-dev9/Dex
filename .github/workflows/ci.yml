@@ -40,6 +40,9 @@ jobs:
           python3 scripts/check-licenses.py
           (cd docs/licenses/texts && sha256sum -c SHA256SUMS)
 
+      - name: Contract drift checker
+        run: python3 scripts/check-contract-drift.py --doc contract/openapi/opencode-1.19.3.json
+
       - name: Inventory is reproducible
         run: |
           python3 scripts/build-inventory.py
