@@ -14,16 +14,17 @@ The harness currently covers:
 - S1 app-sandbox launch of `opencode --version` through the bundled
   loader, with the binary and libraries in app-private storage;
 - S3 partial: a PRoot/Alpine guest shell (`pwd`, `PATH`,
-  `/etc/alpine-release`);
+  `node -v`, `/etc/alpine-release`), plus native `forkpty` comparison
+  of guest `pwd`, `PATH` and `node -v`;
 - S7 partial: `specialUse` foreground service start/stop and lifecycle
   events;
 - S8 partial: keyboard/IME input observation in a text field; this is
   not a native terminal and does not replace the PTY comparison;
 - a JSON report with command lines, exit codes and bounded stdout/stderr.
 
-It does **not** include the native `forkpty` helper, the OpenCode server,
-the supervisor, SSE, Git or workspace services. Those remain deferred
-until after G0. Do not treat a passing harness run as device acceptance:
+It does **not** include the OpenCode server, the supervisor, SSE, Git or
+workspace services. Those remain deferred until after G0. Do not treat a
+passing harness run as device acceptance:
 the authoritative matrix is `docs/evidence/RESULTS.md`.
 
 ## Build and install
@@ -42,6 +43,12 @@ gitignored `src/main/jniLibs/arm64-v8a/` directory. Re-run the Gradle
 build after staging so the APK contains the entrypoints. The harness
 sets `PROOT_LOADER` to the staged loader; without it PRoot would look
 for the Termux `libexec` path.
+
+The harness builds a test-only `arm64-v8a` JNI helper with NDK 27.2 and
+CMake 3.22.1. It calls `forkpty`, starts the same PRoot/Alpine shell used
+by the guest-shell probe, sets an 80x24 terminal, and compares the
+reported guest `PWD`, `PATH` and `node -v` result. This is feasibility
+evidence only, not the production `PtyService` implementation.
 
 CI compiles the harness **without** running the staging script, so the
 CI APK is a compile check and cannot run S1/S3 until the runtime and

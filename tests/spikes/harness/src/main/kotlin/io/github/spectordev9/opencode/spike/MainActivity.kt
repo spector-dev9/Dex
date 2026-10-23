@@ -71,6 +71,9 @@ class MainActivity : Activity() {
         root.addView(button("Run PRoot guest shell (S3 partial)") {
             runProbes("guest-shell") { listOf(SpikeProbe.runGuestShell(this)) }
         })
+        root.addView(button("Compare guest shell with native forkpty (S3)") {
+            runProbes("guest-forkpty") { SpikeProbe.runGuestPtyComparison(this) }
+        })
 
         root.addView(label("S7 foreground service"))
         root.addView(button("Start specialUse foreground service") { startSpikeService() })

@@ -21,7 +21,7 @@ linked or appended; host spikes cannot promote device rows.
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | host guest result only | app sandbox and native PTY unavailable |
+| S3 | app sandbox + native PTY | pending | host guest result; isolated harness builds with native PTY probe | harness has not been run on a device |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
 | S7 | Tier A/B/C | pending | none | foreground service and device access |
 | S8 | Gboard + Samsung Keyboard | pending | none | device and keyboard access |

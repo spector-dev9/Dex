@@ -56,6 +56,24 @@ def download(url: str, destination: str) -> None:
     os.replace(partial, destination)
 
 
+def download_verified(url: str, destination: str, expected_sha256: str) -> None:
+    directory = os.path.dirname(destination)
+    os.makedirs(directory, exist_ok=True)
+    fd, staged = tempfile.mkstemp(prefix=".runtime-download-", dir=directory)
+    os.close(fd)
+    os.unlink(staged)
+    try:
+        download(url, staged)
+        actual = sha256(staged)
+        if actual != expected_sha256.lower():
+            fail(f"sha-256 mismatch: expected {expected_sha256}, got {actual}")
+        os.replace(staged, destination)
+    finally:
+        for path in (staged, staged + ".part"):
+            if os.path.exists(path):
+                os.unlink(path)
+
+
 def safe_extract(archive: str, destination: str) -> None:
     root = os.path.realpath(destination)
     os.makedirs(destination, exist_ok=True)
@@ -106,13 +124,7 @@ def main() -> int:
 
     if args.force or not os.path.isfile(archive):
         print(f"downloading {artifact['url']}")
-        with tempfile.TemporaryDirectory() as tmp:
-            staged = os.path.join(tmp, os.path.basename(archive))
-            download(artifact["url"], staged)
-            actual = sha256(staged)
-            if actual != expected:
-                fail(f"sha-256 mismatch: expected {expected}, got {actual}")
-            os.replace(staged, archive)
+        download_verified(artifact["url"], archive, expected)
     else:
         actual = sha256(archive)
         if actual != expected:
@@ -121,7 +133,7 @@ def main() -> int:
     print(f"verified sha-256 {expected}")
 
     if args.force or not os.path.isdir(extracted):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(dir=args.dest) as tmp:
             staging = os.path.join(tmp, "runtime")
             safe_extract(archive, staging)
             if os.path.isdir(extracted):
@@ -144,13 +156,7 @@ def main() -> int:
         )
         if args.force or not os.path.isfile(alpine_archive):
             print(f"downloading {alpine['url']}")
-            with tempfile.TemporaryDirectory() as tmp:
-                staged = os.path.join(tmp, os.path.basename(alpine_archive))
-                download(alpine["url"], staged)
-                actual = sha256(staged)
-                if actual != alpine["sha256"]:
-                    fail(f"Alpine sha-256 mismatch: expected {alpine['sha256']}, got {actual}")
-                os.replace(staged, alpine_archive)
+            download_verified(alpine["url"], alpine_archive, alpine["sha256"])
         else:
             actual = sha256(alpine_archive)
             if actual != alpine["sha256"]:
@@ -166,13 +172,7 @@ def main() -> int:
             archive = os.path.join(args.dest, os.path.basename(spec["url"]))
             if args.force or not os.path.isfile(archive):
                 print(f"downloading {spec['url']}")
-                with tempfile.TemporaryDirectory() as tmp:
-                    staged = os.path.join(tmp, os.path.basename(archive))
-                    download(spec["url"], staged)
-                    actual = sha256(staged)
-                    if actual != spec["sha256"]:
-                        fail(f"{key} sha-256 mismatch: expected {spec['sha256']}, got {actual}")
-                    os.replace(staged, archive)
+                download_verified(spec["url"], archive, spec["sha256"])
             else:
                 actual = sha256(archive)
                 if actual != spec["sha256"]:

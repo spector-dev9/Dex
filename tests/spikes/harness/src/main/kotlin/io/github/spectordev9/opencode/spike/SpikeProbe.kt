@@ -170,7 +170,8 @@ object SpikeProbe {
             "/root",
             "/bin/sh",
             "-c",
-            "pwd; echo PATH=\$PATH; /bin/cat /etc/alpine-release 2>/dev/null; echo GUEST-OK",
+            "printf 'PWD=%s\\nPATH=%s\\nNODE=%s\\n' \"\$PWD\" \"\$PATH\" \"\$(node -v 2>&1)\"; " +
+                "/bin/cat /etc/alpine-release 2>/dev/null; echo GUEST-OK",
         )
         val env = runtimeEnvironment(context).apply {
             put("PROOT_TMP_DIR", File(root, "tmp").absolutePath)
@@ -187,6 +188,83 @@ object SpikeProbe {
         )
         return record.copy(pass = record.pass && record.stdout.contains("GUEST-OK"))
     }
+
+    fun runGuestPtyComparison(context: Context): List<ProbeRecord> {
+        val guest = runGuestShell(context)
+        val root = runtimeDir(context)
+        val nativeDir = File(context.applicationInfo.nativeLibraryDir)
+        val proot = File(nativeDir, "libproot.so").takeIf { it.isFile }
+            ?: File(root, "proot").takeIf { it.isFile }
+        val loader = File(nativeDir, "libproot_loader.so").takeIf { it.isFile }
+            ?: File(root, "loader").takeIf { it.isFile }
+        val rootfs = File(root, "rootfs")
+        if (proot == null || loader == null || !File(rootfs, "bin/sh").isFile) {
+            return listOf(
+                guest,
+                ProbeRecord("S3-native-pty", false, "missing PRoot, loader or Alpine shell"),
+            )
+        }
+
+        prepareRuntime(context)
+        val started = System.currentTimeMillis()
+        val raw = try {
+            NativePtyProbe.instance.runProotShell(
+                proot = proot.absolutePath,
+                loader = loader.absolutePath,
+                rootfs = rootfs.absolutePath,
+                runtimeRoot = root.absolutePath,
+                timeoutMillis = 60_000,
+            )
+        } catch (error: LinkageError) {
+            return listOf(
+                guest,
+                ProbeRecord(
+                    id = "S3-native-pty",
+                    pass = false,
+                    detail = "${error.javaClass.simpleName}: ${error.message}",
+                    durationMs = System.currentTimeMillis() - started,
+                ),
+            )
+        }
+
+        val output = raw.substringAfter('\n', "")
+        val exitCode = raw.lineSequence()
+            .firstOrNull()
+            ?.removePrefix("exitCode=")
+            ?.toIntOrNull()
+        val normalized = output.replace("\r\n", "\n").replace('\r', '\n')
+        val guestValues = probeEnvironment(guest.stdout)
+        val ptyValues = probeEnvironment(normalized)
+        val matches = guestValues.isNotEmpty() && guestValues == ptyValues
+        val hasTerminalSize = normalized.lineSequence().any { it.trim() == "24 80" }
+        val passed = exitCode == 0 &&
+            normalized.contains("GUEST-PTY-OK") &&
+            hasTerminalSize &&
+            matches
+        val detail = buildString {
+            append("exit=$exitCode terminalSize=${if (hasTerminalSize) "80x24" else "missing"} ")
+            append("environmentMatch=$matches")
+            if (!matches) append(" guest=$guestValues pty=$ptyValues")
+        }
+        return listOf(
+            guest,
+            ProbeRecord(
+                id = "S3-native-pty",
+                pass = passed,
+                detail = detail,
+                command = listOf("forkpty", proot.absolutePath, "/bin/sh", "-i"),
+                exitCode = exitCode,
+                durationMs = System.currentTimeMillis() - started,
+                stdout = normalized,
+            ),
+        )
+    }
+
+    private fun probeEnvironment(output: String): Map<String, String> =
+        output.replace("\r\n", "\n").replace('\r', '\n')
+            .lineSequence()
+            .filter { it.startsWith("PWD=") || it.startsWith("PATH=") || it.startsWith("NODE=") }
+            .associate { line -> line.substringBefore('=') to line.substringAfter('=') }
 
     private fun elfRecord(id: String, file: File): ProbeRecord {
         if (!file.isFile) {

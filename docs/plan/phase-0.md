@@ -43,10 +43,10 @@ thresholds.
 An isolated device harness now exists at `tests/spikes/harness/` and is
 excluded from normal builds (`-PspikeHarness=true`). It records device
 metadata, checks jniLibs ELF alignment, launches the loader/opencode
-entrypoint, runs a PRoot guest shell, exercises the `specialUse`
-foreground service and records IME input. It does not include the native
-`forkpty` helper or any production service wiring. Its results remain
-pending until run on the required devices.
+entrypoint, runs a PRoot guest shell, compares the guest shell with a
+native `forkpty` session, exercises the `specialUse` foreground service
+and records IME input. The harness compiles, but has not been run on a
+device; its results remain pending until run on the required devices.
 
 ## Foundation status — what works and what is blocked
 
@@ -196,11 +196,13 @@ See `docs/architecture/g1-contracts.md`.
 - [x] Add harness actions for S1 loader launch, S3 PRoot guest shell,
       S7 `specialUse` foreground-service lifecycle, S8 IME input and a
       JSON report. These are implemented, not yet run on a device.
-- [x] Add an Android CI compile step for the gated harness.
+- [x] Add a test-only native `forkpty` comparison for guest `PWD`,
+      `PATH`, Node version and 80x24 terminal sizing. Keep it isolated
+      from production wiring.
+- [x] Add Android CI compile support and verify the gated
+      `arm64-v8a` debug APK, including the native helper.
 - [ ] Run the harness on Tier A/B/C, a 16 KB-page device and the two
       required keyboards; attach reports to `docs/evidence/RESULTS.md`.
-- [ ] Add the native `forkpty` comparison for the S3/S8/Term-5 pass
-      rules. This stays in the harness until G0.
 
 ## Phase 0 exit criteria
 
