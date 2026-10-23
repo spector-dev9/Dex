@@ -237,7 +237,7 @@ See `docs/architecture/g1-contracts.md`.
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
 | S7 | partial (one device; start/stop observed, background survival and tier matrix pending) | `docs/evidence/RESULTS.md` |
-| S8 | partial (user-reported keyboard pass on Infinix Note 50s 5G using “emojikeyboard”; app/IME identity and coverage unverified; required Gboard/Samsung runs pending) | `docs/evidence/RESULTS.md` |
+| S8 | partial (owner-approved user attestation of keyboard pass on Infinix Note 50s 5G using “emojikeyboard”; app/IME identity and coverage unverified; required Gboard/Samsung runs pending) | `docs/evidence/RESULTS.md` |
 | S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes

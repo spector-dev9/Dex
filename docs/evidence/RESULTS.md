@@ -24,7 +24,7 @@ linked or appended; host spikes cannot promote device rows.
 | S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md) (packaging blocked) and [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md): S1/S3 packaging, loader exec, guest shell and native PTY all pass on one device | production app wiring and G0 acceptance run required; harness is pre-G0 |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
 | S7 | Tier A/B/C | pending | [first device run](tests/spikes/results/S3-device-harness-20261024.md) and [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
-| S8 | Gboard + Samsung Keyboard | pending | user reports a passing keyboard test on an Infinix Note 50s 5G using “emojikeyboard”; earlier trace observed text entry/edit updates and `KEYCODE_DEL` (67). The keyboard app/IME identity and test coverage are unverified. The 2026-10-24 04:22 confirmation JSON contains only S1/S3/S7 probes and explicitly did not exercise S8. | named Gboard and Samsung Keyboard runs, verified keyboard identity, and extra-key/paste/select coverage |
+| S8 | Gboard + Samsung Keyboard | pending | Owner-approved user attestation: keyboard test passed on an Infinix Note 50s 5G using “emojikeyboard”; earlier trace observed text entry/edit updates and `KEYCODE_DEL` (67). The keyboard app/IME identity and test coverage are unverified. The 2026-10-24 04:22 confirmation JSON contains only S1/S3/S7 probes and explicitly did not exercise S8. | named Gboard and Samsung Keyboard runs, verified keyboard identity, and extra-key/paste/select coverage |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
 | RT-5 | 16 KB-page device | pending | none | no 16 KB-page target available |
@@ -63,9 +63,11 @@ linked or appended; host spikes cannot promote device rows.
 - A separate user-shared S8 harness trace recorded text updates while
   entering `opencode mobile test` and one `KEYCODE_DEL` (67) event. It
   shows basic IME text/edit observation only. The user later reported a
-  passing keyboard test on an Infinix Note 50s 5G using “emojikeyboard,”
-  but did not provide a separate trace or the keyboard app/IME identity
-  and test coverage. The 2026-10-24 04:22 confirmation JSON is an S1/S3/S7
-  repeat run and explicitly says S8 was not exercised. Extra-key,
-  paste/select, Gboard and Samsung Keyboard coverage remains outstanding.
+  passing keyboard test on an Infinix Note 50s 5G using “emojikeyboard”
+  and, as project owner, approved the test. This records owner approval
+  of the reported test, not independent verification: no separate trace,
+  keyboard app/IME identity or coverage details were provided. The
+  2026-10-24 04:22 confirmation JSON is an S1/S3/S7 repeat run and
+  explicitly says S8 was not exercised. Extra-key, paste/select, Gboard
+  and Samsung Keyboard coverage remains outstanding.
 - G0 remains open; no acceptance value here freezes D4 or D5.
