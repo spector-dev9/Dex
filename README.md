@@ -59,8 +59,8 @@ CI or another machine.
   mirror of protocol v1 with 47 commands. Dependency and Android-import
   checks pass; compiled-class reflection verifies commands, errors,
   timeouts and event topics; `./gradlew coreCheck` compiles the contracts on
-  JDK 21. A minimal Android app shell is present, with debug/release builds
-  assigned to CI.
+  JDK 21. A minimal Android app shell is present; CI assembles debug and
+  release APKs and uploads them as run artifacts.
 
 ## S9 progress
 

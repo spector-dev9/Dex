@@ -162,4 +162,5 @@ uses a Java 21 toolchain. A clean build passed locally on 2026-10-23. The
 `kotlin` CI job repeats it on Temurin 21 and uploads the compiled contract
 JARs plus `build/reports/g1/provisional-members.txt`. The `android` CI job
 installs API 36 and Build Tools 36.0.0, then assembles debug and release
-APKs.
+APKs. CI run `39959198949` passed all three jobs on 2026-10-23 and
+published both artifacts.
