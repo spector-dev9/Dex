@@ -114,9 +114,14 @@ jobs:
       - name: Build debug and release APKs
         run: ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 
+      - name: Compile isolated spike harness
+        run: ./gradlew --no-daemon -PspikeHarness=true -PskipApp=true :spike-harness:assembleDebug
+
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
           name: app-apks
-          path: app/build/outputs/apk/**/*.apk
+          path: |
+            app/build/outputs/apk/**/*.apk
+            tests/spikes/harness/build/outputs/apk/**/*.apk
           if-no-files-found: error

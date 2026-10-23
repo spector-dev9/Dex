@@ -32,3 +32,8 @@ include(
 if (providers.gradleProperty("skipApp").orNull != "true") {
     include(":app")
 }
+
+if (providers.gradleProperty("spikeHarness").orNull == "true") {
+    include(":spike-harness")
+    project(":spike-harness").projectDir = file("tests/spikes/harness")
+}

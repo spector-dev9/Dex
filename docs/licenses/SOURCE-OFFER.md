@@ -25,7 +25,7 @@ the binary.
 
 | Library | Version | License | Source archive | SHA-256 |
 | --- | --- | --- | --- | --- |
-| PRoot | 5.1.107.98 | GPL-2.0-or-later | https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz | a1237d2039e0efedd1639aa4a99ac5e48a10f4c2e14cce445b2cbebedf32d22e |
+| PRoot | 5.1.107.100 | GPL-2.0-or-later | https://github.com/termux/proot/archive/refs/tags/v5.1.107.100.tar.gz | c6e4f5a33e184d2c4fae1aee6180d1b3da8cfc67b51d4c65552ba4668ea7ff82 |
 | libtalloc | 2.5.0 | LGPL-3.0-or-later | https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz | 912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007 |
 
 libandroid-shmem is BSD-3-Clause and is covered by the notices.

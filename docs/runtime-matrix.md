@@ -12,8 +12,14 @@ it is more than 2.5x slower than A on the S2 git-status or npm-test
 workloads.
 
 Acceptance uses the pinned OpenCode 1.19.3 runtime, Alpine 3.20.3,
-PRoot 5.1.107.98 and the D3 packaging rules. The runtime artifact hash is
+PRoot 5.1.107.100 and the D3 packaging rules. The runtime artifact hash is
 `cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748`.
+
+PRoot was moved from 5.1.107.98 to 5.1.107.100 on 2026-10-24 because the
+Termux pool no longer serves the .98 deb (HTTP 404). The .100 deb and
+source archive are pinned in `runtime/manifest.json`; the .100 binary's
+LOAD segments are 16 KB aligned. Host S1/S3 evidence recorded before this
+change used .98 and must not be presented as .100 device evidence.
 
 ## Profiles
 

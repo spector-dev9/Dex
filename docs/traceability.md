@@ -10,7 +10,7 @@ corresponding Android service exists. G0 decisions use the separate IDs in
 | --- | --- | --- | --- |
 | D1: refactor the existing Kotlin/Compose architecture | `app/` is a minimal Compose shell; `core/` contains API contracts | In progress | Complete the staged migration without regressing the documented behavior |
 | D2: native Jetpack Compose UI | `app/src/main/kotlin/` contains the Compose entry point and license screen | Scaffold | Implement feature screens after the architecture and runtime gates are resolved |
-| D3: Alpine/PRoot runtime, arm64 primary | Runtime manifest and host spike records exist | Host evidence only | Verify packaging, startup, and supported ABI behavior on physical devices |
+| D3: Alpine/PRoot runtime, arm64 primary | Runtime manifest (PRoot 5.1.107.100) and host spike records exist; host guest shell revalidated with the .100 pin and staged loader | Host evidence only | Verify packaging, startup, and supported ABI behavior on physical devices |
 | D4: pinned OpenCode musl binary; optional user toolchains | `runtime/manifest.json`; `contract/tests/contract.test.mjs` checks the version pin and required artifacts | Contract-checked | Verify install, integrity enforcement, and runtime behavior on target devices |
 | D5: authenticated HTTP plus SSE | Pinned OpenAPI snapshot and fixtures cover Basic auth and SSE behavior; `ui/src/bridge/` has parser/resync/client tests | Host/fixture coverage | Implement the Kotlin gateway and verify authenticated SSE and recovery in the app |
 | D6: ephemeral loopback listener and per-launch password | Authentication behavior is recorded in `tests/spikes/results/` and asserted by contract tests | Not implemented | Add listener lifecycle and secret provisioning; verify every route rejects unauthenticated clients |
@@ -19,6 +19,7 @@ corresponding Android service exists. G0 decisions use the separate IDs in
 | D9: Alpine Git as the single source of truth | `core/git-api/` defines Git operations | Contract only | Implement guest Git and measure the specified 5,000-file status workload before considering JGit |
 | D10: GitHub Releases and F-Droid distribution | `docs/adr/0001-distribution.md` records the channel decision; license checklist and SBOMs are present | Decision recorded; release blockers remain | Complete source offers, reproducible builds, signing, trademark, and release compliance |
 | Staged migration: contract tests and behavior traceability first | `contract/tests/contract.test.mjs`, `ui/src/bridge/*.test.ts`, this map | Complete for current recorded evidence | Extend this map whenever behavior is implemented or acceptance evidence changes |
+| Phase 2 device harness | `tests/spikes/harness/`, `scripts/stage-spike-harness.py` | Scaffold and host staging complete; no device run | Run S1/S3/S7/S8 on Tier A/B/C, 16 KB-page and keyboard devices; add the native PTY comparison |
 | Physical-device baseline before freezing provisional budgets | `docs/runtime-matrix.md`, `docs/evidence/RESULTS.md`, and `docs/plan/phase-0.md` | Blocked | Run the listed device experiments and record measured evidence before freezing affected decisions and thresholds |
 
 ## Evidence boundaries

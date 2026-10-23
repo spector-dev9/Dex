@@ -4,6 +4,11 @@ Date: 2026-10-23. Status: **partial (host only)** — both profiles
 start and complete a mock-provider prompt round trip. Device,
 git/npm and thermal comparisons are still required.
 
+> Pin note (2026-10-24): this host run used PRoot 5.1.107.98. The pin is
+> now 5.1.107.100 because the .98 Termux deb returns HTTP 404. Re-run
+> Profile B on devices with .100; do not present this result as .100
+> evidence.
+
 ## Setup
 
 - Pinned OpenCode 1.19.3 with Alpine 3.20.3 and PRoot 5.1.107.98.

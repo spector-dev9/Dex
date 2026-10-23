@@ -41,6 +41,22 @@ npm run typecheck
 npm test
 ```
 
+## Device harness (pre-G0, isolated)
+
+`tests/spikes/harness/` is a debug-only Android app for collecting S1/S3
+app-sandbox, S7 foreground-service and S8 IME evidence. It is excluded
+from normal builds and must be included with `-PspikeHarness=true`. It is
+not production wiring and a passing run is not device acceptance.
+
+```bash
+python3 scripts/stage-spike-harness.py
+./gradlew -PspikeHarness=true :spike-harness:assembleDebug
+```
+
+See `harness/README.md` for install, staging and evidence instructions.
+The native `forkpty` comparison is still missing; the current S3/S8
+results are partial.
+
 Runtime profile decision support: `docs/runtime-matrix.md`.
 
 Raw evidence lives in `results/raw/`. Do not commit downloaded runtime

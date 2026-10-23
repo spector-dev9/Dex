@@ -41,4 +41,7 @@ linked or appended; host spikes cannot promote device rows.
 - S2 remains `pending`: the app has no Profile B implementation and no
   Profile B device measurements. The host profile spike is directional
   only.
+- `tests/spikes/harness/` can collect S1/S3/S7/S8 device evidence, but
+  it is an isolated pre-G0 harness. Running it does not promote a row
+  until the report and device metadata are attached here.
 - G0 remains open; no acceptance value here freezes D4 or D5.

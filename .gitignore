@@ -44,6 +44,7 @@ app/.kotlin/
 
 # Generated runtime artifacts (fetched/extracted by scripts)
 runtime/artifacts/
+tests/spikes/harness/src/main/jniLibs/
 runtime/rootfs/
 runtime/tmp/
 app/app/src/main/assets/linux/

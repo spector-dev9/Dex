@@ -4,6 +4,33 @@ Date: 2026-10-23. Server: pinned 1.19.3, no password. Status:
 **partial — SHELL override works and agent bash enters PRoot Alpine;
 app sandbox and native PTY identity untested.**
 
+> Pin note (2026-10-24): this host run used PRoot 5.1.107.98. The pin is
+> now 5.1.107.100 because the .98 Termux deb returns HTTP 404. Re-run the
+> guest wrapper with .100 on devices.
+
+## .100 pin revalidation (host only)
+
+Re-ran the same guest wrapper on the host with the staged PRoot
+5.1.107.100 binary and loader:
+
+```text
+PROOT_LOADER=<staged>/loader PROOT_TMP_DIR=<staged>/tmp \
+PROOT_NO_SECCOMP=1 LD_LIBRARY_PATH=<staged>:<staged>/runtime \
+PATH=/system/bin:/system/xbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+<staged>/proot --kill-on-exit -0 -r <staged>/rootfs \
+  -b /dev -b /proc -b /sys -w /root \
+  /bin/sh -c 'pwd; echo PATH=$PATH; /bin/cat /etc/alpine-release; echo GUEST-OK'
+```
+
+Output: `/root`, Alpine `3.20.3`, `GUEST-OK`; exit 0. This is still
+host-only and does not satisfy S3 device acceptance.
+
+Host gotcha: Termux exports `LD_PRELOAD=libtermux-exec-ld-preload.so`;
+leaving it set makes the guest musl loader fail with
+`Error relocating ... symbol not found`. The harness removes
+`LD_PRELOAD` from the child environment before launching. Device app
+processes normally do not set it, but the harness should not inherit it.
+
 ## Question
 
 Does the agent's bash tool honor a `SHELL` override so commands can be

@@ -40,6 +40,14 @@ required keyboard devices are available, run the spike harness and attach
 device metadata/results before freezing D4 or ratifying device-dependent
 thresholds.
 
+An isolated device harness now exists at `tests/spikes/harness/` and is
+excluded from normal builds (`-PspikeHarness=true`). It records device
+metadata, checks jniLibs ELF alignment, launches the loader/opencode
+entrypoint, runs a PRoot guest shell, exercises the `specialUse`
+foreground service and records IME input. It does not include the native
+`forkpty` helper or any production service wiring. Its results remain
+pending until run on the required devices.
+
 ## Foundation status — what works and what is blocked
 
 **Working and verified in the repository or host environment**
@@ -173,6 +181,26 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
       devices.
 
 See `docs/architecture/g1-contracts.md`.
+
+## Phase 2 device harness scaffold (2026-10-24)
+
+- [x] Add `tests/spikes/harness/`, a debug-only Android app gated by
+      `-PspikeHarness=true`; normal app and core builds do not include it.
+- [x] Add `scripts/stage-spike-harness.py` to fetch/verify the pinned
+      runtime, PRoot, talloc, shmem and Alpine rootfs, stage the
+      jniLibs entrypoints, and produce a `run-as`-extractable archive.
+- [x] Update the PRoot pin from 5.1.107.98 to 5.1.107.100 because the
+      Termux pool no longer serves the .98 deb (HTTP 404); regenerate
+      the license inventory and SBOM. Host S1/S3 evidence predates this
+      pin change.
+- [x] Add harness actions for S1 loader launch, S3 PRoot guest shell,
+      S7 `specialUse` foreground-service lifecycle, S8 IME input and a
+      JSON report. These are implemented, not yet run on a device.
+- [x] Add an Android CI compile step for the gated harness.
+- [ ] Run the harness on Tier A/B/C, a 16 KB-page device and the two
+      required keyboards; attach reports to `docs/evidence/RESULTS.md`.
+- [ ] Add the native `forkpty` comparison for the S3/S8/Term-5 pass
+      rules. This stays in the harness until G0.
 
 ## Phase 0 exit criteria
 

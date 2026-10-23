@@ -1,0 +1,99 @@
+# Phase 2 device spike harness (isolated, pre-G0)
+
+This is a disposable debug app for the G0 device evidence described in
+`docs/plan/phase-0.md`. It is **not production wiring** and is excluded
+from normal builds. It must only be included with
+`-PspikeHarness=true`.
+
+The harness currently covers:
+
+- device metadata needed by the evidence matrix (SDK, ABI, page size,
+  native-library directory, `extractNativeLibs`);
+- ELF entrypoint checks for the bundled musl loader, PRoot and PRoot's
+  loader, including PT_LOAD alignment against the 16 KB rule;
+- S1 app-sandbox launch of `opencode --version` through the bundled
+  loader, with the binary and libraries in app-private storage;
+- S3 partial: a PRoot/Alpine guest shell (`pwd`, `PATH`,
+  `/etc/alpine-release`);
+- S7 partial: `specialUse` foreground service start/stop and lifecycle
+  events;
+- S8 partial: keyboard/IME input observation in a text field; this is
+  not a native terminal and does not replace the PTY comparison;
+- a JSON report with command lines, exit codes and bounded stdout/stderr.
+
+It does **not** include the native `forkpty` helper, the OpenCode server,
+the supervisor, SSE, Git or workspace services. Those remain deferred
+until after G0. Do not treat a passing harness run as device acceptance:
+the authoritative matrix is `docs/evidence/RESULTS.md`.
+
+## Build and install
+
+```bash
+python3 scripts/stage-spike-harness.py
+./gradlew -PspikeHarness=true :spike-harness:assembleDebug
+adb install -r tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk
+```
+
+The staging script downloads the pinned artifacts with
+`scripts/fetch-runtime.py --alpine --android-libs`, verifies their
+hashes, creates `runtime/artifacts/spike-runtime.tar.gz`, and copies
+`libldmusl.so`, `libproot.so` and `libproot_loader.so` into the
+gitignored `src/main/jniLibs/arm64-v8a/` directory. Re-run the Gradle
+build after staging so the APK contains the entrypoints. The harness
+sets `PROOT_LOADER` to the staged loader; without it PRoot would look
+for the Termux `libexec` path.
+
+CI compiles the harness **without** running the staging script, so the
+CI APK is a compile check and cannot run S1/S3 until the runtime and
+jniLibs are staged locally.
+
+Stage the runtime into the debug app's private files directory:
+
+```bash
+adb push runtime/artifacts/spike-runtime.tar.gz /data/local/tmp/
+adb shell run-as io.github.spectordev9.opencode.spike.debug \
+  sh -c 'cd files && tar xzf /data/local/tmp/spike-runtime.tar.gz'
+```
+
+Then open **OpenCode Spike Harness**, press **Refresh**, and run the
+probes. The report is written to `files/reports/` and the app-external
+`Android/data/io.github.spectordev9.opencode.spike.debug/files/reports/`.
+
+```bash
+adb shell run-as io.github.spectordev9.opencode.spike.debug ls files/reports
+adb shell run-as io.github.spectordev9.opencode.spike.debug cat files/reports/<report>.json
+adb logcat -d -s SpikeHarness
+```
+
+## Evidence to attach per device
+
+Record the device tier, Android release, ABI, page size
+(`getconf PAGE_SIZE` or the harness report), the exact APK and runtime
+hashes, and whether the loader/PRoot came from `jniLibs`. Attach:
+
+1. the JSON report;
+2. `adb logcat -d -s SpikeHarness`;
+3. `adb shell dumpsys package io.github.spectordev9.opencode.spike.debug`
+   (confirms `extractNativeLibs`);
+4. for S7, the start/stop timestamps and a 30-minute background survival
+   result;
+5. for S8, the keyboard model and the IME text/key trace.
+
+## Known limitations
+
+- PRoot is staged as `libproot.so` and its loader as
+  `libproot_loader.so`; `libtalloc.so.2` and `libandroid-shmem.so` live
+  in app-private storage and are exposed through `LD_LIBRARY_PATH`. The
+  probe reports linker failures; fixing the packaging or rebuilding
+  PRoot statically is part of the D3 decision, not this harness.
+- `opencode` is mapped by the musl loader from app-private storage; this
+  is allowed precisely because the loader itself is an entrypoint from
+  `nativeLibraryDir`. A direct `execve` of the opencode binary is not
+  attempted.
+- The harness clears `LD_PRELOAD` for child processes. Termux exports
+  `libtermux-exec-ld-preload.so`, which breaks the guest musl loader;
+  device app processes normally do not set it, but the harness should not
+  inherit it.
+- The harness is debug-only (`run-as` is required for staging) and uses
+  `minSdk 26` so it can run on older test devices; production minSdk is
+  decided at G0.
