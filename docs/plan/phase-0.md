@@ -42,6 +42,9 @@ Status: **Phase 0 complete. Phase 2 in progress.**
   live and part updates remain authoritative.
 - Threat model draft written; CI workflow for typecheck/tests/inventory
   reproducibility and a nightly contract-drift workflow added.
+- Plan-to-evidence traceability recorded in `docs/traceability.md`;
+  contract evidence is explicitly separated from Android implementation
+  and physical-device acceptance.
 - S9: D1 accepted (2026-10-23) — GitHub Releases + Obtainium, a
   self-hosted F-Droid repo after reproducible builds, bundled runtime,
   Play deferred, app code Apache-2.0. Compliance checklist is in

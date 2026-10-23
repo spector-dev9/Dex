@@ -1,0 +1,32 @@
+# Plan traceability
+
+This map tracks the `plan.md` decisions against the current repository and
+distinguishes executable contract evidence from implementation or device
+acceptance. A passing contract test does not imply that the corresponding
+Android service exists.
+
+| Plan item | Current evidence | Status | Remaining acceptance |
+| --- | --- | --- | --- |
+| D1: refactor the existing Kotlin/Compose architecture | `app/` is a minimal Compose shell; `core/` contains API contracts | In progress | Complete the staged migration without regressing the documented behavior |
+| D2: native Jetpack Compose UI | `app/src/main/kotlin/` contains the Compose entry point and license screen | Scaffold | Implement feature screens after the architecture and runtime gates are resolved |
+| D3: Alpine/PRoot runtime, arm64 primary | Runtime manifest and host spike records exist | Host evidence only | Verify packaging, startup, and supported ABI behavior on physical devices |
+| D4: pinned OpenCode musl binary; optional user toolchains | `runtime/manifest.json`; `contract/tests/contract.test.mjs` checks the version pin and required artifacts | Contract-checked | Verify install, integrity enforcement, and runtime behavior on target devices |
+| D5: authenticated HTTP plus SSE | Pinned OpenAPI snapshot and fixtures cover Basic auth and SSE behavior; `ui/src/bridge/` has parser/resync/client tests | Host/fixture coverage | Implement the Kotlin gateway and verify authenticated SSE and recovery in the app |
+| D6: ephemeral loopback listener and per-launch password | Authentication behavior is recorded in `tests/spikes/results/` and asserted by contract tests | Not implemented | Add listener lifecycle and secret provisioning; verify every route rejects unauthenticated clients |
+| D7: native host-filesystem workspace operations | `core/workspace-api/` defines the service contract | Contract only | Implement guarded paths, atomic writes, conflict detection, and operations; run WS gates |
+| D8: native interactive PTY | `core/terminal-api/` defines the service contract; spike records show the server PTY is unsuitable | Contract only | Implement the native PTY helper and run interactive, signal, resize, and cleanup tests |
+| D9: Alpine Git as the single source of truth | `core/git-api/` defines Git operations | Contract only | Implement guest Git and measure the specified 5,000-file status workload before considering JGit |
+| D10: GitHub Releases and F-Droid distribution | `docs/adr/0001-distribution.md` records the channel decision; license checklist and SBOMs are present | Decision recorded; release blockers remain | Complete source offers, reproducible builds, signing, trademark, and release compliance |
+| Staged migration: contract tests and behavior traceability first | `contract/tests/contract.test.mjs`, `ui/src/bridge/*.test.ts`, this map | Complete for current recorded evidence | Extend this map whenever behavior is implemented or acceptance evidence changes |
+| Physical-device baseline before freezing provisional budgets | `docs/runtime-matrix.md`, `docs/evidence/RESULTS.md`, and `docs/plan/phase-0.md` | Blocked | Run the listed device experiments and record measured evidence before freezing affected decisions and thresholds |
+
+## Evidence boundaries
+
+- `npm test`, `npm run typecheck`, the architecture check, and bridge
+  parity check validate the tracked contracts and host-side bridge fixture.
+- `./gradlew -PskipApp=true coreCheck` validates the Kotlin API modules and
+  compiled bridge parity. It does not build the Android app.
+- The Android assembly is exercised in CI; this environment has no Android
+  SDK installed.
+- Host spikes are not physical-device acceptance. The authoritative device
+  statuses remain in `docs/evidence/RESULTS.md`.
