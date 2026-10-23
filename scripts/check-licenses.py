@@ -24,6 +24,7 @@ def main() -> int:
         "sbom.cdx.json",
         "opencode-deps.json",
         "opencode-deps.cdx.json",
+        "alpine-copyright.json",
         "NOTICES.md",
         "SOURCE-OFFER.md",
     ):
@@ -78,6 +79,30 @@ def main() -> int:
     ):
         if required not in names:
             fail(f"SBOM is missing {required}")
+
+    alpine_copyright = json.loads(
+        (LICENSES / "alpine-copyright.json").read_text(encoding="utf-8")
+    )
+    if alpine_copyright.get("schema") != 1:
+        fail("unsupported Alpine copyright schema")
+    if alpine_copyright["alpineVersion"] != manifest["alpine"]["version"]:
+        fail("Alpine copyright version mismatch")
+    alpine_by_name = {item["name"]: item for item in inventory["packages"]}
+    if len(alpine_copyright["packages"]) != len(alpine_by_name):
+        fail("Alpine copyright package count mismatch")
+    if len({item["name"] for item in alpine_copyright["packages"]}) != len(alpine_by_name):
+        fail("Alpine copyright package names are not unique")
+    for item in alpine_copyright["packages"]:
+        source = alpine_by_name.get(item["name"])
+        if source is None:
+            fail(f"Alpine copyright entry for unknown package: {item['name']}")
+        if item["license"] != source["license"]:
+            fail(f"Alpine copyright license mismatch: {item['name']}")
+        if not item["copyright"] or not item["evidence"]:
+            fail(f"Alpine copyright evidence missing: {item['name']}")
+        for text in item["licenseTexts"]:
+            if not (LICENSES / text).is_file():
+                fail(f"Alpine copyright license text missing: {text}")
 
     deps = json.loads((LICENSES / "opencode-deps.json").read_text(encoding="utf-8"))
     deps_sbom = json.loads((LICENSES / "opencode-deps.cdx.json").read_text(encoding="utf-8"))

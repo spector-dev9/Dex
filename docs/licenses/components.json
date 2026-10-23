@@ -378,7 +378,7 @@
     "The OpenCode dependency SBOM is a production/optional lockfile closure; verify the bundled set against the binary at release and keep CC-BY attribution notices current.",
     "libtalloc is LGPL-3.0-or-later and is linked by PRoot; review relink/source-offer duties together with the Bun LGPL components.",
     "PRoot and libtalloc are pinned to Termux packages; verify each published deb was built from the pinned source before release.",
-    "Alpine packages do not all ship license files; copyright notices must be collected from the APKBUILD/upstream sources.",
+    "Three Alpine packages (alpine-baselayout, alpine-baselayout-data and alpine-keys) ship no separate copyright file; their notices use package metadata and the upstream license.",
     "UI dependencies (React, Vite, CodeMirror, xterm.js) are not added yet; regenerate this inventory when ui/package.json lands.",
     "Bun-bundled library versions and presence are taken from Bun's LICENSE.md, not from the binary; verify at release. Bun also lists lint/fmt/typechecker code ports in the same table; those are covered by the Bun LICENSE but not split into components."
   ],

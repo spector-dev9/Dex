@@ -410,8 +410,9 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
         "relink/source-offer duties together with the Bun LGPL components.",
         "PRoot and libtalloc are pinned to Termux packages; verify each "
         "published deb was built from the pinned source before release.",
-        "Alpine packages do not all ship license files; copyright notices "
-        "must be collected from the APKBUILD/upstream sources.",
+        "Three Alpine packages (alpine-baselayout, alpine-baselayout-data "
+        "and alpine-keys) ship no separate copyright file; their notices use "
+        "package metadata and the upstream license.",
         "UI dependencies (React, Vite, CodeMirror, xterm.js) are not added "
         "yet; regenerate this inventory when ui/package.json lands.",
         "Bun-bundled library versions and presence are taken from Bun's "
@@ -555,6 +556,27 @@ def notices(data: dict) -> str:
     ]
     for license_id, count in data["licenseSummary"].items():
         lines.append(f"| {license_id} | {count} |")
+    alpine_copyright_path = ROOT / "docs" / "licenses" / "alpine-copyright.json"
+    if alpine_copyright_path.is_file():
+        alpine_copyright = json.loads(alpine_copyright_path.read_text(encoding="utf-8"))
+        lines += [
+            "",
+            "## Alpine package copyright notices",
+            "",
+            "Collected from the pinned APKBUILDs and upstream sources; evidence:",
+            "[alpine-copyright.json](alpine-copyright.json).",
+            "",
+            "| Package | License | Copyright |",
+            "| --- | --- | --- |",
+        ]
+        for item in alpine_copyright["packages"]:
+            lines.append(f"| {item['name']} | {item['license']} | {item['copyright']} |")
+        lines += [
+            "",
+            "`alpine-baselayout`, `alpine-baselayout-data` and `alpine-keys` ship",
+            "no separate copyright file; their notices are based on package",
+            "metadata and the upstream license.",
+        ]
     deps_path = ROOT / "docs" / "licenses" / "opencode-deps.json"
     if deps_path.is_file():
         deps = json.loads(deps_path.read_text(encoding="utf-8"))
@@ -686,6 +708,9 @@ def source_offer(data: dict) -> str:
         "The production/optional lockfile closure contains no GPL/AGPL",
         "packages. MPL/AFL dual-licensed packages are used under their",
         "permissive options; CC-BY attribution is recorded in NOTICES.md.",
+        "",
+        "Per-package Alpine copyright notices are recorded in",
+        "alpine-copyright.json and NOTICES.md.",
         "",
     ]
     return "\n".join(lines)

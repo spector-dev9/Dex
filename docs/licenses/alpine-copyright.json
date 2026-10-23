@@ -1,0 +1,209 @@
+{
+  "alpineVersion": "3.20.3",
+  "packages": [
+    {
+      "copyright": "Alpine Linux contributors. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the GPL-2.0-only license.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout/APKBUILD"
+      ],
+      "license": "GPL-2.0-only",
+      "licenseTexts": [
+        "texts/GPL-2.0-only.txt"
+      ],
+      "name": "alpine-baselayout",
+      "origin": "alpine-baselayout",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout"
+    },
+    {
+      "copyright": "Alpine Linux contributors. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the GPL-2.0-only license.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout/APKBUILD"
+      ],
+      "license": "GPL-2.0-only",
+      "licenseTexts": [
+        "texts/GPL-2.0-only.txt"
+      ],
+      "name": "alpine-baselayout-data",
+      "origin": "alpine-baselayout",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout"
+    },
+    {
+      "copyright": "Alpine Linux project release keys. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the MIT license.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/aab68f8c9ab434a46710de8e12fb3206e2930a59/main/alpine-keys/APKBUILD"
+      ],
+      "license": "MIT",
+      "licenseTexts": [
+        "texts/MIT.txt"
+      ],
+      "name": "alpine-keys",
+      "origin": "alpine-keys",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/aab68f8c9ab434a46710de8e12fb3206e2930a59/main/alpine-keys"
+    },
+    {
+      "copyright": "Copyright (C) 2005-2008 Natanael Copa; Copyright (C) 2008-2011 Timo Ter\u00e4s; libfetch portions Copyright (c) 2008-2010 Joerg Sonnenberger and other NetBSD contributors.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/d435c805af8af4171438da3ec3429c094aac4c6e/main/apk-tools/APKBUILD",
+        "https://gitlab.alpinelinux.org/alpine/apk-tools/-/raw/v2.14.4/LICENSE",
+        "https://gitlab.alpinelinux.org/alpine/apk-tools/-/raw/v2.14.4/AUTHORS"
+      ],
+      "license": "GPL-2.0-only",
+      "licenseTexts": [
+        "texts/GPL-2.0-only.txt"
+      ],
+      "name": "apk-tools",
+      "origin": "apk-tools",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/d435c805af8af4171438da3ec3429c094aac4c6e/main/apk-tools"
+    },
+    {
+      "copyright": "Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox/APKBUILD",
+        "https://busybox.net/downloads/busybox-1.36.1.tar.bz2"
+      ],
+      "license": "GPL-2.0-only",
+      "licenseTexts": [
+        "texts/GPL-2.0-only.txt"
+      ],
+      "name": "busybox",
+      "origin": "busybox",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox"
+    },
+    {
+      "copyright": "Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox/APKBUILD",
+        "https://busybox.net/downloads/busybox-1.36.1.tar.bz2"
+      ],
+      "license": "GPL-2.0-only",
+      "licenseTexts": [
+        "texts/GPL-2.0-only.txt"
+      ],
+      "name": "busybox-binsh",
+      "origin": "busybox",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox"
+    },
+    {
+      "copyright": "certdata.txt: Mozilla Foundation and the owners of the included CA certificates; c_rehash.c: Copyright (c) 2013-2014 Timo Ter\u00e4s.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates/APKBUILD",
+        "https://gitlab.alpinelinux.org/alpine/ca-certificates/-/raw/20240705/certdata.txt",
+        "https://gitlab.alpinelinux.org/alpine/ca-certificates/-/raw/20240705/c_rehash.c"
+      ],
+      "license": "MPL-2.0 AND MIT",
+      "licenseTexts": [
+        "texts/MPL-2.0.txt",
+        "texts/MIT.txt"
+      ],
+      "name": "ca-certificates-bundle",
+      "origin": "ca-certificates",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates"
+    },
+    {
+      "copyright": "Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl/APKBUILD",
+        "https://raw.githubusercontent.com/openssl/openssl/openssl-3.3.2/LICENSE.txt",
+        "https://raw.githubusercontent.com/openssl/openssl/openssl-3.3.2/AUTHORS.md"
+      ],
+      "license": "Apache-2.0",
+      "licenseTexts": [
+        "texts/Apache-2.0.txt"
+      ],
+      "name": "libcrypto3",
+      "origin": "openssl",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl"
+    },
+    {
+      "copyright": "Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl/APKBUILD",
+        "https://raw.githubusercontent.com/openssl/openssl/openssl-3.3.2/LICENSE.txt",
+        "https://raw.githubusercontent.com/openssl/openssl/openssl-3.3.2/AUTHORS.md"
+      ],
+      "license": "Apache-2.0",
+      "licenseTexts": [
+        "texts/Apache-2.0.txt"
+      ],
+      "name": "libssl3",
+      "origin": "openssl",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl"
+    },
+    {
+      "copyright": "Copyright \u00a9 2005-2020 Rich Felker, et al.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl/APKBUILD",
+        "https://git.musl-libc.org/cgit/musl/plain/COPYRIGHT?h=v1.2.5"
+      ],
+      "license": "MIT",
+      "licenseTexts": [
+        "texts/MIT.txt"
+      ],
+      "name": "musl",
+      "origin": "musl",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl"
+    },
+    {
+      "copyright": "musl: Copyright \u00a9 2005-2020 Rich Felker, et al.; getconf/getent: Copyright (c) 1996, 1998 and 2004-2006 The NetBSD Foundation; iconv: Copyright \u00a9 2011 Rich Felker.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl/APKBUILD",
+        "https://git.musl-libc.org/cgit/musl/plain/COPYRIGHT?h=v1.2.5",
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl/getconf.c",
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl/getent.c",
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl/iconv.c"
+      ],
+      "license": "MIT AND BSD-2-Clause AND GPL-2.0-or-later",
+      "licenseTexts": [
+        "texts/MIT.txt",
+        "texts/BSD-2-Clause.txt",
+        "texts/GPL-2.0-or-later.txt"
+      ],
+      "name": "musl-utils",
+      "origin": "musl",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl"
+    },
+    {
+      "copyright": "Copyright 2005-2012 Gentoo Foundation; Copyright 2005-2012 Ned Ludd; Copyright 2005-2012 Mike Frysinger.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6/main/pax-utils/APKBUILD",
+        "https://gitweb.gentoo.org/proj/pax-utils.git/plain/COPYING?h=v1.3.7"
+      ],
+      "license": "GPL-2.0-only",
+      "licenseTexts": [
+        "texts/GPL-2.0-only.txt"
+      ],
+      "name": "scanelf",
+      "origin": "pax-utils",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6/main/pax-utils"
+    },
+    {
+      "copyright": "Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox/APKBUILD",
+        "https://busybox.net/downloads/busybox-1.36.1.tar.bz2"
+      ],
+      "license": "GPL-2.0-only",
+      "licenseTexts": [
+        "texts/GPL-2.0-only.txt"
+      ],
+      "name": "ssl_client",
+      "origin": "busybox",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox"
+    },
+    {
+      "copyright": "Copyright (C) 1995-2022 Jean-loup Gailly and Mark Adler.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/fad2d175bd85eb4c5566765375392a7394dfbcf2/main/zlib/APKBUILD",
+        "https://raw.githubusercontent.com/madler/zlib/v1.3.1/LICENSE"
+      ],
+      "license": "Zlib",
+      "licenseTexts": [
+        "texts/Zlib.txt"
+      ],
+      "name": "zlib",
+      "origin": "zlib",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/fad2d175bd85eb4c5566765375392a7394dfbcf2/main/zlib"
+    }
+  ],
+  "schema": 1
+}

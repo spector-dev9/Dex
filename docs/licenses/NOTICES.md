@@ -115,6 +115,32 @@ verified and versions are not pinned.
 | MPL-2.0 AND MIT | 1 |
 | Zlib | 1 |
 
+## Alpine package copyright notices
+
+Collected from the pinned APKBUILDs and upstream sources; evidence:
+[alpine-copyright.json](alpine-copyright.json).
+
+| Package | License | Copyright |
+| --- | --- | --- |
+| alpine-baselayout | GPL-2.0-only | Alpine Linux contributors. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the GPL-2.0-only license. |
+| alpine-baselayout-data | GPL-2.0-only | Alpine Linux contributors. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the GPL-2.0-only license. |
+| alpine-keys | MIT | Alpine Linux project release keys. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the MIT license. |
+| apk-tools | GPL-2.0-only | Copyright (C) 2005-2008 Natanael Copa; Copyright (C) 2008-2011 Timo Teräs; libfetch portions Copyright (c) 2008-2010 Joerg Sonnenberger and other NetBSD contributors. |
+| busybox | GPL-2.0-only | Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive. |
+| busybox-binsh | GPL-2.0-only | Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive. |
+| ca-certificates-bundle | MPL-2.0 AND MIT | certdata.txt: Mozilla Foundation and the owners of the included CA certificates; c_rehash.c: Copyright (c) 2013-2014 Timo Teräs. |
+| libcrypto3 | Apache-2.0 | Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson. |
+| libssl3 | Apache-2.0 | Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson. |
+| musl | MIT | Copyright © 2005-2020 Rich Felker, et al. |
+| musl-utils | MIT AND BSD-2-Clause AND GPL-2.0-or-later | musl: Copyright © 2005-2020 Rich Felker, et al.; getconf/getent: Copyright (c) 1996, 1998 and 2004-2006 The NetBSD Foundation; iconv: Copyright © 2011 Rich Felker. |
+| scanelf | GPL-2.0-only | Copyright 2005-2012 Gentoo Foundation; Copyright 2005-2012 Ned Ludd; Copyright 2005-2012 Mike Frysinger. |
+| ssl_client | GPL-2.0-only | Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive. |
+| zlib | Zlib | Copyright (C) 1995-2022 Jean-loup Gailly and Mark Adler. |
+
+`alpine-baselayout`, `alpine-baselayout-data` and `alpine-keys` ship
+no separate copyright file; their notices are based on package
+metadata and the upstream license.
+
 ## OpenCode dependency closure
 
 The production/optional closure of `packages/opencode` contains 849 unique npm and workspace packages at 1066 install paths.
@@ -157,7 +183,7 @@ CC-BY attribution:
 - The OpenCode dependency SBOM is a production/optional lockfile closure; verify the bundled set against the binary at release and keep CC-BY attribution notices current.
 - libtalloc is LGPL-3.0-or-later and is linked by PRoot; review relink/source-offer duties together with the Bun LGPL components.
 - PRoot and libtalloc are pinned to Termux packages; verify each published deb was built from the pinned source before release.
-- Alpine packages do not all ship license files; copyright notices must be collected from the APKBUILD/upstream sources.
+- Three Alpine packages (alpine-baselayout, alpine-baselayout-data and alpine-keys) ship no separate copyright file; their notices use package metadata and the upstream license.
 - UI dependencies (React, Vite, CodeMirror, xterm.js) are not added yet; regenerate this inventory when ui/package.json lands.
 - Bun-bundled library versions and presence are taken from Bun's LICENSE.md, not from the binary; verify at release. Bun also lists lint/fmt/typechecker code ports in the same table; those are covered by the Bun LICENSE but not split into components.
 

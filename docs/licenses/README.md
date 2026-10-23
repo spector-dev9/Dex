@@ -42,6 +42,8 @@ offer is a release blocker until reviewed.
   1,066 install paths).
 - [opencode-deps.cdx.json](opencode-deps.cdx.json) — CycloneDX 1.5
   SBOM for that closure.
+- [alpine-copyright.json](alpine-copyright.json) — per-package Alpine
+  copyright notices and evidence links.
 - [NOTICES.md](NOTICES.md) — human-readable third-party notices.
 - [SOURCE-OFFER.md](SOURCE-OFFER.md) — draft GPL/LGPL/MPL source offer.
 - [texts/](texts/) — license texts and `SHA256SUMS`.
@@ -72,6 +74,8 @@ python3 scripts/build-licenses.py
       closure from the pinned `bun.lock`.
 - [x] Generate an Alpine package license inventory from the installed
       DB and APKINDEX repo mapping, including source URLs.
+- [x] Collect per-package Alpine copyright notices from pinned
+      APKBUILDs and upstream sources.
 - [x] Copy MIT, Apache-2.0, GPL-2.0 and other required texts into
       `docs/licenses/texts/`.
 - [x] Include CC-BY attribution and license texts for `caniuse-lite`
@@ -138,8 +142,9 @@ release must replace placeholders with the release URL and contact:
    Verify the bundled set and CC-BY notices at release.
 3. **libtalloc LGPL.** PRoot links libtalloc 2.5.0 under
    LGPL-3.0-or-later. Resolve relink/source-offer duties before release.
-4. **Alpine copyright notices.** License IDs are known; per-package
-   copyright files still need collection.
+4. **Alpine notice coverage.** Per-package notices are collected, but
+   `alpine-baselayout`, `alpine-baselayout-data` and `alpine-keys` ship
+   no separate copyright file; review this residual gap at release.
 5. **UI dependencies.** React/Vite/CodeMirror/xterm.js are not added
    yet; regenerate the SBOM when they land.
 

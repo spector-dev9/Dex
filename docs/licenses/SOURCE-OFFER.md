@@ -43,3 +43,6 @@ their licenses before release.
 The production/optional lockfile closure contains no GPL/AGPL
 packages. MPL/AFL dual-licensed packages are used under their
 permissive options; CC-BY attribution is recorded in NOTICES.md.
+
+Per-package Alpine copyright notices are recorded in
+alpine-copyright.json and NOTICES.md.
