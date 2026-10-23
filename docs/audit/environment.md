@@ -9,7 +9,7 @@
 | ABI | arm64-v8a |
 | CPU | 8 cores |
 | Page size | 4096 bytes (not a 16 KB-page device) |
-| Free disk | ~94 GiB on /data |
+| Free disk | ~91 GiB on /data |
 | Shell | bash |
 
 ## Toolchain
@@ -24,34 +24,37 @@
 | make | available | |
 | proot | available | useful for host-side runtime experiments |
 | curl / jq / tar / gzip | available | runtime fetch and inspection |
-| java / javac | missing | no JVM |
-| gradle | missing | |
-| kotlinc | missing | |
-| Android SDK / sdkmanager | missing | |
-| adb | missing | no device bridge |
+| java / javac | 21.0.13 | OpenJDK installed 2026-10-23 |
+| Gradle | 8.13 | project wrapper; downloaded distribution |
+| kotlinc | missing | Kotlin compiles through the Gradle plugin |
+| Android SDK | partial | manual platform 36 + build-tools 36.0.0 layout |
+| sdkmanager | missing | platform downloaded manually |
+| adb | available | android-tools; no authorized device |
 | cargo / rustc | missing | |
 | cmake | missing | |
-| apksigner | missing | |
+| apksigner | available | Termux package |
+| aapt2 / aapt / zipalign / d8 | available | Termux aarch64 packages |
 
 ## Implications
 
-1. **Kotlin/Android cannot be built in this workspace.** No JDK, Gradle,
-   Android SDK, NDK or adb. Options: build in GitHub Actions (as the
-   legacy project did), or install a JVM toolchain in Termux and use
-   command-line Android tools. CI is the default.
-2. **Device verification needs external access.** The host is an
-   Android device, but without adb/root Termux cannot install or drive
-   the app under test. Device spikes (S1, S2, S7, S8) require a test
-   device farm, a CI emulator, or manual installs.
+1. **Kotlin/JVM contracts build locally; Android cannot.** JDK 21 and the
+   Gradle 8.13 wrapper are available, so the `core/*-api` modules compile
+   and package on this host. A partial Android platform/build-tools layout
+   is present, but local APK assembly is unsupported; debug/release builds
+   and device tests run in CI or on another machine.
+2. **Device verification needs external access.** adb is installed but no
+   authorized device is available to Termux, so device spikes (S1, S2, S7,
+   S8) need a test device farm, a CI emulator, or manual installs.
 3. **16 KB-page validation is not possible here.** The host reports
    4096-byte pages. RT-5 needs a 16 KB-page device or emulator.
 4. **proot enables limited runtime experiments.** Upstream OpenCode can
    be exercised on the host under proot, but that does not validate the
    app sandbox, targetSdk 36 exec restrictions, or W^X. Treat results as
    directional only.
-5. **Node/Python are sufficient for Phase 0–2 offline work:** contract
-   fixtures, SSE tests, bridge protocol types, manifest verification
-   scripts, and runtime download/inspection tooling.
+5. **Node/Python plus the JVM cover Phase 0–2 offline work:** contract
+   fixtures, SSE tests, bridge protocol types, core Kotlin compilation,
+   manifest verification scripts, and runtime download/inspection
+   tooling.
 
 ## What can be verified locally
 
@@ -61,9 +64,11 @@
 - Runtime artifact inspection (ELF alignment, dynamic dependencies)
   with readelf/llvm tools if installed or obtainable.
 - UI build and typecheck.
+- Kotlin/JVM contract compilation and packaging through the Gradle
+  wrapper.
 
 ## What cannot be verified locally
 
-- Gradle/Kotlin compilation, APK assembly, signing.
+- Android app compilation, APK assembly and signing on this host.
 - Emulator/device boot, install, runtime start, thermal/background
   behavior, keyboard/IME behavior, 16 KB-page boot.

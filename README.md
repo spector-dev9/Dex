@@ -2,19 +2,22 @@
 
 Clean-room rebuild of an on-device Android client for OpenCode.
 
-Status: **Phase 2 — runtime feasibility.** Host-side spikes and the
-transport-agnostic bridge foundation are in place. Architecture is
-provisional until gate G0; Android/device work still needs CI or another
-machine.
+Status: **Phase 2 — runtime feasibility.** Host-side spikes, the
+transport-agnostic bridge foundation, ten `core/*-api` JVM contracts and a
+minimal Android app shell are in place. Architecture remains provisional
+until gate G0; service implementations and device work still need G0 and
+CI or another machine.
 
 - Technical specification: [docs/spec.md](docs/spec.md)
 - Development environment audit: [docs/audit/environment.md](docs/audit/environment.md)
 - Legacy application review (research only): [docs/audit/legacy-review.md](docs/audit/legacy-review.md)
 - Phase 0 plan and proposed layout: [docs/plan/phase-0.md](docs/plan/phase-0.md)
+- G1 core contracts: [docs/architecture/g1-contracts.md](docs/architecture/g1-contracts.md)
 - Threat model: [docs/threat-model.md](docs/threat-model.md)
 - Distribution ADR (accepted): [docs/adr/0001-distribution.md](docs/adr/0001-distribution.md)
 - Licensing checklist: [docs/licenses/README.md](docs/licenses/README.md)
 - Spike status and evidence: [tests/spikes/README.md](tests/spikes/README.md)
+- Acceptance evidence: [docs/evidence/RESULTS.md](docs/evidence/RESULTS.md)
 - CI: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 
 ## Verified so far (host-side, 2026-10-23)
@@ -52,6 +55,12 @@ machine.
 - A nightly contract-drift workflow compares the latest upstream `/doc`
   with the pinned contract; a local check against 1.19.4 found no
   breaking drift.
+- G1 contracts now cover ten `core/*-api` modules, including a Kotlin bridge
+  mirror of protocol v1 with 47 commands. Dependency and Android-import
+  checks pass; compiled-class reflection verifies commands, errors,
+  timeouts and event topics; `./gradlew coreCheck` compiles the contracts on
+  JDK 21. A minimal Android app shell is present, with debug/release builds
+  assigned to CI.
 
 ## S9 progress
 
@@ -86,9 +95,11 @@ review (spec Section 1.3).
 
 ## Environment constraint
 
-This workspace (Termux on Android) has Node, Python, clang, make and
-proot, but no JDK, Gradle, Android SDK or adb. Kotlin/Android builds and
-device tests therefore run in CI or on another machine. See the
+This workspace (Termux on Android) has Node, Python, clang, make, proot,
+OpenJDK 21 and the Gradle 8.13 wrapper, so the Kotlin/JVM core contracts
+build locally. Android SDK/platform pieces and aarch64 build tools are
+partial; local APK assembly is not supported. Android debug/release builds
+and device tests therefore run in CI or on another machine. See the
 environment audit for details.
 
 ## Next step
@@ -98,8 +109,10 @@ environment audit for details.
 2. Resolve the S9 blockers (Bun/libtalloc LGPL, Alpine notices,
    trademark) and complete the licensing checklist, then freeze D1/D4/D5
    at G0.
-3. Stand up Android CI (emulator API 31/33/36 plus a 16 KB-page device)
-   for S1/S2/S7/S8.
+3. Validate the Android CI build job, then add emulator/device jobs
+   (API 31/33/36 plus a 16 KB-page device) for S1/S2/S7/S8.
+4. After G0, implement the bridge handler and fake-backed service contract
+   tests before wiring the app module.
 
 ## License
 

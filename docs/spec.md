@@ -127,7 +127,22 @@ From the published server docs; confirm against the pinned version's /doc spec (
 
 Envelope shapes: command {v:1, id:'c-102', type:'cmd', name:'workspace.write', args:{...}}; result {v:1, id:'c-102', type:'res', ok:false, error:{code:'E\_CONFLICT', retryable:false}}; event {v:1, type:'evt', topic:'session.event', seq:8812, ts:..., data:{...}}.
 
-- **Commands:** runtime.status, start, stop, restart, exportDiagnostics; session.\* as thin typed proxies; workspace.list, stat, readRange, write, mkdir, rename, move, trash, restore, search; git.status, diff, init, fetch, pull, branches, checkout, commit; terminal.open, write, resize, close; settings.get, set.
+- **Commands:**
+  - runtime.status, runtime.start, runtime.stop, runtime.restart,
+    runtime.exportDiagnostics
+  - session.list, session.get, session.create, session.update,
+    session.delete, session.status, session.fork, session.abort,
+    session.revert, session.unrevert, session.summarize, session.diff,
+    session.messages, session.promptAsync, session.command,
+    session.shell, session.permissionReply
+  - workspace.list, workspace.stat, workspace.readRange, workspace.write,
+    workspace.mkdir, workspace.rename, workspace.move, workspace.trash,
+    workspace.restore, workspace.search
+  - git.status, git.diff, git.init, git.fetch, git.pull, git.branches,
+    git.checkout, git.commit
+  - terminal.open, terminal.write, terminal.resize, terminal.signal,
+    terminal.close
+  - settings.get, settings.set
 - **Events:** runtime.state, server.state, session.event (coalesced to at most one batch per 50 ms), permission.requested, terminal.data (binary over a message port), workspace.changed, diagnostics.alert.
 
 ### 4.4 Errors and timeouts

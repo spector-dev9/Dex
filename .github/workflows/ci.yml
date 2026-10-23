@@ -35,6 +35,12 @@ jobs:
       - name: Python syntax
         run: python3 -m py_compile scripts/*.py tests/spikes/scripts/*.py
 
+      - name: Architecture boundaries
+        run: python3 scripts/check-architecture.py
+
+      - name: Kotlin bridge contract parity
+        run: python3 scripts/check-bridge-contract.py
+
       - name: License artifacts are valid
         run: |
           python3 scripts/check-licenses.py
@@ -47,3 +53,70 @@ jobs:
         run: |
           python3 scripts/build-inventory.py
           git diff --exit-code -- contract/endpoints.json
+
+  kotlin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile and verify core contracts
+        run: ./gradlew --no-daemon -PskipApp=true coreCheck
+
+      - name: Verify provisional-member annotations
+        run: python3 scripts/check-provisional.py
+
+      - name: Upload provisional contracts
+        uses: actions/upload-artifact@v4
+        with:
+          name: g1-provisional-contracts
+          path: |
+            core/*-api/build/libs/*.jar
+            build/reports/g1/provisional-members.txt
+          if-no-files-found: error
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and build tools
+        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Build debug and release APKs
+        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-apks
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error

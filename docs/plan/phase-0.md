@@ -50,7 +50,7 @@ Status: **Phase 0 complete. Phase 2 in progress.**
   PRoot dynamically links libtalloc. Open blockers: Bun LGPL object-file/source-offer review and
   verification of the dependency closure against the built binary.
 
-## Remaining skeleton (Phase 1, after G0 decisions)
+## Remaining skeleton (contracts now; implementations after G0)
 
 ```
 ui/
@@ -64,8 +64,9 @@ ui/
    ├─ client.ts              authenticated SSE client (done)
    └─ *.test.ts              30 tests total with contract suite
 app/                         Kotlin app shell, Gradle KTS, WebView only
-core/                        interface-only modules (runtime, supervisor,
-                             gateway, workspace, terminal, security)
+core/                        ten `*-api` interface modules (contracts compile;
+                             runtime, supervisor, gateway, workspace, git,
+                             terminal, security, diagnostics, bridge, common)
 docs/adr/                    D1–D13 records at G0
 docs/threat-model.md
 docs/runtime-matrix.md
@@ -74,6 +75,27 @@ docs/runtime-matrix.md
 
 Interfaces only at first. Implementations land only after G0 freezes
 D1 (distribution), D4 (runtime profile) and D5 (version pin).
+
+## G1 interface scaffold (2026-10-23)
+
+- [x] Ten `core/*-api` modules with Java 21/Kotlin 2.1.20 contracts.
+- [x] Dependency rule: every service module depends only on `common-api`;
+      `bridge-api` mirrors protocol v1 without service dependencies.
+- [x] Architecture checker rejects Android imports, cross-module imports
+      and unexpected project dependencies.
+- [x] TypeScript/Kotlin parity check for version, errors, retryability,
+      timeouts, event topics and envelope types.
+- [x] `./gradlew -PskipApp=true coreCheck` passes locally; Gradle 8.13
+      wrapper is checksum-pinned.
+- [x] Compiled-class reflection parity for commands, errors, timeouts and
+      event topics; `@RequiresG0` markers and `SupervisorConfig`.
+- [x] Minimal Android app shell; debug/release assembly in CI.
+- [ ] Bridge handler, fake service implementations and command payload
+      DTOs (after G0).
+- [ ] G1 acceptance (RT-1..RT-5, SEC-1/2, STR-1/5, LC-3, WS-1/2) on
+      devices.
+
+See `docs/architecture/g1-contracts.md`.
 
 ## Phase 0 exit criteria
 
@@ -131,5 +153,7 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
    closure against the binary, review Alpine packages without separate
    copyright files, and complete the remaining checklist (trademark,
    developer verification).
-5. **Bridge hardening:** abort semantics against the live server and
+6. **Bridge hardening:** abort semantics against the live server and
    WebView transport wiring before G0 interface freeze.
+7. **G1 implementation:** add the command handler, JSON payload DTOs and
+   fake-backed contract tests after G0.

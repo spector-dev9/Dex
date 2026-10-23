@@ -1,8 +1,9 @@
 # Phase 2 spikes (Section 6)
 
-Device-dependent spikes cannot run in this Termux workspace (no JDK,
-Gradle, Android SDK or adb). Host-side experiments are labeled
-"partial" and do not replace app-sandbox or Tier A/B/C evidence.
+Device-dependent spikes cannot run in this Termux workspace (no usable
+local Android APK toolchain or authorized device). Host-side experiments
+are labeled "partial" and do not replace app-sandbox or Tier A/B/C
+evidence.
 
 | ID | Question | Pass rule | Status |
 | --- | --- | --- | --- |
