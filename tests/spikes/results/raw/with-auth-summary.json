@@ -1,0 +1,82 @@
+{
+  "label": "with-auth",
+  "port": 45615,
+  "passwordConfigured": true,
+  "runtimeVersion": "1.19.3",
+  "startedAt": "2026-10-23T04:42:20Z",
+  "health": {
+    "healthy": true,
+    "seconds": 4.569,
+    "status": 200
+  },
+  "authMatrix": {
+    "health": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "doc": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "project": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "session": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "pty": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "event": {
+      "noAuth": 401,
+      "basicOpencode": "error:TimeoutError",
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    }
+  },
+  "doc": {
+    "status": 200,
+    "path": "/data/data/com.termux/files/home/opencode-mobile/contract/openapi/opencode-with-auth.json"
+  },
+  "sse": {
+    "status": 200,
+    "headers": {
+      "Cache-Control": "no-cache, no-transform",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Type": "text/event-stream",
+      "Vary": "Origin",
+      "x-accel-buffering": "no",
+      "Date": "Fri, 23 Oct 2026 04:42:33 GMT",
+      "Transfer-Encoding": "chunked"
+    },
+    "chunks": [
+      {
+        "at": 0.0,
+        "bytes": 89,
+        "text": "data: {\"id\":\"evt_167115c650010EePgA8j5wbA9D\",\"type\":\"server.connected\",\"properties\":{}}\n\n"
+      }
+    ],
+    "elapsed": 0.502,
+    "totalBytes": 89,
+    "path": "/data/data/com.termux/files/home/opencode-mobile/tests/spikes/results/raw/with-auth-event.sse"
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "label": "sse-no-auth",
+  "port": 38917,
+  "passwordConfigured": false,
+  "runtimeVersion": "1.19.3",
+  "startedAt": "2026-10-23T04:48:59Z",
+  "health": {
+    "healthy": true,
+    "seconds": 5.574,
+    "status": 200
+  },
+  "authMatrix": {
+    "health": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "doc": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "project": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "session": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "pty": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "event": {
+      "noAuth": "error:TimeoutError",
+      "basicOpencode": "error:TimeoutError",
+      "basicEmptyUser": "error:TimeoutError",
+      "bearer": "error:TimeoutError",
+      "wrongPassword": "error:TimeoutError"
+    }
+  },
+  "doc": {
+    "status": 200,
+    "path": "/data/data/com.termux/files/home/opencode-mobile/contract/openapi/opencode-sse-no-auth.json"
+  },
+  "sse": {
+    "first": {
+      "chunks": [
+        {
+          "at": 0.012,
+          "bytes": 321,
+          "text": "HTTP/1.1 200 OK\r\nCache-Control: no-cache, no-transform\r\nX-Content-Type-Options: nosniff\r\nContent-Type: text/event-stream\r\nVary: Origin\r\nx-accel-buffering: no\r\nDate: Fri, 23 Oct 2026 04:49:27 GMT\r\nTransfer-Encoding: chunked\r\n\r\n59\r\ndata: {\"id\":\"evt_16717ad76001RkNcbKDwxthyN3\",\"type\":\"server.connected\",\"properties\":{}}\n\n\r\n"
+        },
+        {
+          "at": 10.022,
+          "bytes": 95,
+          "text": "59\r\ndata: {\"id\":\"evt_16717d490001NxLp6jLDG4gzU1\",\"type\":\"server.heartbeat\",\"properties\":{}}\n\n\r\n"
+        },
+        {
+          "at": 20.056,
+          "bytes": 95,
+          "text": "59\r\ndata: {\"id\":\"evt_16717fbae001x3uOAdxRiFqZZ0\",\"type\":\"server.heartbeat\",\"properties\":{}}\n\n\r\n"
+        }
+      ],
+      "closedByServer": false,
+      "timedOut": true,
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Type": "text/event-stream",
+        "Vary": "Origin",
+        "x-accel-buffering": "no",
+        "Date": "Fri, 23 Oct 2026 04:49:27 GMT",
+        "Transfer-Encoding": "chunked"
+      },
+      "bodyBytes": 285,
+      "eventTypes": [
+        "server.connected",
+        "server.heartbeat",
+        "server.heartbeat"
+      ],
+      "dataLines": [
+        "{\"id\":\"evt_16717ad76001RkNcbKDwxthyN3\",\"type\":\"server.connected\",\"properties\":{}}",
+        "{\"id\":\"evt_16717d490001NxLp6jLDG4gzU1\",\"type\":\"server.heartbeat\",\"properties\":{}}",
+        "{\"id\":\"evt_16717fbae001x3uOAdxRiFqZZ0\",\"type\":\"server.heartbeat\",\"properties\":{}}"
+      ],
+      "elapsed": 25.082,
+      "totalBytes": 511,
+      "path": "/data/data/com.termux/files/home/opencode-mobile/tests/spikes/results/raw/sse-no-auth-event.sse"
+    },
+    "reconnect": {
+      "chunks": [
+        {
+          "at": 0.021,
+          "bytes": 321,
+          "text": "HTTP/1.1 200 OK\r\nCache-Control: no-cache, no-transform\r\nX-Content-Type-Options: nosniff\r\nContent-Type: text/event-stream\r\nVary: Origin\r\nx-accel-buffering: no\r\nDate: Fri, 23 Oct 2026 04:49:52 GMT\r\nTransfer-Encoding: chunked\r\n\r\n59\r\ndata: {\"id\":\"evt_167181365001OadsZg5nC0ofIn\",\"type\":\"server.connected\",\"properties\":{}}\n\n\r\n"
+        }
+      ],
+      "closedByServer": false,
+      "timedOut": true,
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Type": "text/event-stream",
+        "Vary": "Origin",
+        "x-accel-buffering": "no",
+        "Date": "Fri, 23 Oct 2026 04:49:52 GMT",
+        "Transfer-Encoding": "chunked"
+      },
+      "bodyBytes": 95,
+      "eventTypes": [
+        "server.connected"
+      ],
+      "dataLines": [
+        "{\"id\":\"evt_167181365001OadsZg5nC0ofIn\",\"type\":\"server.connected\",\"properties\":{}}"
+      ],
+      "elapsed": 6.037,
+      "totalBytes": 321,
+      "path": "/data/data/com.termux/files/home/opencode-mobile/tests/spikes/results/raw/sse-no-auth-event-reconnect.sse"
+    },
+    "reconnectDeliveredNewConnectedEvent": true
+  }
+}

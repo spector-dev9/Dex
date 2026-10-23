@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "version": "1.19.3",
+  "channel": "community-termux",
+  "profile": "A_DIRECT",
+  "artifact": {
+    "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz",
+    "sha256": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
+  },
+  "loader": "ld-musl-aarch64.so.1",
+  "binary": "opencode",
+  "required": [
+    "opencode",
+    "ld-musl-aarch64.so.1",
+    "libc.musl-aarch64.so.1",
+    "libgcc_s.so.1",
+    "libstdc++.so.6",
+    "libstdc++.so.6.runtime"
+  ],
+  "alpine": {
+    "version": "3.20.3",
+    "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/aarch64/alpine-minirootfs-3.20.3-aarch64.tar.gz",
+    "sha256": "041fa34a81788242df9e78fa69b97ab45b8ec47ddbf88864755610414a7bf3de"
+  },
+  "unknownMajorVersions": "refused"
+}

@@ -1,0 +1,439 @@
+{
+  "pinnedVersion": "1.19.3",
+  "source": "contract/openapi/opencode-1.19.3.json (live GET /doc)",
+  "openapi": "3.1.0",
+  "title": "opencode",
+  "pathCount": 162,
+  "required": [
+    {
+      "method": "GET",
+      "path": "/global/health",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/global/event",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/event",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/session",
+      "present": true,
+      "methods": [
+        "get",
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session",
+      "present": true,
+      "methods": [
+        "get",
+        "post"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/session/{sessionID}",
+      "present": true,
+      "methods": [
+        "delete",
+        "get",
+        "patch"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/session/{sessionID}",
+      "present": true,
+      "methods": [
+        "delete",
+        "get",
+        "patch"
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/session/{sessionID}",
+      "present": true,
+      "methods": [
+        "delete",
+        "get",
+        "patch"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/session/status",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/fork",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/abort",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/revert",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/unrevert",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/summarize",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/session/{sessionID}/diff",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/session/{sessionID}/message",
+      "present": true,
+      "methods": [
+        "get",
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/prompt_async",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/command",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/shell",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/session/{sessionID}/permissions/{permissionID}",
+      "present": true,
+      "methods": [
+        "post"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/config/providers",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/provider",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/agent",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/command",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/config",
+      "present": true,
+      "methods": [
+        "get",
+        "patch"
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/auth/{providerID}",
+      "present": true,
+      "methods": [
+        "delete",
+        "put"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/project",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/project/current",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/path",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/vcs",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/file/status",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/file",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/file/content",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/find",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/find/file",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/find/symbol",
+      "present": true,
+      "methods": [
+        "get"
+      ]
+    }
+  ],
+  "missingRequired": [],
+  "specOnly": [
+    {
+      "method": "GET",
+      "path": "/doc",
+      "note": "serves its own spec but is not listed as a path"
+    }
+  ],
+  "pty": {
+    "documentedInPinnedSpec": true,
+    "routes": [
+      {
+        "path": "/api/pty",
+        "methods": [
+          "get",
+          "post"
+        ]
+      },
+      {
+        "path": "/api/pty/{ptyID}",
+        "methods": [
+          "delete",
+          "get",
+          "put"
+        ]
+      },
+      {
+        "path": "/api/pty/{ptyID}/connect",
+        "methods": [
+          "get"
+        ]
+      },
+      {
+        "path": "/api/pty/{ptyID}/connect-token",
+        "methods": [
+          "post"
+        ]
+      },
+      {
+        "path": "/pty",
+        "methods": [
+          "get",
+          "post"
+        ]
+      },
+      {
+        "path": "/pty/shells",
+        "methods": [
+          "get"
+        ]
+      },
+      {
+        "path": "/pty/{ptyID}",
+        "methods": [
+          "delete",
+          "get",
+          "put"
+        ]
+      },
+      {
+        "path": "/pty/{ptyID}/connect",
+        "methods": [
+          "get"
+        ]
+      },
+      {
+        "path": "/pty/{ptyID}/connect-token",
+        "methods": [
+          "post"
+        ]
+      }
+    ],
+    "note": "The spec's F3 said PTY routes were undocumented. The pinned 1.19.3 /doc documents /pty and /api/pty. D10 still chooses a native PTY so the terminal works when the server is down; revisit the rationale at G0."
+  },
+  "apiV2": {
+    "count": 51,
+    "note": "The pinned spec exposes an /api/* surface not listed in Section 4.1.",
+    "paths": [
+      "/api/agent",
+      "/api/command",
+      "/api/credential/{credentialID}",
+      "/api/event",
+      "/api/fs/find",
+      "/api/fs/list",
+      "/api/fs/read/*",
+      "/api/health",
+      "/api/integration",
+      "/api/integration/attempt/{attemptID}",
+      "/api/integration/attempt/{attemptID}/complete",
+      "/api/integration/{integrationID}",
+      "/api/integration/{integrationID}/connect/key",
+      "/api/integration/{integrationID}/connect/oauth",
+      "/api/location",
+      "/api/model",
+      "/api/permission/request",
+      "/api/permission/saved",
+      "/api/permission/saved/{id}",
+      "/api/provider",
+      "/api/provider/{providerID}",
+      "/api/pty",
+      "/api/pty/{ptyID}",
+      "/api/pty/{ptyID}/connect",
+      "/api/pty/{ptyID}/connect-token",
+      "/api/question/request",
+      "/api/reference",
+      "/api/session",
+      "/api/session/active",
+      "/api/session/{sessionID}",
+      "/api/session/{sessionID}/agent",
+      "/api/session/{sessionID}/compact",
+      "/api/session/{sessionID}/context",
+      "/api/session/{sessionID}/event",
+      "/api/session/{sessionID}/history",
+      "/api/session/{sessionID}/interrupt",
+      "/api/session/{sessionID}/message",
+      "/api/session/{sessionID}/message/{messageID}",
+      "/api/session/{sessionID}/model",
+      "/api/session/{sessionID}/permission",
+      "/api/session/{sessionID}/permission/{requestID}",
+      "/api/session/{sessionID}/permission/{requestID}/reply",
+      "/api/session/{sessionID}/prompt",
+      "/api/session/{sessionID}/question",
+      "/api/session/{sessionID}/question/{requestID}/reject",
+      "/api/session/{sessionID}/question/{requestID}/reply",
+      "/api/session/{sessionID}/revert/clear",
+      "/api/session/{sessionID}/revert/commit",
+      "/api/session/{sessionID}/revert/stage",
+      "/api/session/{sessionID}/wait",
+      "/api/skill"
+    ]
+  }
+}

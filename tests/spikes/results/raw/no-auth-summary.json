@@ -1,0 +1,82 @@
+{
+  "label": "no-auth",
+  "port": 37199,
+  "passwordConfigured": false,
+  "runtimeVersion": "1.19.3",
+  "startedAt": "2026-10-23T04:41:20Z",
+  "health": {
+    "healthy": true,
+    "seconds": 4.564,
+    "status": 200
+  },
+  "authMatrix": {
+    "health": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "doc": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "project": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "session": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "pty": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "event": {
+      "noAuth": "error:TimeoutError",
+      "basicOpencode": "error:TimeoutError",
+      "basicEmptyUser": "error:TimeoutError",
+      "bearer": "error:TimeoutError",
+      "wrongPassword": "error:TimeoutError"
+    }
+  },
+  "doc": {
+    "status": 200,
+    "path": "/data/data/com.termux/files/home/opencode-mobile/contract/openapi/opencode-no-auth.json"
+  },
+  "sse": {
+    "status": 200,
+    "headers": {
+      "Cache-Control": "no-cache, no-transform",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Type": "text/event-stream",
+      "Vary": "Origin",
+      "x-accel-buffering": "no",
+      "Date": "Fri, 23 Oct 2026 04:41:45 GMT",
+      "Transfer-Encoding": "chunked"
+    },
+    "chunks": [
+      {
+        "at": 0.0,
+        "bytes": 89,
+        "text": "data: {\"id\":\"evt_16710a3dc001vTIw4iWmXvSk8i\",\"type\":\"server.connected\",\"properties\":{}}\n\n"
+      }
+    ],
+    "elapsed": 0.505,
+    "totalBytes": 89,
+    "path": "/data/data/com.termux/files/home/opencode-mobile/tests/spikes/results/raw/no-auth-event.sse"
+  }
+}
