@@ -59,5 +59,7 @@ linked or appended; host spikes cannot promote device rows.
   runtime payload missing from `files/spike`; fixed by pushing the
   pinned `spike-runtime.tar.gz` and extracting with
   `adb shell run-as` (no root). Rows stay `pending` because this is the
-  isolated pre-G0 harness.
+  isolated pre-G0 harness. A repeat run of the same day
+  (`raw/spike-device-20261024-042222.json`) passed all 13 harness records
+  again, confirming the result is deterministic.
 - G0 remains open; no acceptance value here freezes D4 or D5.

@@ -1,8 +1,10 @@
 # S3/S1 device harness run — 2026-10-24, staged runtime APK
 
 Raw report: [`raw/spike-device-20261024-034947.json`](raw/spike-device-20261024-034947.json)
+Confirmation run: [`raw/spike-device-20261024-042222.json`](raw/spike-device-20261024-042222.json)
 
 - SHA-256: `1b0d9a17074bec1cce3f2bdd85026802efbcefebd93c8af223ec9fc5ca9cda94`
+- Confirmation run SHA-256: `e31c69e6ef403fb6cc5c7ad8430c75966e5c7da45dfd382eebb768cae7c15f91`
 - Device: Infinix X6870, Android 16 (SDK 36), arm64-v8a, 4 KB pages
 - APK: `spike-harness-debug.apk` 0.1.0-spike (minSdk 26, targetSdk 36) built
   **after** staging, so `nativeLibraryDir` packages the PTY probe plus
@@ -83,6 +85,25 @@ Additional observations:
   is not part of the JSON records; it was not exercised in this run.
 - Flush/deny noise from the vendor perf HAL (`perfctl`) appears in
   logcat but is unrelated to the harness probes.
+
+## Confirmation run (2026-10-24 04:22 IST)
+
+A repeat full pass on the same install/staging state, `generatedAt`
+`2026-10-24T04:22:22+05:30`, report exported by the harness to the phone
+Download folder and pulled from Termux storage access (no ADB needed).
+All 13 records match the first run's outcomes:
+
+| Probe | Result | Notes |
+| --- | --- | --- |
+| `S1-native-loader` / `S3-native-proot` / `S3-native-proot-loader` | PASS ×3 | identical ELF/alignment details |
+| `runtime-layout` | PASS | unchanged staging |
+| `S1-loader` | PASS | exit=0, `1.19.3` (1560 ms, down from 2334 ms — warm file cache) |
+| `S3-guest-shell` | PASS ×2 | exit=0, `GUEST-OK` (53/104 ms) |
+| `S3-native-pty` | PASS | exit=0, 80x24, environmentMatch=true (181 ms) |
+| `S7-fgs-start` / `S7-service` / `S7-fgs-stop` | PASS | full lifecycle again (`onCreate` → `startForeground` → `onDestroy`) |
+
+The repeat run rules out a one-off: loader exec, PRoot guest shell and
+native PTY pass deterministically on this device state.
 
 ## Interpretation
 
