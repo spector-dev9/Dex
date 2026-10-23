@@ -14,16 +14,16 @@ linked or appended; host spikes cannot promote device rows.
 
 | Requirement | Scope | Status | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
-| S1 | Tier A | pending | none | app/runtime implementation and device access |
-| S1 | Tier B | pending | none | app/runtime implementation and device access |
-| S1 | Tier C | pending | none | app/runtime implementation and device access |
+| S1 | Tier A | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md): loader exec `opencode --version` exit 0 on one device | production app/runtime implementation and remaining tiers |
+| S1 | Tier B | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md) covers Tier A device only | production app/runtime implementation and remaining tiers |
+| S1 | Tier C | pending | none | production app/runtime implementation and remaining tiers |
 | S2 cold start | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md): runtime layout passed; S1/S3 packaging and exec blocked | harness APK lacks staged jniLibs; rebuild after staging |
+| S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md) (packaging blocked) and [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md): S1/S3 packaging, loader exec, guest shell and native PTY all pass on one device | production app wiring and G0 acceptance run required; harness is pre-G0 |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
-| S7 | Tier A/B/C | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
+| S7 | Tier A/B/C | pending | [first device run](tests/spikes/results/S3-device-harness-20261024.md) and [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
 | S8 | Gboard + Samsung Keyboard | pending | none | device and keyboard access |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
@@ -50,4 +50,14 @@ linked or appended; host spikes cannot promote device rows.
   are blocked because the installed APK was the compile-only CI artifact.
   A harness APK must be built after staging so the loader and PRoot are in
   `nativeLibraryDir`; app-private exec is blocked by Android.
+- Second physical device run on 2026-10-24
+  (`tests/spikes/results/S3-device-harness-20261024-staged.md`): the
+  rebuilt post-staging APK passes every S1/S3 probe — loader runs
+  `opencode --version` (exit 0, stdout `1.19.3`), PRoot guest shell and
+  the native `forkpty` comparison both pass, and the S7 service
+  lifecycle completes. The initial side-load again showed the whole
+  runtime payload missing from `files/spike`; fixed by pushing the
+  pinned `spike-runtime.tar.gz` and extracting with
+  `adb shell run-as` (no root). Rows stay `pending` because this is the
+  isolated pre-G0 harness.
 - G0 remains open; no acceptance value here freezes D4 or D5.
