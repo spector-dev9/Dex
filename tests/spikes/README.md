@@ -15,7 +15,7 @@ evidence.
 | S6 | Contract suite on 2.0.x | Pin 2.x only if every used endpoint passes | blocked — 2.x tags exist but no release assets/npm builds → [result](results/S6-2.x.md) |
 | S7 | Background survival, OEM savers | LC-2 met or per-OEM guidance | blocked (needs device) |
 | S8 | xterm.js vs native view | TERM-5 on Gboard + Samsung Keyboard | blocked (needs device) |
-| S9 | Licensing and distribution | Written D1 decision + checklist | pending (owner decision) |
+| S9 | Licensing and distribution | Written D1 decision + checklist | **accepted (D1)** — GitHub Releases + Obtainium first, Play deferred; SBOM/inventory done, LGPL/source-offer blockers open → [checklist](../../docs/licenses/README.md) |
 
 ## Open questions from Section 9
 
@@ -25,7 +25,7 @@ evidence.
    (`SHELL=/system/bin/sh`). S3 still needs an app-sandbox and native-PTY test.
 3. PTY routes? **Documented in the pinned 1.19.3 `/doc`** (9 routes).
 4. Physical devices? Owner input needed.
-5. Audience (sideload vs Play)? Owner decision at S9.
+5. Audience (sideload vs Play)? **Sideload first (D1 accepted)**; Play deferred.
 
 ## Reproduce
 
@@ -40,6 +40,8 @@ npm install
 npm run typecheck
 npm test
 ```
+
+Runtime profile decision support: `docs/runtime-matrix.md`.
 
 Raw evidence lives in `results/raw/`. Do not commit downloaded runtime
 binaries; the manifest pins them by URL and sha-256.

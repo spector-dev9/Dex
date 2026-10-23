@@ -11,8 +11,10 @@ CI or another machine.
 - Technical specification: [docs/spec.md](docs/spec.md)
 - Development environment audit: [docs/audit/environment.md](docs/audit/environment.md)
 - Legacy application review (research only): [docs/audit/legacy-review.md](docs/audit/legacy-review.md)
+- AndCode reuse review (research only): [docs/audit/andcode-review.md](docs/audit/andcode-review.md)
 - Phase 0 plan and proposed layout: [docs/plan/phase-0.md](docs/plan/phase-0.md)
 - G1 core contracts: [docs/architecture/g1-contracts.md](docs/architecture/g1-contracts.md)
+- Runtime profile matrix (provisional): [docs/runtime-matrix.md](docs/runtime-matrix.md)
 - Threat model: [docs/threat-model.md](docs/threat-model.md)
 - Distribution ADR (accepted): [docs/adr/0001-distribution.md](docs/adr/0001-distribution.md)
 - Licensing checklist: [docs/licenses/README.md](docs/licenses/README.md)
@@ -70,6 +72,8 @@ CI or another machine.
   copyright notices, a 67-component main CycloneDX 1.5 SBOM, an
   849-package OpenCode dependency SBOM, notices, license texts and a
   source-offer draft under [docs/licenses](docs/licenses/README.md).
+- In-app notices screen is wired to generated assets; `syncLicenses`,
+  asset merge and manifest/resource merge pass locally (2026-10-23).
 - Open blockers: Bun statically links LGPL JavaScriptCore/tinycc;
   libtalloc is dynamically linked under LGPL-3.0-or-later; verify the
   dependency closure against the built binary.

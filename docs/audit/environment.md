@@ -66,9 +66,12 @@
 - UI build and typecheck.
 - Kotlin/JVM contract compilation and packaging through the Gradle
   wrapper.
+- Android asset/resource merging and manifest merging (`syncLicenses`,
+  `mergeDebugAssets`, `mergeDebugResources`, `processDebugMainManifest`).
 
 ## What cannot be verified locally
 
-- Android app compilation, APK assembly and signing on this host.
+- Android Kotlin compilation, APK assembly and signing on this host;
+  build-tools 36.0.0 has no `split-select`.
 - Emulator/device boot, install, runtime start, thermal/background
   behavior, keyboard/IME behavior, 16 KB-page boot.

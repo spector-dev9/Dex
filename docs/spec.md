@@ -1,5 +1,11 @@
 # OpenCode Mobile: Audit and Technical Specification (v0.1)
 
+The owner-approved `oc.md` (2026-10-23, 27,445 bytes, SHA-256
+`77499b1bf2474c9e7391a48b10a5ec117e056e8367d6c6192c794db6911ef25a`)
+is the source of record. This tracked copy mirrors it; the only
+intentional divergence is the typed expansion of the command list in
+Section 4.3, recorded there.
+
 Draft of October 23, 2026. Inputs: the Vision & Technical Blueprint; the spector-dev9/Test README and AUDIT-REPORT.md (dated October 22, 2026); OpenCode's published server docs; public Termux and Android documentation. I read the README and audit report, not the source code. Items tagged **\[verify\]** need a code read or a device test. All numeric targets are proposals, to be ratified at gate G0 against measured baselines.
 
 ## 1. Audit of the blueprint
@@ -144,6 +150,14 @@ Envelope shapes: command {v:1, id:'c-102', type:'cmd', name:'workspace.write', a
     terminal.close
   - settings.get, settings.set
 - **Events:** runtime.state, server.state, session.event (coalesced to at most one batch per 50 ms), permission.requested, terminal.data (binary over a message port), workspace.changed, diagnostics.alert.
+
+> Reconciliation note: `oc.md` abbreviates the session family as
+> `session.*` and lists `terminal.open`, `terminal.write`,
+> `terminal.resize` and `terminal.close`. The list above is the typed
+> expansion of that shorthand: 17 session proxies plus an additive
+> `terminal.signal` command needed by D10 and TERM-2. No command in
+> `oc.md` is removed. The addition remains provisional until G0, and
+> bridge v1 stays additive-only.
 
 ### 4.4 Errors and timeouts
 

@@ -121,7 +121,10 @@ the derived value so the JSON shape matches TypeScript.
 
 ### Commands
 
-The 47 names are centralized in `BridgeCommandNames`:
+The 47 names are centralized in `BridgeCommandNames`. The approved
+`oc.md` shorthand writes `session.*` and omits `terminal.signal`; this set
+is its explicit, additive expansion, with the same provisional G0
+boundary recorded in Section 4.3 of the specification.
 
 | Namespace | Count | Examples |
 | --- | --- | --- |

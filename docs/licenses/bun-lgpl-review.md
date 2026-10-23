@@ -138,7 +138,7 @@ build objects; otherwise option 3 is the fallback.
 
 - [ ] Counsel/owner selects option 1, 2 or 3.
 - [ ] Source archive and written offer finalized with release URL/contact.
-- [ ] In-app notices screen includes Bun/JSC/tinycc.
+- [x] In-app notices screen includes Bun/JSC/tinycc.
 - [ ] S9 blocker cleared; release checklist updated.
 
 ## References

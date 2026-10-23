@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">OpenCode Mobile</string>
     <string name="app_status">App shell ready. Runtime work is gated by G0.</string>
+    <string name="open_source_licenses">Open source licenses</string>
+    <string name="licenses_title">Open source licenses</string>
 </resources>

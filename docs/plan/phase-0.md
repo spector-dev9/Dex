@@ -8,9 +8,14 @@ Status: **Phase 0 complete. Phase 2 in progress.**
 - Legacy clone preserved separately as
   `~/opencode-mobile-legacy-reference` (reference only, pristine at
   `3a75b62`).
-- Technical spec copied to `docs/spec.md`.
+- Technical spec copied to `docs/spec.md`; its Section 4.3 command list
+  is the recorded typed expansion of the approved `oc.md` shorthand.
 - Environment audit written.
 - Legacy review written from README, audit report and selected code.
+- AndCode reuse review written from source and tests (research only); no
+  code copied.
+- Runtime profile matrix written (`docs/runtime-matrix.md`); D4 remains
+  open pending device measurements.
 - Layout approved by the owner ("oc.md is approved, work as it says").
 - Host-side Phase 2 spikes run with the pinned artifact:
   - S1 partial: binary runs, hash and 64 KB alignment verified, health
@@ -50,7 +55,7 @@ Status: **Phase 0 complete. Phase 2 in progress.**
   PRoot dynamically links libtalloc. Open blockers: Bun LGPL object-file/source-offer review and
   verification of the dependency closure against the built binary.
 
-## Remaining skeleton (contracts now; implementations after G0)
+## Target layout (contracts now; implementations after G0)
 
 ```
 ui/
@@ -68,8 +73,8 @@ core/                        ten `*-api` interface modules (contracts compile;
                              runtime, supervisor, gateway, workspace, git,
                              terminal, security, diagnostics, bridge, common)
 docs/adr/                    D1–D13 records at G0
-docs/threat-model.md
-docs/runtime-matrix.md
+docs/threat-model.md       done
+docs/runtime-matrix.md      done; D4 decision at G0
 .github/workflows/           ci, android-debug, drift
 ```
 
@@ -137,6 +142,11 @@ See `docs/architecture/g1-contracts.md`.
 6. **Bun 1.3.14 statically links JavaScriptCore (LGPL-2.0-only) and
    tinycc (LGPL-2.1-only).** The community artifact's MIT license does
    not cover these; S9 must resolve relink/source-offer duties.
+7. **Section 4.3 is an explicit expansion, not a replacement.** The
+   approved `oc.md` writes `session.*` and omits `terminal.signal`; the
+   tracked contract enumerates 17 session proxies and adds
+   `terminal.signal` for D10/TERM-2. No approved command is removed.
+   This remains provisional until G0.
 
 ## Next experiments
 

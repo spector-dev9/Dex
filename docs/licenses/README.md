@@ -83,7 +83,10 @@ python3 scripts/build-licenses.py
       `docs/licenses/texts/`.
 - [x] Include CC-BY attribution and license texts for `caniuse-lite`
       and `spdx-exceptions`.
-- [ ] Add the license texts to an in-app "Open source licenses" screen.
+- [x] Add the license texts to an in-app "Open source licenses" screen.
+      Verified `:app:syncLicenses` and `:app:mergeDebugAssets`
+      package `NOTICES.md`, `SOURCE-OFFER.md` and all 16 texts;
+      merged assets are byte-identical to `docs/licenses` (2026-10-23).
 - [ ] Publish the PRoot corresponding source (or a written offer) with
       each release.
 - [ ] Publish source for GPL/LGPL/MPL Alpine packages, or a valid
