@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
 val generatedLicensesDir = layout.buildDirectory.dir("generated/licenses/assets")
@@ -19,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.spectordev9.opencode"
-        minSdk = 31
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = project.version.toString()
@@ -36,11 +37,21 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
+    buildFeatures {
+        compose = true
+    }
+
     sourceSets["main"].assets.srcDir(generatedLicensesDir)
 }
 
 kotlin {
     jvmToolchain(21)
+}
+
+dependencies {
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.material3)
 }
 
 tasks.named("preBuild").configure {

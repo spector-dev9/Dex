@@ -1,12 +1,14 @@
 # G1 core contracts (interface-only)
 
-Status: scaffolded and compiling 2026-10-23. A minimal Android app shell
-is present; no runtime implementation, bridge handler, JNI code or WebView
-transport is included.
+Status: core contracts compile. A minimal Compose Android shell is present;
+APK compilation is unverified in this environment because the Android SDK
+is not installed. No runtime implementation, bridge handler, JNI code, or
+JavaScript transport is included.
 
-The bridge wire envelope is versioned and additive-only. The service
-interfaces are provisional until D4 (runtime profile) and D5 (version
-pin) are frozen at gate G0.
+The TypeScript bridge contract is retained as a parity fixture only. It is
+not part of the Android UI or runtime architecture. Its envelope is
+versioned and additive-only; the service interfaces are provisional until
+D4 (runtime profile) and D5 (version pin) are frozen at gate G0.
 
 ## Module map
 
@@ -141,13 +143,17 @@ they must not change the envelope shapes above.
 
 ## Deferred until after G0
 
-- App service wiring, foreground service, WebView and WebMessagePort.
+- App service wiring, foreground service, and Compose feature screens.
 - JSON serialization and per-command payload DTOs.
 - OkHttp/SSE gateway implementation and Basic-auth wiring.
 - Android Keystore, log scrubbing and diagnostics storage.
 - Native loader/PRoot process management and JNI `forkpty`.
 - Dependency verification, release signing and dependency locking.
 - Contract tests against fake implementations.
+
+The TypeScript bridge is retained only as a protocol-parity fixture during
+the scaffold phase. It is not an Android UI or a WebView transport; the
+Android shell and planned user screens are native Kotlin and Jetpack Compose.
 
 ## Validation
 

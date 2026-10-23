@@ -1,28 +1,52 @@
 package io.github.spectordev9.opencode
 
-import android.app.Activity
-import android.graphics.Typeface
 import android.os.Bundle
-import android.widget.ScrollView
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
-class LicensesActivity : Activity() {
+class LicensesActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = getString(R.string.licenses_title)
-        setContentView(
-            ScrollView(this).apply {
-                addView(
-                    TextView(this@LicensesActivity).apply {
-                        text = readLicenses()
-                        typeface = Typeface.MONOSPACE
-                        textSize = 12f
-                        setTextIsSelectable(true)
-                        setPadding(dp(24), dp(24), dp(24), dp(24))
-                    },
-                )
-            },
-        )
+        val licenses = readLicenses()
+        val screenTitle = getString(R.string.licenses_title)
+        setContent {
+            MaterialTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                    ) {
+                        Text(
+                            text = screenTitle,
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                        SelectionContainer(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = licenses,
+                                modifier = Modifier.verticalScroll(rememberScrollState()),
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private fun readLicenses(): String = buildString {
@@ -44,7 +68,4 @@ class LicensesActivity : Activity() {
 
     private fun readAsset(path: String): String =
         assets.open(path).bufferedReader(Charsets.UTF_8).use { it.readText() }
-
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
 }

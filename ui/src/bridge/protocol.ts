@@ -1,6 +1,6 @@
 /**
- * Typed bridge contract between the WebView UI and the Kotlin gateway
- * (spec Section 4.3). Envelope shapes are frozen: additive changes only.
+ * TypeScript parity fixture for the Kotlin protocol (spec Section 4.3).
+ * It is not a UI/runtime transport. Envelope changes are additive only.
  */
 
 export const PROTOCOL_VERSION = 1 as const;
