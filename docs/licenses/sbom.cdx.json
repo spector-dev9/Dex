@@ -1576,7 +1576,7 @@
       ],
       "licenses": [
         {
-          "expression": "GPL-2.0-only"
+          "expression": "GPL-2.0-or-later"
         }
       ],
       "name": "PRoot",
@@ -2230,7 +2230,7 @@
       }
     ]
   },
-  "serialNumber": "urn:uuid:bff6acd7-456b-559e-996d-fc2bca781403",
+  "serialNumber": "urn:uuid:30165267-0caf-5881-bc3f-eac6746366e5",
   "specVersion": "1.5",
   "version": 1
 }

@@ -47,8 +47,8 @@ machine.
   849-package OpenCode dependency SBOM, notices, license texts and a
   source-offer draft under [docs/licenses](docs/licenses/README.md).
 - Open blockers: Bun statically links LGPL JavaScriptCore/tinycc;
-  libtalloc is LGPL-3.0-or-later; verify the dependency closure against
-  the built binary.
+  libtalloc is dynamically linked under LGPL-3.0-or-later; verify the
+  dependency closure against the built binary.
 
 ## Intended architecture (provisional)
 
@@ -91,6 +91,6 @@ environment audit for details.
 The clean-room application code is licensed under Apache-2.0; see
 [LICENSE](LICENSE). Bundled third-party components keep their own
 licenses (OpenCode/musl MIT, Bun MIT plus bundled LGPL components,
-PRoot GPL-2.0-only, Alpine packages mixed);
+PRoot GPL-2.0-or-later, Alpine packages mixed);
 see [docs/licenses](docs/licenses/README.md) for notices and source
 offers.

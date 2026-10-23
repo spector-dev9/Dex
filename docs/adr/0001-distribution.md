@@ -24,7 +24,7 @@ Current facts verified for this ADR:
 - OpenCode is MIT (upstream `LICENSE`, checked 2026-10-23).
 - The community Termux artifact is MIT, but the tarball contains only
   binaries (`opencode`, musl loader and libs), no license texts.
-- PRoot is GPL-2.0.
+- PRoot is GPL-2.0-or-later.
 - Alpine 3.20.3 is a mixed-license aggregate (GPL-2.0 components such as
   BusyBox/apk-tools, MIT musl, Apache-2.0 OpenSSL, and others).
 - Play requires new apps and updates to target API 36 from
@@ -78,7 +78,7 @@ Current facts verified for this ADR:
 
 - Users install outside Play and may need to allow unknown sources or
   use Obtainium/ADB.
-- GPL-2.0 source-offer duties apply to PRoot and GPL Alpine packages;
+- GPL-2.0-or-later source-offer duties apply to PRoot; GPL-2.0-only duties apply to GPL Alpine packages;
   MIT/Apache notices apply to the rest.
 - The release pipeline must publish source, SBOM and notices, not just
   the APK.

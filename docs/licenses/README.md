@@ -17,7 +17,7 @@ and SEC-5.
 | JavaScriptCore/WebKit (inside Bun) | bundled | LGPL-2.0-only | Bun/WebKit | LGPL relink/source-offer review; Bun LICENSE |
 | tinycc (inside Bun) | bundled | LGPL-2.1-only | Bun/tinycc | LGPL relink/source-offer review; Bun LICENSE |
 | musl loader/libs | 1.2.5 | MIT | musl | Include notice |
-| PRoot | 5.1.107.98 | GPL-2.0-only | `termux/proot` | Ship license, source archive (pinned) or written offer |
+| PRoot | 5.1.107.98 | GPL-2.0-or-later | `termux/proot` | Ship license, source archive (pinned) or written offer |
 | libtalloc | 2.5.0 | LGPL-3.0-or-later | Samba talloc | LGPL relink/source-offer review |
 | libandroid-shmem | 0.7 | BSD-3-Clause | `termux/libandroid-shmem` | Include copyright and license |
 | Alpine minirootfs | 3.20.3 | mixed | Alpine release | Per-package notices; source offer for GPL/LGPL/MPL packages |
@@ -115,6 +115,9 @@ python3 scripts/build-licenses.py
 
 - [x] `docs/licenses/` contains the inventory, texts and a source-offer
       draft (release links still pending).
+- [x] Confirmed PRoot dynamically links `libtalloc.so.2` and
+      `libandroid-shmem.so` with `readelf -d`; talloc source is
+      LGPL-3.0-or-later.
 - [ ] Release notes state the exact runtime version, hashes and license
       changes.
 - [ ] SEC-5 result: no unfixed critical/high vulnerabilities.
@@ -124,7 +127,7 @@ python3 scripts/build-licenses.py
 The generated draft is [SOURCE-OFFER.md](SOURCE-OFFER.md). The final
 release must replace placeholders with the release URL and contact:
 
-> This release includes PRoot (GPL-2.0) and Alpine packages under
+> This release includes PRoot (GPL-2.0-or-later) and Alpine packages under
 > GPL/LGPL/MPL licenses. Corresponding source is available at
 > `<repository/release URL>` and, on request, from `<contact>` for at
 > least three years from the date of distribution. The offer is valid
@@ -140,8 +143,10 @@ release must replace placeholders with the release URL and contact:
 2. **OpenCode closure accuracy.** The SBOM follows `bun.lock` install
    paths and aggregates duplicate versions, but it is not a binary scan.
    Verify the bundled set and CC-BY notices at release.
-3. **libtalloc LGPL.** PRoot links libtalloc 2.5.0 under
-   LGPL-3.0-or-later. Resolve relink/source-offer duties before release.
+3. **libtalloc LGPL.** PRoot dynamically links `libtalloc.so.2`; the
+   pinned talloc 2.5.0 source is LGPL-3.0-or-later, while the Termux deb
+   copyright symlink points to `GPL-3.0.txt`. Use upstream source as
+   authoritative and review the packaging discrepancy before release.
 4. **Alpine notice coverage.** Per-package notices are collected, but
    `alpine-baselayout`, `alpine-baselayout-data` and `alpine-keys` ship
    no separate copyright file; review this residual gap at release.

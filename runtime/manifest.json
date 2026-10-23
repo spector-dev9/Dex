@@ -28,7 +28,7 @@
     "version": "5.1.107.98",
     "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.98_aarch64.deb",
     "sha256": "29de40efea4daa2a6168b617915206511c63e8d46bf5f4b07d48723441ef7f3b",
-    "license": "GPL-2.0-only",
+    "license": "GPL-2.0-or-later",
     "source": {
       "url": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz",
       "sha256": "a1237d2039e0efedd1639aa4a99ac5e48a10f4c2e14cce445b2cbebedf32d22e",

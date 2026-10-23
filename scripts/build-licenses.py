@@ -406,8 +406,10 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
         "The OpenCode dependency SBOM is a production/optional lockfile "
         "closure; verify the bundled set against the binary at release and "
         "keep CC-BY attribution notices current.",
-        "libtalloc is LGPL-3.0-or-later and is linked by PRoot; review "
-        "relink/source-offer duties together with the Bun LGPL components.",
+        "PRoot dynamically links libtalloc.so.2. The pinned talloc 2.5.0 "
+        "source is LGPL-3.0-or-later, while the Termux deb copyright symlink "
+        "points to GPL-3.0.txt; treat the upstream source as authoritative "
+        "and review the packaging discrepancy.",
         "PRoot and libtalloc are pinned to Termux packages; verify each "
         "published deb was built from the pinned source before release.",
         "Three Alpine packages (alpine-baselayout, alpine-baselayout-data "
@@ -695,6 +697,13 @@ def source_offer(data: dict) -> str:
         "",
         "libandroid-shmem is BSD-3-Clause and is covered by the notices.",
         "",
+        "PRoot's ELF `NEEDED` entries include `libtalloc.so.2` and",
+        "`libandroid-shmem.so`, so talloc is dynamically linked. The pinned",
+        "talloc 2.5.0 `LICENSE` and source headers are LGPL-3.0-or-later;",
+        "the Termux deb's `copyright` symlink points to `GPL-3.0.txt`.",
+        "Use the upstream source as authoritative and review this packaging",
+        "discrepancy before release.",
+        "",
         "## Bun (LGPL components)",
         "",
         "Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc",
@@ -702,6 +711,10 @@ def source_offer(data: dict) -> str:
         "LICENSE.md: https://github.com/oven-sh/bun/blob/main/LICENSE.md.",
         "Bun's other bundled libraries are listed in NOTICES.md; review",
         "their licenses before release.",
+        "",
+        "Bun 1.3.14 source archive:",
+        "https://github.com/oven-sh/bun/archive/refs/tags/bun-v1.3.14.tar.gz",
+        "(commit 0d9b296af33f2b851fcbf4df3e9ec89751734ba4).",
         "",
         "## OpenCode dependency closure",
         "",

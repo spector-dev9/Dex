@@ -16,7 +16,7 @@ This file is a draft. The upstream license text governs; see
 | bun | 1.3.14 | MIT | https://github.com/oven-sh/bun |
 | JavaScriptCore (WebKit) | bundled in Bun 1.3.14 | LGPL-2.0-only | https://github.com/oven-sh/webkit |
 | tinycc | bundled in Bun 1.3.14 | LGPL-2.1-only | https://github.com/TinyCC/tinycc |
-| PRoot | 5.1.107.98 | GPL-2.0-only | https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz |
+| PRoot | 5.1.107.98 | GPL-2.0-or-later | https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz |
 | libtalloc | 2.5.0 | LGPL-3.0-or-later | https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz |
 | libandroid-shmem | 0.7 | BSD-3-Clause | https://github.com/termux/libandroid-shmem/archive/refs/tags/v0.7.tar.gz |
 
@@ -181,7 +181,7 @@ CC-BY attribution:
 
 - Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc (LGPL-2.1-only); Bun's LICENSE.md describes relinking. LGPL object-file/source-offer compliance needs legal review before release.
 - The OpenCode dependency SBOM is a production/optional lockfile closure; verify the bundled set against the binary at release and keep CC-BY attribution notices current.
-- libtalloc is LGPL-3.0-or-later and is linked by PRoot; review relink/source-offer duties together with the Bun LGPL components.
+- PRoot dynamically links libtalloc.so.2. The pinned talloc 2.5.0 source is LGPL-3.0-or-later, while the Termux deb copyright symlink points to GPL-3.0.txt; treat the upstream source as authoritative and review the packaging discrepancy.
 - PRoot and libtalloc are pinned to Termux packages; verify each published deb was built from the pinned source before release.
 - Three Alpine packages (alpine-baselayout, alpine-baselayout-data and alpine-keys) ship no separate copyright file; their notices use package metadata and the upstream license.
 - UI dependencies (React, Vite, CodeMirror, xterm.js) are not added yet; regenerate this inventory when ui/package.json lands.

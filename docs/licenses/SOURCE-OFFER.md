@@ -25,10 +25,17 @@ the binary.
 
 | Library | Version | License | Source archive | SHA-256 |
 | --- | --- | --- | --- | --- |
-| PRoot | 5.1.107.98 | GPL-2.0-only | https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz | a1237d2039e0efedd1639aa4a99ac5e48a10f4c2e14cce445b2cbebedf32d22e |
+| PRoot | 5.1.107.98 | GPL-2.0-or-later | https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz | a1237d2039e0efedd1639aa4a99ac5e48a10f4c2e14cce445b2cbebedf32d22e |
 | libtalloc | 2.5.0 | LGPL-3.0-or-later | https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz | 912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007 |
 
 libandroid-shmem is BSD-3-Clause and is covered by the notices.
+
+PRoot's ELF `NEEDED` entries include `libtalloc.so.2` and
+`libandroid-shmem.so`, so talloc is dynamically linked. The pinned
+talloc 2.5.0 `LICENSE` and source headers are LGPL-3.0-or-later;
+the Termux deb's `copyright` symlink points to `GPL-3.0.txt`.
+Use the upstream source as authoritative and review this packaging
+discrepancy before release.
 
 ## Bun (LGPL components)
 
@@ -37,6 +44,10 @@ Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc
 LICENSE.md: https://github.com/oven-sh/bun/blob/main/LICENSE.md.
 Bun's other bundled libraries are listed in NOTICES.md; review
 their licenses before release.
+
+Bun 1.3.14 source archive:
+https://github.com/oven-sh/bun/archive/refs/tags/bun-v1.3.14.tar.gz
+(commit 0d9b296af33f2b851fcbf4df3e9ec89751734ba4).
 
 ## OpenCode dependency closure
 
