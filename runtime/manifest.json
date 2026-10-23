@@ -22,5 +22,49 @@
     "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/aarch64/alpine-minirootfs-3.20.3-aarch64.tar.gz",
     "sha256": "041fa34a81788242df9e78fa69b97ab45b8ec47ddbf88864755610414a7bf3de"
   },
-  "unknownMajorVersions": "refused"
+  "unknownMajorVersions": "refused",
+  "proot": {
+    "name": "PRoot",
+    "version": "5.1.107.98",
+    "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.98_aarch64.deb",
+    "sha256": "29de40efea4daa2a6168b617915206511c63e8d46bf5f4b07d48723441ef7f3b",
+    "license": "GPL-2.0-only",
+    "source": {
+      "url": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz",
+      "sha256": "a1237d2039e0efedd1639aa4a99ac5e48a10f4c2e14cce445b2cbebedf32d22e",
+      "tag": "v5.1.107.98",
+      "commit": "e2d843ee6dab076ea0ed1ffd5d0ea12232185499"
+    }
+  },
+  "libtalloc": {
+    "name": "libtalloc",
+    "version": "2.5.0",
+    "url": "https://packages.termux.dev/apt/termux-main/pool/main/libt/libtalloc/libtalloc_2.5.0_aarch64.deb",
+    "sha256": "556591f43bb773ad8777e1a29522640866a55f95dab71914418b94a8c58ad5a7",
+    "license": "LGPL-3.0-or-later",
+    "source": {
+      "url": "https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz",
+      "sha256": "912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007",
+      "tag": "talloc-2.5.0"
+    }
+  },
+  "libandroid-shmem": {
+    "name": "libandroid-shmem",
+    "version": "0.7",
+    "url": "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_aarch64.deb",
+    "sha256": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6",
+    "license": "BSD-3-Clause",
+    "source": {
+      "url": "https://github.com/termux/libandroid-shmem/archive/refs/tags/v0.7.tar.gz",
+      "sha256": "1e5ff8459bc0a8c229dd8a94b27d119987e09ef3414331c2b5ebfff20b98e867",
+      "tag": "v0.7",
+      "commit": "7f0bd7e25dbdd146265aff7c6a890029e374622d"
+    }
+  },
+  "source": {
+    "url": "https://github.com/anomalyco/opencode/archive/refs/tags/v1.19.3.tar.gz",
+    "sha256": "8395f12e26df2d16610760ae224daf87da1d253a9883bf230be2c53984fe99ea",
+    "tag": "v1.19.3",
+    "commit": "e3c4eb242585dcd77be1a867391b7c25fd47ce52"
+  }
 }

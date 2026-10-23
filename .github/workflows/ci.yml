@@ -35,6 +35,11 @@ jobs:
       - name: Python syntax
         run: python3 -m py_compile scripts/*.py tests/spikes/scripts/*.py
 
+      - name: License artifacts are valid
+        run: |
+          python3 scripts/check-licenses.py
+          (cd docs/licenses/texts && sha256sum -c SHA256SUMS)
+
       - name: Inventory is reproducible
         run: |
           python3 scripts/build-inventory.py

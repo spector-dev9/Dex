@@ -1,0 +1,811 @@
+{
+  "alpine": {
+    "apkindexSha256": {
+      "community": "56b890b2394c5c19a4ceb54958fa144d6fdc6c108549224c0a268ea98b46ec87",
+      "main": "917a81a37b0e1c8315009482a56f54d3213c32b0756100bf2ed2b9ebeb342273"
+    },
+    "rootfsSha256": "041fa34a81788242df9e78fa69b97ab45b8ec47ddbf88864755610414a7bf3de",
+    "version": "3.20.3"
+  },
+  "androidLibs": [
+    {
+      "distributionUrl": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.98_aarch64.deb",
+      "license": "GPL-2.0-only",
+      "name": "PRoot",
+      "sha256": "29de40efea4daa2a6168b617915206511c63e8d46bf5f4b07d48723441ef7f3b",
+      "sourceRef": "v5.1.107.98",
+      "sourceSha256": "a1237d2039e0efedd1639aa4a99ac5e48a10f4c2e14cce445b2cbebedf32d22e",
+      "sourceUrl": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz",
+      "version": "5.1.107.98"
+    },
+    {
+      "distributionUrl": "https://packages.termux.dev/apt/termux-main/pool/main/libt/libtalloc/libtalloc_2.5.0_aarch64.deb",
+      "license": "LGPL-3.0-or-later",
+      "name": "libtalloc",
+      "sha256": "556591f43bb773ad8777e1a29522640866a55f95dab71914418b94a8c58ad5a7",
+      "sourceRef": "talloc-2.5.0",
+      "sourceSha256": "912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007",
+      "sourceUrl": "https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz",
+      "version": "2.5.0"
+    },
+    {
+      "distributionUrl": "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_aarch64.deb",
+      "license": "BSD-3-Clause",
+      "name": "libandroid-shmem",
+      "sha256": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6",
+      "sourceRef": "v0.7",
+      "sourceSha256": "1e5ff8459bc0a8c229dd8a94b27d119987e09ef3414331c2b5ebfff20b98e867",
+      "sourceUrl": "https://github.com/termux/libandroid-shmem/archive/refs/tags/v0.7.tar.gz",
+      "version": "0.7"
+    }
+  ],
+  "app": {
+    "externalReferences": [
+      {
+        "type": "vcs",
+        "url": "https://github.com/spector-dev9/Opencode-mobile"
+      }
+    ],
+    "licenses": [
+      {
+        "expression": "Apache-2.0"
+      }
+    ],
+    "name": "opencode-mobile",
+    "purl": "pkg:generic/opencode-mobile@0.0.0",
+    "type": "application",
+    "version": "0.0.0"
+  },
+  "bunBundled": [
+    {
+      "license": "Apache 2.0 licensed",
+      "name": "A fork of uWebsockets",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/jarred-sumner/uwebsockets",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "assert",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/assert",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "several licenses",
+      "name": "boringssl",
+      "section": "Linked libraries",
+      "sourceUrl": "https://boringssl.googlesource.com/boringssl/",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "brotli",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/google/brotli",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "browserify-zlib",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/browserify-zlib",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "buffer",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/buffer",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT licensed",
+      "name": "c-ares",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/c-ares/c-ares",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "constants-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/constants-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "crypto-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/crypto-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "domain-browser",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/domain-browser",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "events",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/events",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "Apache 2.0",
+      "name": "highway",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/google/highway",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "https-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/https-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "several licenses",
+      "name": "libarchive",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/libarchive/libarchive",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "BSD 2-Clause",
+      "name": "libbase64",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/aklomp/base64/blob/master/LICENSE",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "libdeflate",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/ebiggers/libdeflate",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "license here",
+      "name": "libicu 72",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/unicode-org/icu",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "BSD 3-Clause / IJG / zlib",
+      "name": "libjpeg-turbo",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/libjpeg-turbo/libjpeg-turbo",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "BSD 2-Clause",
+      "name": "libspng",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/randy408/libspng",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "libuv (on Windows)",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/libuv/libuv",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "BSD 3-Clause",
+      "name": "libwebp",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/webmproject/libwebp",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "BSD 3-Clause",
+      "name": "lol-html",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/cloudflare/lol-html/tree/master/c-api",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "ls-hpack",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/litespeedtech/ls-hpack",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "ls-qpack",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/litespeedtech/ls-qpack",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT (portions derived from Chromium proto-quic, BSD 3-Clause)",
+      "name": "lsquic",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/litespeedtech/lsquic",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "mimalloc",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/microsoft/mimalloc",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "os-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/os-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "path-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/path-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "dual-licensed under the Perl License or the MIT License",
+      "name": "picohttp",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/h2o/picohttpparser",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "process",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/process",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "punycode",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/punycode",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "querystring-es3",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/querystring-es3",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "Apache 2.0",
+      "name": "simdutf",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/simdutf/simdutf",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "stream-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/stream-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "stream-http",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/stream-http",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "string_decoder",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/string_decoder",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "timers-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/timers-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "tty-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/tty-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "Apache 2.0",
+      "name": "uSockets",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/uNetworking/uSockets",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "url",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/url",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "util",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/util",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "uucode",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/jacobsandlund/uucode",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "MIT",
+      "name": "vm-browserify",
+      "section": "Polyfills",
+      "sourceUrl": "https://npmjs.com/package/vm-browserify",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "zlib",
+      "name": "zlib-ng",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/zlib-ng/zlib-ng",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "license": "dual-licensed under the BSD License or GPLv2 license",
+      "name": "zstd",
+      "section": "Linked libraries",
+      "sourceUrl": "https://github.com/facebook/zstd",
+      "version": "bundled in Bun 1.3.14"
+    }
+  ],
+  "knownGaps": [
+    "Bun statically links JavaScriptCore (LGPL-2.0-only) and tinycc (LGPL-2.1-only); Bun's LICENSE.md describes relinking. LGPL object-file/source-offer compliance needs legal review before release.",
+    "OpenCode's embedded JavaScript dependencies are not listed in the community tarball; generate a transitive SBOM from upstream tag v1.19.3.",
+    "libtalloc is LGPL-3.0-or-later and is linked by PRoot; review relink/source-offer duties together with the Bun LGPL components.",
+    "PRoot and libtalloc are pinned to Termux packages; verify each published deb was built from the pinned source before release.",
+    "Alpine packages do not all ship license files; copyright notices must be collected from the APKBUILD/upstream sources.",
+    "UI dependencies (React, Vite, CodeMirror, xterm.js) are not added yet; regenerate this inventory when ui/package.json lands.",
+    "Bun-bundled library versions and presence are taken from Bun's LICENSE.md, not from the binary; verify at release. Bun also lists lint/fmt/typechecker code ports in the same table; those are covered by the Bun LICENSE but not split into components."
+  ],
+  "licenseSummary": {
+    "Apache-2.0": 2,
+    "GPL-2.0-only": 7,
+    "MIT": 2,
+    "MIT AND BSD-2-Clause AND GPL-2.0-or-later": 1,
+    "MPL-2.0 AND MIT": 1,
+    "Zlib": 1
+  },
+  "packages": [
+    {
+      "commit": "66187892e05b03a41d08e9acabd19b7576a1c875",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/alpine-baselayout",
+      "license": "GPL-2.0-only",
+      "name": "alpine-baselayout",
+      "origin": "alpine-baselayout",
+      "repo": "main",
+      "repositoryVersion": "3.6.5-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout",
+      "version": "3.6.5-r0"
+    },
+    {
+      "commit": "66187892e05b03a41d08e9acabd19b7576a1c875",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/alpine-baselayout-data",
+      "license": "GPL-2.0-only",
+      "name": "alpine-baselayout-data",
+      "origin": "alpine-baselayout",
+      "repo": "main",
+      "repositoryVersion": "3.6.5-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout",
+      "version": "3.6.5-r0"
+    },
+    {
+      "commit": "aab68f8c9ab434a46710de8e12fb3206e2930a59",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/alpine-keys",
+      "license": "MIT",
+      "name": "alpine-keys",
+      "origin": "alpine-keys",
+      "repo": "main",
+      "repositoryVersion": "2.4-r1",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/aab68f8c9ab434a46710de8e12fb3206e2930a59/main/alpine-keys",
+      "version": "2.4-r1"
+    },
+    {
+      "commit": "d435c805af8af4171438da3ec3429c094aac4c6e",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/apk-tools",
+      "license": "GPL-2.0-only",
+      "name": "apk-tools",
+      "origin": "apk-tools",
+      "repo": "main",
+      "repositoryVersion": "2.14.4-r1",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/d435c805af8af4171438da3ec3429c094aac4c6e/main/apk-tools",
+      "version": "2.14.4-r0"
+    },
+    {
+      "commit": "1747c01fb96905f101c25609011589d28e01cbb8",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/busybox",
+      "license": "GPL-2.0-only",
+      "name": "busybox",
+      "origin": "busybox",
+      "repo": "main",
+      "repositoryVersion": "1.36.1-r31",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox",
+      "version": "1.36.1-r29"
+    },
+    {
+      "commit": "1747c01fb96905f101c25609011589d28e01cbb8",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/busybox-binsh",
+      "license": "GPL-2.0-only",
+      "name": "busybox-binsh",
+      "origin": "busybox",
+      "repo": "main",
+      "repositoryVersion": "1.36.1-r31",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox",
+      "version": "1.36.1-r29"
+    },
+    {
+      "commit": "5d17fc7e5ae113319f201d781607ffe4bee95b61",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ca-certificates-bundle",
+      "license": "MPL-2.0 AND MIT",
+      "name": "ca-certificates-bundle",
+      "origin": "ca-certificates",
+      "repo": "main",
+      "repositoryVersion": "20261020-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates",
+      "version": "20240705-r0"
+    },
+    {
+      "commit": "f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libcrypto3",
+      "license": "Apache-2.0",
+      "name": "libcrypto3",
+      "origin": "openssl",
+      "repo": "main",
+      "repositoryVersion": "3.3.7-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl",
+      "version": "3.3.2-r0"
+    },
+    {
+      "commit": "f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libssl3",
+      "license": "Apache-2.0",
+      "name": "libssl3",
+      "origin": "openssl",
+      "repo": "main",
+      "repositoryVersion": "3.3.7-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl",
+      "version": "3.3.2-r0"
+    },
+    {
+      "commit": "4fe5bdbe47b100daa6380f81c4c8ea3f99b61362",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/musl",
+      "license": "MIT",
+      "name": "musl",
+      "origin": "musl",
+      "repo": "main",
+      "repositoryVersion": "1.2.5-r4",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl",
+      "version": "1.2.5-r0"
+    },
+    {
+      "commit": "4fe5bdbe47b100daa6380f81c4c8ea3f99b61362",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/musl-utils",
+      "license": "MIT AND BSD-2-Clause AND GPL-2.0-or-later",
+      "name": "musl-utils",
+      "origin": "musl",
+      "repo": "main",
+      "repositoryVersion": "1.2.5-r4",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl",
+      "version": "1.2.5-r0"
+    },
+    {
+      "commit": "e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/scanelf",
+      "license": "GPL-2.0-only",
+      "name": "scanelf",
+      "origin": "pax-utils",
+      "repo": "main",
+      "repositoryVersion": "1.3.7-r2",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6/main/pax-utils",
+      "version": "1.3.7-r2"
+    },
+    {
+      "commit": "1747c01fb96905f101c25609011589d28e01cbb8",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ssl_client",
+      "license": "GPL-2.0-only",
+      "name": "ssl_client",
+      "origin": "busybox",
+      "repo": "main",
+      "repositoryVersion": "1.36.1-r31",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox",
+      "version": "1.36.1-r29"
+    },
+    {
+      "commit": "fad2d175bd85eb4c5566765375392a7394dfbcf2",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/zlib",
+      "license": "Zlib",
+      "name": "zlib",
+      "origin": "zlib",
+      "repo": "main",
+      "repositoryVersion": "1.3.2-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/fad2d175bd85eb4c5566765375392a7394dfbcf2/main/zlib",
+      "version": "1.3.1-r1"
+    }
+  ],
+  "runtime": [
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
+        },
+        {
+          "type": "source-distribution",
+          "url": "https://github.com/anomalyco/opencode/archive/refs/tags/v1.19.3.tar.gz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/anomalyco/opencode"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "opencode",
+      "properties": [
+        {
+          "name": "source:sha256",
+          "value": "8395f12e26df2d16610760ae224daf87da1d253a9883bf230be2c53984fe99ea"
+        },
+        {
+          "name": "source:ref",
+          "value": "v1.19.3"
+        }
+      ],
+      "purl": "pkg:github/anomalyco/opencode@v1.19.3",
+      "type": "application",
+      "version": "1.19.3"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/C04-wq/opencode-termux"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "opencode-termux",
+      "purl": "pkg:github/C04-wq/opencode-termux@v1.19.3",
+      "type": "application",
+      "version": "1.19.3"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/oven-sh/bun"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "bun",
+      "properties": [
+        {
+          "name": "bun:detected-from",
+          "value": "opencode"
+        },
+        {
+          "name": "bun:statically-links",
+          "value": "JavaScriptCore (LGPL-2.0-only), tinycc (LGPL-2.1-only)"
+        }
+      ],
+      "purl": "pkg:github/oven-sh/bun@1.3.14",
+      "type": "application",
+      "version": "1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/oven-sh/webkit"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-2.0-only"
+        }
+      ],
+      "name": "JavaScriptCore (WebKit)",
+      "properties": [
+        {
+          "name": "bun:statically-linked",
+          "value": "true"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/TinyCC/tinycc"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-2.1-only"
+        }
+      ],
+      "name": "tinycc",
+      "properties": [
+        {
+          "name": "bun:statically-linked",
+          "value": "true"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.98_aarch64.deb"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "29de40efea4daa2a6168b617915206511c63e8d46bf5f4b07d48723441ef7f3b"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "PRoot",
+      "properties": [
+        {
+          "name": "source:sha256",
+          "value": "a1237d2039e0efedd1639aa4a99ac5e48a10f4c2e14cce445b2cbebedf32d22e"
+        },
+        {
+          "name": "source:ref",
+          "value": "v5.1.107.98"
+        }
+      ],
+      "type": "application",
+      "version": "5.1.107.98"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://packages.termux.dev/apt/termux-main/pool/main/libt/libtalloc/libtalloc_2.5.0_aarch64.deb"
+        },
+        {
+          "type": "vcs",
+          "url": "https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "556591f43bb773ad8777e1a29522640866a55f95dab71914418b94a8c58ad5a7"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-3.0-or-later"
+        }
+      ],
+      "name": "libtalloc",
+      "properties": [
+        {
+          "name": "source:sha256",
+          "value": "912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007"
+        },
+        {
+          "name": "source:ref",
+          "value": "talloc-2.5.0"
+        }
+      ],
+      "type": "library",
+      "version": "2.5.0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_aarch64.deb"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/termux/libandroid-shmem/archive/refs/tags/v0.7.tar.gz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "libandroid-shmem",
+      "properties": [
+        {
+          "name": "source:sha256",
+          "value": "1e5ff8459bc0a8c229dd8a94b27d119987e09ef3414331c2b5ebfff20b98e867"
+        },
+        {
+          "name": "source:ref",
+          "value": "v0.7"
+        }
+      ],
+      "type": "library",
+      "version": "0.7"
+    }
+  ],
+  "schema": 1
+}

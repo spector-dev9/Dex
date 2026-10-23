@@ -31,7 +31,13 @@ Status: **Phase 0 complete. Phase 2 in progress.**
 - S9: D1 accepted (2026-10-23) — GitHub Releases + Obtainium, a
   self-hosted F-Droid repo after reproducible builds, bundled runtime,
   Play deferred, app code Apache-2.0. Compliance checklist is in
-  `docs/licenses/`; release items remain open.
+  `docs/licenses/`.
+- S9 artifacts generated: 14 Alpine packages, 45 Bun-bundled
+  libraries/polyfills, pinned PRoot/libtalloc/libandroid-shmem, a
+  67-component CycloneDX 1.5 SBOM, notices, license texts and a
+  source-offer draft. Open blockers: Bun statically links LGPL
+  JavaScriptCore/tinycc; libtalloc is LGPL-3.0-or-later; OpenCode
+  transitive SBOM is missing.
 
 ## Remaining skeleton (Phase 1, after G0 decisions)
 
@@ -80,7 +86,7 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
 | S6 | blocked (2.0 artifact) | — |
 | S7 | blocked (device) | — |
 | S8 | blocked (device + keyboards) | — |
-| S9 | accepted (D1); licensing checklist in progress | `docs/adr/0001-distribution.md`, `docs/licenses/README.md` |
+| S9 | accepted (D1); SBOM/inventory done, blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes
 
@@ -95,6 +101,9 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
    protected too, so the supervisor and gateway must authenticate both.
 5. **Without a password, all routes return 200** to any local process,
    confirming F5 at the highest severity.
+6. **Bun 1.3.14 statically links JavaScriptCore (LGPL-2.0-only) and
+   tinycc (LGPL-2.1-only).** The community artifact's MIT license does
+   not cover these; S9 must resolve relink/source-offer duties.
 
 ## Next experiments
 
@@ -105,7 +114,8 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
    available; record pass/fail per used endpoint.
 3. **S1 app-sandbox:** CI emulator (API 31/33/36) + a 16 KB-page
    device; verify start, health and `execute_no_trans` denials.
-4. **S9:** complete the `docs/licenses/` checklist (SBOM, notices,
-   source offers, trademark, developer verification).
+4. **S9:** resolve Bun/libtalloc LGPL compliance, collect Alpine
+   copyright notices, and complete the remaining checklist (trademark,
+   developer verification).
 5. **Bridge hardening:** abort semantics against the live server and
    WebView transport wiring before G0 interface freeze.

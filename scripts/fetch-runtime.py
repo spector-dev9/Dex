@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Fetch and verify the pinned OpenCode runtime artifact.
+"""Fetch and verify the pinned runtime and Alpine rootfs.
 
-Phase 2 spike tooling. Never executes the artifact; verification and
-extraction only. Downloads to runtime/artifacts/ (gitignored).
+Phase 2/S9 tooling. Never executes downloaded files. Archives are
+verified against the manifest and stored in runtime/artifacts/
+(gitignored).
 """
 
 from __future__ import annotations
@@ -84,6 +85,12 @@ def main() -> int:
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST)
     parser.add_argument("--dest", default=DEFAULT_DEST)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--alpine", action="store_true", help="also fetch the pinned Alpine minirootfs")
+    parser.add_argument(
+        "--android-libs",
+        action="store_true",
+        help="also fetch the pinned PRoot, libtalloc and libandroid-shmem packages",
+    )
     args = parser.parse_args()
 
     with open(args.manifest, encoding="utf-8") as handle:
@@ -129,6 +136,55 @@ def main() -> int:
         "artifactSha256": expected,
         "runtimeDir": extracted,
     }
+
+    if args.alpine:
+        alpine = manifest["alpine"]
+        alpine_archive = os.path.join(
+            args.dest, f"alpine-minirootfs-{alpine['version']}-aarch64.tar.gz"
+        )
+        if args.force or not os.path.isfile(alpine_archive):
+            print(f"downloading {alpine['url']}")
+            with tempfile.TemporaryDirectory() as tmp:
+                staged = os.path.join(tmp, os.path.basename(alpine_archive))
+                download(alpine["url"], staged)
+                actual = sha256(staged)
+                if actual != alpine["sha256"]:
+                    fail(f"Alpine sha-256 mismatch: expected {alpine['sha256']}, got {actual}")
+                os.replace(staged, alpine_archive)
+        else:
+            actual = sha256(alpine_archive)
+            if actual != alpine["sha256"]:
+                fail(f"cached Alpine sha-256 mismatch: expected {alpine['sha256']}, got {actual}")
+        result["alpineVersion"] = alpine["version"]
+        result["alpineArchive"] = alpine_archive
+        result["alpineSha256"] = alpine["sha256"]
+
+    if args.android_libs:
+        result["androidLibs"] = {}
+        for key in ("proot", "libtalloc", "libandroid-shmem"):
+            spec = manifest[key]
+            archive = os.path.join(args.dest, os.path.basename(spec["url"]))
+            if args.force or not os.path.isfile(archive):
+                print(f"downloading {spec['url']}")
+                with tempfile.TemporaryDirectory() as tmp:
+                    staged = os.path.join(tmp, os.path.basename(archive))
+                    download(spec["url"], staged)
+                    actual = sha256(staged)
+                    if actual != spec["sha256"]:
+                        fail(f"{key} sha-256 mismatch: expected {spec['sha256']}, got {actual}")
+                    os.replace(staged, archive)
+            else:
+                actual = sha256(archive)
+                if actual != spec["sha256"]:
+                    fail(f"cached {key} sha-256 mismatch: expected {spec['sha256']}, got {actual}")
+            result["androidLibs"][key] = {
+                "version": spec["version"],
+                "archive": archive,
+                "sha256": spec["sha256"],
+                "source": spec["source"]["url"],
+                "sourceSha256": spec["source"]["sha256"],
+            }
+
     print(json.dumps(result, indent=2))
     return 0
 

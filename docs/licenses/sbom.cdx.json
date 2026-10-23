@@ -1,0 +1,2236 @@
+{
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/jarred-sumner/uwebsockets"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache 2.0 licensed"
+          }
+        }
+      ],
+      "name": "A fork of uWebsockets",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/alpine-baselayout"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "alpine-baselayout",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "alpine-baselayout"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "3.6.5-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/alpine-baselayout@3.6.5-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "3.6.5-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/alpine-baselayout-data"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "alpine-baselayout-data",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "alpine-baselayout"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "3.6.5-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/alpine-baselayout-data@3.6.5-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "3.6.5-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/alpine-keys"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/aab68f8c9ab434a46710de8e12fb3206e2930a59/main/alpine-keys"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "alpine-keys",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "alpine-keys"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MIT"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "2.4-r1"
+        }
+      ],
+      "purl": "pkg:apk/alpine/alpine-keys@2.4-r1?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "2.4-r1"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/apk-tools"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/d435c805af8af4171438da3ec3429c094aac4c6e/main/apk-tools"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "apk-tools",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "apk-tools"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "2.14.4-r1"
+        }
+      ],
+      "purl": "pkg:apk/alpine/apk-tools@2.14.4-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "2.14.4-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/assert"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "assert",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://boringssl.googlesource.com/boringssl/"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "several licenses"
+          }
+        }
+      ],
+      "name": "boringssl",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/google/brotli"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "brotli",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/browserify-zlib"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "browserify-zlib",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/buffer"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "buffer",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/oven-sh/bun"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "bun",
+      "properties": [
+        {
+          "name": "bun:detected-from",
+          "value": "opencode"
+        },
+        {
+          "name": "bun:statically-links",
+          "value": "JavaScriptCore (LGPL-2.0-only), tinycc (LGPL-2.1-only)"
+        }
+      ],
+      "purl": "pkg:github/oven-sh/bun@1.3.14",
+      "type": "application",
+      "version": "1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/busybox"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "busybox",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "busybox"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.36.1-r31"
+        }
+      ],
+      "purl": "pkg:apk/alpine/busybox@1.36.1-r29?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.36.1-r29"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/busybox-binsh"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "busybox-binsh",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "busybox"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.36.1-r31"
+        }
+      ],
+      "purl": "pkg:apk/alpine/busybox-binsh@1.36.1-r29?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.36.1-r29"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/c-ares/c-ares"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT licensed"
+          }
+        }
+      ],
+      "name": "c-ares",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ca-certificates-bundle"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0 AND MIT"
+          }
+        }
+      ],
+      "name": "ca-certificates-bundle",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "ca-certificates"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MPL-2.0 AND MIT"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "20261020-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/ca-certificates-bundle@20240705-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "20240705-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/constants-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "constants-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/crypto-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "crypto-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/domain-browser"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "domain-browser",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/events"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "events",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/google/highway"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache 2.0"
+          }
+        }
+      ],
+      "name": "highway",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/https-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "https-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/oven-sh/webkit"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-2.0-only"
+        }
+      ],
+      "name": "JavaScriptCore (WebKit)",
+      "properties": [
+        {
+          "name": "bun:statically-linked",
+          "value": "true"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-shmem/libandroid-shmem_0.7_aarch64.deb"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/termux/libandroid-shmem/archive/refs/tags/v0.7.tar.gz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0da3a24d558b93c92bcf8d611e0826a99ff96e396b148e6cdf33b47c47c57ff6"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-3-Clause"
+        }
+      ],
+      "name": "libandroid-shmem",
+      "properties": [
+        {
+          "name": "source:sha256",
+          "value": "1e5ff8459bc0a8c229dd8a94b27d119987e09ef3414331c2b5ebfff20b98e867"
+        },
+        {
+          "name": "source:ref",
+          "value": "v0.7"
+        }
+      ],
+      "type": "library",
+      "version": "0.7"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/libarchive/libarchive"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "several licenses"
+          }
+        }
+      ],
+      "name": "libarchive",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/aklomp/base64/blob/master/LICENSE"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD 2-Clause"
+          }
+        }
+      ],
+      "name": "libbase64",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libcrypto3"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "libcrypto3",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "openssl"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "Apache-2.0"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "3.3.7-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/libcrypto3@3.3.2-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "3.3.2-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/ebiggers/libdeflate"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "libdeflate",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/unicode-org/icu"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "license here"
+          }
+        }
+      ],
+      "name": "libicu 72",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/libjpeg-turbo/libjpeg-turbo"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD 3-Clause / IJG / zlib"
+          }
+        }
+      ],
+      "name": "libjpeg-turbo",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/randy408/libspng"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD 2-Clause"
+          }
+        }
+      ],
+      "name": "libspng",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libssl3"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "libssl3",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "openssl"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "Apache-2.0"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "3.3.7-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/libssl3@3.3.2-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "3.3.2-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://packages.termux.dev/apt/termux-main/pool/main/libt/libtalloc/libtalloc_2.5.0_aarch64.deb"
+        },
+        {
+          "type": "vcs",
+          "url": "https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "556591f43bb773ad8777e1a29522640866a55f95dab71914418b94a8c58ad5a7"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-3.0-or-later"
+        }
+      ],
+      "name": "libtalloc",
+      "properties": [
+        {
+          "name": "source:sha256",
+          "value": "912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007"
+        },
+        {
+          "name": "source:ref",
+          "value": "talloc-2.5.0"
+        }
+      ],
+      "type": "library",
+      "version": "2.5.0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/libuv/libuv"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "libuv (on Windows)",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/webmproject/libwebp"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD 3-Clause"
+          }
+        }
+      ],
+      "name": "libwebp",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/cloudflare/lol-html/tree/master/c-api"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD 3-Clause"
+          }
+        }
+      ],
+      "name": "lol-html",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/litespeedtech/ls-hpack"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "ls-hpack",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/litespeedtech/ls-qpack"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "ls-qpack",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/litespeedtech/lsquic"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT (portions derived from Chromium proto-quic, BSD 3-Clause)"
+          }
+        }
+      ],
+      "name": "lsquic",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/microsoft/mimalloc"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "mimalloc",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/musl"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "musl",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "musl"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MIT"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.2.5-r4"
+        }
+      ],
+      "purl": "pkg:apk/alpine/musl@1.2.5-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.2.5-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/musl-utils"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT AND BSD-2-Clause AND GPL-2.0-or-later"
+          }
+        }
+      ],
+      "name": "musl-utils",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "musl"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MIT AND BSD-2-Clause AND GPL-2.0-or-later"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.2.5-r4"
+        }
+      ],
+      "purl": "pkg:apk/alpine/musl-utils@1.2.5-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.2.5-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
+        },
+        {
+          "type": "source-distribution",
+          "url": "https://github.com/anomalyco/opencode/archive/refs/tags/v1.19.3.tar.gz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/anomalyco/opencode"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "opencode",
+      "properties": [
+        {
+          "name": "source:sha256",
+          "value": "8395f12e26df2d16610760ae224daf87da1d253a9883bf230be2c53984fe99ea"
+        },
+        {
+          "name": "source:ref",
+          "value": "v1.19.3"
+        }
+      ],
+      "purl": "pkg:github/anomalyco/opencode@v1.19.3",
+      "type": "application",
+      "version": "1.19.3"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/C04-wq/opencode-termux"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "opencode-termux",
+      "purl": "pkg:github/C04-wq/opencode-termux@v1.19.3",
+      "type": "application",
+      "version": "1.19.3"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/os-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "os-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/path-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "path-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/h2o/picohttpparser"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "dual-licensed under the Perl License or the MIT License"
+          }
+        }
+      ],
+      "name": "picohttp",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/process"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "process",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.98_aarch64.deb"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "29de40efea4daa2a6168b617915206511c63e8d46bf5f4b07d48723441ef7f3b"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "PRoot",
+      "properties": [
+        {
+          "name": "source:sha256",
+          "value": "a1237d2039e0efedd1639aa4a99ac5e48a10f4c2e14cce445b2cbebedf32d22e"
+        },
+        {
+          "name": "source:ref",
+          "value": "v5.1.107.98"
+        }
+      ],
+      "type": "application",
+      "version": "5.1.107.98"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/punycode"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "punycode",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/querystring-es3"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "querystring-es3",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/scanelf"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6/main/pax-utils"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "scanelf",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "pax-utils"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.3.7-r2"
+        }
+      ],
+      "purl": "pkg:apk/alpine/scanelf@1.3.7-r2?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.3.7-r2"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/simdutf/simdutf"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache 2.0"
+          }
+        }
+      ],
+      "name": "simdutf",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ssl_client"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "GPL-2.0-only"
+        }
+      ],
+      "name": "ssl_client",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "busybox"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-only"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.36.1-r31"
+        }
+      ],
+      "purl": "pkg:apk/alpine/ssl_client@1.36.1-r29?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.36.1-r29"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/stream-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "stream-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/stream-http"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "stream-http",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/string_decoder"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "string_decoder",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/timers-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "timers-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/TinyCC/tinycc"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "LGPL-2.1-only"
+        }
+      ],
+      "name": "tinycc",
+      "properties": [
+        {
+          "name": "bun:statically-linked",
+          "value": "true"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/tty-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "tty-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/url"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "url",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/uNetworking/uSockets"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache 2.0"
+          }
+        }
+      ],
+      "name": "uSockets",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/util"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "util",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/jacobsandlund/uucode"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "uucode",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://npmjs.com/package/vm-browserify"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "vm-browserify",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Polyfills"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/zlib"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/fad2d175bd85eb4c5566765375392a7394dfbcf2/main/zlib"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Zlib"
+        }
+      ],
+      "name": "zlib",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "zlib"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "Zlib"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.3.2-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/zlib@1.3.1-r1?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.3.1-r1"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/zlib-ng/zlib-ng"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "zlib"
+        }
+      ],
+      "name": "zlib-ng",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "license",
+          "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/facebook/zstd"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "dual-licensed under the BSD License or GPLv2 license"
+          }
+        }
+      ],
+      "name": "zstd",
+      "properties": [
+        {
+          "name": "bun:bundled-section",
+          "value": "Linked libraries"
+        },
+        {
+          "name": "bun:presence",
+          "value": "upstream-listed; not verified in this binary"
+        }
+      ],
+      "type": "library",
+      "version": "bundled in Bun 1.3.14"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/spector-dev9/Opencode-mobile"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "Apache-2.0"
+        }
+      ],
+      "name": "opencode-mobile",
+      "purl": "pkg:generic/opencode-mobile@0.0.0",
+      "type": "application",
+      "version": "0.0.0"
+    },
+    "properties": [
+      {
+        "name": "alpine:version",
+        "value": "3.20.3"
+      },
+      {
+        "name": "alpine:rootfs-sha256",
+        "value": "041fa34a81788242df9e78fa69b97ab45b8ec47ddbf88864755610414a7bf3de"
+      },
+      {
+        "name": "alpine:apkindex-sha256:main",
+        "value": "917a81a37b0e1c8315009482a56f54d3213c32b0756100bf2ed2b9ebeb342273"
+      },
+      {
+        "name": "alpine:apkindex-sha256:community",
+        "value": "56b890b2394c5c19a4ceb54958fa144d6fdc6c108549224c0a268ea98b46ec87"
+      }
+    ]
+  },
+  "serialNumber": "urn:uuid:bff6acd7-456b-559e-996d-fc2bca781403",
+  "specVersion": "1.5",
+  "version": 1
+}

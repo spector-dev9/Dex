@@ -1,7 +1,8 @@
 # Licensing and distribution compliance (S9)
 
-Status: draft. This checklist must be complete before the first public
-release. It supports ADR 0001 (D1) and SEC-5.
+Status: draft. Inventory, CycloneDX SBOM, notices and a source-offer
+draft were generated on 2026-10-23. The checklist must be complete
+before the first public release. It supports ADR 0001 (D1) and SEC-5.
 
 ## Components in the shipped APK
 
@@ -9,16 +10,40 @@ release. It supports ADR 0001 (D1) and SEC-5.
 | --- | --- | --- | --- | --- |
 | OpenCode | 1.19.3 | MIT | Upstream release / `anomalyco/opencode` | Include copyright and permission notice |
 | Community Termux artifact | 1.19.3 | MIT | `C04-wq/opencode-termux` release | Include notice; confirm bundled dependency notices |
-| Bun runtime inside artifact | upstream | MIT | Bun | Include notice; SBOM |
-| musl loader/libs | artifact | MIT | musl | Include notice |
-| PRoot | pinned build | GPL-2.0 | `proot-me/proot` | Ship license, complete corresponding source or written offer (3 years) |
+| Bun runtime inside artifact | 1.3.14 | MIT | Bun | Include Bun LICENSE and SBOM |
+| Bun bundled libraries/polyfills | bundled | mixed | Bun | Listed in `NOTICES.md`; verify presence at release |
+| JavaScriptCore/WebKit (inside Bun) | bundled | LGPL-2.0-only | Bun/WebKit | LGPL relink/source-offer review; Bun LICENSE |
+| tinycc (inside Bun) | bundled | LGPL-2.1-only | Bun/tinycc | LGPL relink/source-offer review; Bun LICENSE |
+| musl loader/libs | 1.2.5 | MIT | musl | Include notice |
+| PRoot | 5.1.107.98 | GPL-2.0-only | `termux/proot` | Ship license, source archive (pinned) or written offer |
+| libtalloc | 2.5.0 | LGPL-3.0-or-later | Samba talloc | LGPL relink/source-offer review |
+| libandroid-shmem | 0.7 | BSD-3-Clause | `termux/libandroid-shmem` | Include copyright and license |
 | Alpine minirootfs | 3.20.3 | mixed | Alpine release | Per-package notices; source offer for GPL/LGPL/MPL packages |
 | App clean-room code | — | Apache-2.0 (accepted) | this repo | Include `LICENSE`; publish source with releases |
-| React/TypeScript/Vite/CodeMirror/xterm.js | pinned | MIT/BSD/Apache-2.0 | npm | Bundle notices via license scan |
+| React/TypeScript/Vite/CodeMirror/xterm.js | not added | MIT/BSD/Apache-2.0 | npm | Bundle notices via license scan |
 
 The runtime tarball contains no license files, so notices must come from
 the upstream projects and the Alpine package metadata, not from the
-artifact itself.
+artifact itself. Bun's LICENSE.md is included because Bun statically
+links LGPL-2.0 JavaScriptCore and LGPL-2.1 tinycc, plus roughly 50
+other libraries and polyfills listed upstream. The LGPL relink/source
+offer is a release blocker until reviewed.
+
+## Generated artifacts
+
+- [components.json](components.json) — machine-readable inventory
+  (runtime, Alpine packages, licenses, source URLs).
+- [sbom.cdx.json](sbom.cdx.json) — CycloneDX 1.5 SBOM.
+- [NOTICES.md](NOTICES.md) — human-readable third-party notices.
+- [SOURCE-OFFER.md](SOURCE-OFFER.md) — draft GPL/LGPL/MPL source offer.
+- [texts/](texts/) — license texts and `SHA256SUMS`.
+
+Regenerate after any runtime, rootfs or dependency change:
+
+```bash
+python3 scripts/fetch-runtime.py --alpine --android-libs
+python3 scripts/build-licenses.py
+```
 
 ## Checklist
 
@@ -33,16 +58,17 @@ artifact itself.
 
 ### Notices and source
 
-- [ ] Generate a CycloneDX SBOM for app dependencies and the rootfs.
-- [ ] Generate an Alpine package license inventory from APKINDEX/
-      `apk info -a` metadata, including package source URLs.
-- [ ] Copy MIT, Apache-2.0, GPL-2.0 and other required texts into
-      `docs/licenses/` and into an in-app "Open source licenses" screen.
+- [x] Generate a CycloneDX SBOM for the runtime and rootfs.
+- [x] Generate an Alpine package license inventory from the installed
+      DB and APKINDEX repo mapping, including source URLs.
+- [x] Copy MIT, Apache-2.0, GPL-2.0 and other required texts into
+      `docs/licenses/texts/`.
+- [ ] Add the license texts to an in-app "Open source licenses" screen.
 - [ ] Publish the PRoot corresponding source (or a written offer) with
       each release.
 - [ ] Publish source for GPL/LGPL/MPL Alpine packages, or a valid
-      written offer.
-- [ ] Include upstream OpenCode/Bun/musl notices.
+      written offer (draft exists).
+- [x] Include upstream OpenCode/Bun/musl notices (draft).
 - [ ] Publish release checksums and the SBOM alongside the APK.
 
 ### Build and release
@@ -70,19 +96,38 @@ artifact itself.
 
 ### Evidence
 
-- [ ] `docs/licenses/` contains the inventory, texts and source-offer
-      links used for the release.
+- [x] `docs/licenses/` contains the inventory, texts and a source-offer
+      draft (release links still pending).
 - [ ] Release notes state the exact runtime version, hashes and license
       changes.
 - [ ] SEC-5 result: no unfixed critical/high vulnerabilities.
 
 ## Source-offer template
 
+The generated draft is [SOURCE-OFFER.md](SOURCE-OFFER.md). The final
+release must replace placeholders with the release URL and contact:
+
 > This release includes PRoot (GPL-2.0) and Alpine packages under
 > GPL/LGPL/MPL licenses. Corresponding source is available at
 > `<repository/release URL>` and, on request, from `<contact>` for at
 > least three years from the date of distribution. The offer is valid
 > for anyone who received this binary.
+
+## Known release blockers
+
+1. **Bun LGPL components.** JavaScriptCore (LGPL-2.0-only) and tinycc
+   (LGPL-2.1-only) are statically linked into the Bun binary. Resolve
+   the relink/object-file or source-offer requirement before release.
+   Bun's other bundled libraries are listed in `NOTICES.md`; their
+   versions and presence still need release-time verification.
+2. **OpenCode transitive dependencies.** The tarball has no notices;
+   generate an SBOM from upstream tag `v1.19.3`.
+3. **libtalloc LGPL.** PRoot links libtalloc 2.5.0 under
+   LGPL-3.0-or-later. Resolve relink/source-offer duties before release.
+4. **Alpine copyright notices.** License IDs are known; per-package
+   copyright files still need collection.
+5. **UI dependencies.** React/Vite/CodeMirror/xterm.js are not added
+   yet; regenerate the SBOM when they land.
 
 ## Open questions
 
@@ -92,3 +137,6 @@ artifact itself.
    third-party mobile client name?
 3. Which entity holds the release signing key and the developer
    verification account?
+4. Does distributing the Bun binary require shipping relinkable object
+   files, or is Bun's published source/relink path sufficient?
+5. Where is the OpenCode `v1.19.3` dependency SBOM published?
