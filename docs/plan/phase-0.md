@@ -12,15 +12,17 @@ set; G0 is governed by `docs/spec.md` and this phase plan.
 | Decision | Current resolution | Status at G0 | Evidence / remaining work |
 | --- | --- | --- | --- |
 | D1 — distribution | GitHub Releases + Obtainium first; self-hosted F-Droid after reproducible builds; Play deferred; Apache-2.0 app code. | Accepted by owner; release work remains. | `docs/adr/0001-distribution.md`. Complete the S9 legal, source-offer, signing and reproducible-build blockers before release. |
-| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | Host spikes are directional only. Physical-device S1/S2/S3, app-sandbox launch, native PTY comparison and the required device tiers remain pending in `docs/runtime-matrix.md` and `docs/evidence/RESULTS.md`. |
+| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | The staged harness passes S1 loader launch and the S3 guest-shell/native-PTY comparison on one Infinix Android 16 device (4 KB pages). Full S1 server/prompt coverage, S2 comparison, required device tiers and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
 | D5 — version pin | Keep OpenCode **1.19.3** as the exact current baseline; verify its manifest hash; reject unknown major versions. Re-evaluate only when a distributable 2.x artifact is available. | Resolved for the current baseline; 2.x compatibility is unverified. | `runtime/manifest.json`, `tests/spikes/results/S6-2.x.md`. The 2.x release-artifact check is blocked, not a reason to silently change the pin. |
 
 **G0 is not complete.** The specification requires S1–S9, Tier A/B/C
-baselines, ratified thresholds, and frozen D1/D4/D5. D4 is still evidence-
-gated; S1–S3 are partial host results, S6 is blocked on a distributable
-2.x artifact, S7/S8 are blocked on devices, and S9 still has licensing
-and release-compliance blockers. Do not start G0-dependent production
-service wiring or claim device acceptance until these blockers clear.
+baselines, ratified thresholds, and frozen D1/D4/D5. One physical device
+has passed the staged harness's S1 loader-version check and S3 guest
+shell/native-PTY probes; this does not satisfy the full S1 server and
+prompt round trip or the required device matrix. S2, longer-duration
+and cross-tier S7, keyboard S8, S6's 2.x artifact decision and S9
+compliance items remain open. Do not start G0-dependent production
+service wiring or claim gate acceptance until these blockers clear.
 
 ### G0 sequencing constraint
 
@@ -34,19 +36,22 @@ PTY behavior, lifecycle and keyboard feasibility; it must not become
 production service wiring or be treated as acceptance until run on the
 required devices.
 
-The immediate blocker is physical test access: `adb devices -l` currently
-reports no connected device. Once Tier A/B/C, a 16 KB-page device and the
-required keyboard devices are available, run the spike harness and attach
-device metadata/results before freezing D4 or ratifying device-dependent
-thresholds.
+The first physical-device harness report is now recorded for one Infinix
+X6870 (Android 16, arm64-v8a, 4 KB pages). The staged APK passes the
+loader version check, PRoot guest shell, native 80x24 PTY comparison and
+basic foreground-service start/stop. It does not cover a 16 KB-page
+device, the remaining tiers, S8 keyboards or S7 background survival.
+Continue gathering those results before freezing D4 or ratifying
+device-dependent thresholds.
 
 An isolated device harness now exists at `tests/spikes/harness/` and is
 excluded from normal builds (`-PspikeHarness=true`). It records device
 metadata, checks jniLibs ELF alignment, launches the loader/opencode
 entrypoint, runs a PRoot guest shell, compares the guest shell with a
 native `forkpty` session, exercises the `specialUse` foreground service
-and records IME input. The harness compiles, but has not been run on a
-device; its results remain pending until run on the required devices.
+and records IME input. One staged physical-device run is recorded in
+`tests/spikes/results/S3-device-harness-20261024-staged.md`; it is
+partial feasibility evidence, not G0 acceptance.
 
 ## Foundation status — what works and what is blocked
 
@@ -64,9 +69,11 @@ device; its results remain pending until run on the required devices.
 
 **Still blocked or not yet accepted**
 
-- Physical-device S1/S2/S3 evidence, Tier A/B/C baselines, 16 KB page-size
-  launch checks, lifecycle/thermal/soak and keyboard acceptance are all
-  pending. No host result promotes these rows.
+- One-device harness evidence now passes the loader `--version`, guest
+  shell, native PTY and foreground-service start/stop probes. Full S1
+  server/prompt coverage, S2 comparisons, Tier A/B/C baselines, 16 KB
+  page-size device coverage, lifecycle/thermal/soak and keyboard
+  acceptance remain pending; the run does not promote acceptance rows.
 - Runtime packaging/supervision, authenticated ephemeral loopback
   lifecycle, production Kotlin HTTP/SSE gateway, native workspace
   operations and native interactive PTY are not implemented.
@@ -195,14 +202,19 @@ See `docs/architecture/g1-contracts.md`.
       pin change.
 - [x] Add harness actions for S1 loader launch, S3 PRoot guest shell,
       S7 `specialUse` foreground-service lifecycle, S8 IME input and a
-      JSON report. These are implemented, not yet run on a device.
+      JSON report. They are implemented; the staged S1/S3/S7 device
+      results are recorded below and in the evidence matrix.
 - [x] Add a test-only native `forkpty` comparison for guest `PWD`,
       `PATH`, Node version and 80x24 terminal sizing. Keep it isolated
       from production wiring.
 - [x] Add Android CI compile support and verify the gated
       `arm64-v8a` debug APK, including the native helper.
-- [ ] Run the harness on Tier A/B/C, a 16 KB-page device and the two
-      required keyboards; attach reports to `docs/evidence/RESULTS.md`.
+- [x] Run the staged harness on one physical Android 16/arm64 device;
+      record passing S1 loader-version, S3 guest-shell/native-PTY and
+      basic S7 lifecycle probes in `docs/evidence/RESULTS.md`.
+- [ ] Complete S1 server health and mock-provider prompt round trip;
+      run the required Tier A/B/C, 16 KB-page and keyboard tests, and
+      collect S7 background-survival evidence.
 
 ## Phase 0 exit criteria
 
@@ -218,14 +230,14 @@ See `docs/architecture/g1-contracts.md`.
 
 | ID | Status | Evidence |
 | --- | --- | --- |
-| S1 | partial (host) | `tests/spikes/results/S1-host-smoke.md` |
+| S1 | partial (host + one physical device; loader version only on device) | `tests/spikes/results/S1-host-smoke.md`, `tests/spikes/results/S3-device-harness-20261024-staged.md` |
 | S2 | partial (host); device + git/npm + thermals pending | `tests/spikes/results/S2-host-profiles.md` |
-| S3 | partial (host); app sandbox + PTY pending | `tests/spikes/results/S3-shell.md` |
+| S3 | partial (host + one physical device); guest shell and native PTY pass on device, full agent-shell comparison and device matrix pending | `tests/spikes/results/S3-shell.md`, `tests/spikes/results/S3-device-harness-20261024-staged.md` |
 | S4 | pass (host, mock + real provider); app/UI pending | `tests/spikes/results/S4-sse.md` |
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
-| S7 | blocked (device) | `docs/evidence/RESULTS.md` |
-| S8 | blocked (device + keyboards) | `docs/evidence/RESULTS.md` |
+| S7 | partial (one device; start/stop observed, background survival and tier matrix pending) | `docs/evidence/RESULTS.md` |
+| S8 | partial (user-reported keyboard pass on Infinix Note 50s 5G using “emojikeyboard”; app/IME identity and coverage unverified; required Gboard/Samsung runs pending) | `docs/evidence/RESULTS.md` |
 | S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes
@@ -252,12 +264,12 @@ See `docs/architecture/g1-contracts.md`.
 
 ## Next experiments
 
-1. **Unblock device evidence:** acquire the Tier A/B/C, 16 KB-page and
-   keyboard test devices; record their Android versions, ABIs and page
-   sizes in `docs/evidence/RESULTS.md`.
-2. **Pre-G0 feasibility only:** create the isolated spike harness
-   described above, then run S1/S3/S7/S8. Compare agent-shell and PTY
-   `pwd`, `node -v` and `PATH`, and verify launch/cleanup and `execute_no_trans`.
+1. **Extend S1 feasibility:** run the pinned server on device, verify
+   `/global/health`, and complete one mock-provider prompt round trip;
+   current physical evidence only verifies `opencode --version`.
+2. **Finish device evidence:** acquire Tier A/B/C, 16 KB-page and
+   keyboard targets; record device metadata and S7 background-survival
+   results in `docs/evidence/RESULTS.md`.
 3. **S6:** run the contract suite against a 2.0.x artifact when one is
    published; `v2.0.32`/`v2.1.3` tags exist but have no release assets
    or npm builds as of 2026-10-23.
