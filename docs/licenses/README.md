@@ -140,6 +140,27 @@ release must replace placeholders with the release URL and contact:
 > least three years from the date of distribution. The offer is valid
 > for anyone who received this binary.
 
+## Bun LGPL review notes
+
+Bun's `LICENSE.md` says it statically links JavaScriptCore/WebKit
+(LGPL-2.0-only) and tinycc (LGPL-2.1-only). It provides patched WebKit
+and tinycc sources plus source-build/relink steps, but the pinned Bun
+release assets contain binaries only, not object files. This is an
+engineering summary, not legal advice.
+
+Options for release review:
+
+1. Treat the pinned Bun, WebKit/JSC and tinycc sources plus Bun's
+   relink instructions as the LGPL source/relink path, and publish them
+   with the written offer.
+2. Obtain relinkable object files for the exact Bun build from upstream
+   or the community artifact builder and redistribute them.
+3. Build Bun from source in CI and publish the resulting object files
+   alongside the binary (largest effort).
+
+The current artifacts pin option 1's inputs; legal review must decide
+whether option 1 is sufficient or whether option 2/3 is required.
+
 ## Known release blockers
 
 1. **Bun LGPL components.** JavaScriptCore (LGPL-2.0-only) and tinycc
