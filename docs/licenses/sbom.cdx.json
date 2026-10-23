@@ -733,7 +733,7 @@
         },
         {
           "type": "source-distribution",
-          "url": "https://github.com/oven-sh/WebKit/archive/5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b.tar.gz"
+          "url": "https://github.com/oven-sh/WebKit.git"
         }
       ],
       "licenses": [
@@ -2262,7 +2262,7 @@
       }
     ]
   },
-  "serialNumber": "urn:uuid:27ea679a-11d5-5806-936a-ec954402ee93",
+  "serialNumber": "urn:uuid:5094f80d-8b81-5cdb-8122-07e62a7da667",
   "specVersion": "1.5",
   "version": 1
 }

@@ -62,13 +62,15 @@
         "license": "LGPL-2.0-only",
         "source": {
           "commit": "5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b",
-          "url": "https://github.com/oven-sh/WebKit/archive/5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b.tar.gz"
+          "note": "GitHub source archive returns HTTP 422; use git clone/fetch and checkout this commit.",
+          "url": "https://github.com/oven-sh/WebKit.git"
         }
       },
       "tinycc": {
         "license": "LGPL-2.1-only",
         "source": {
           "commit": "12882eee073cfe5c7621bcfadf679e1372d4537b",
+          "sha256": "6b50485fcbbfa90a99c56e8e2b6a92014dcd34377d5edb23e1938dc9ec96f0aa",
           "url": "https://github.com/oven-sh/tinycc/archive/12882eee073cfe5c7621bcfadf679e1372d4537b.tar.gz"
         }
       }
@@ -699,7 +701,7 @@
         },
         {
           "type": "source-distribution",
-          "url": "https://github.com/oven-sh/WebKit/archive/5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b.tar.gz"
+          "url": "https://github.com/oven-sh/WebKit.git"
         }
       ],
       "licenses": [

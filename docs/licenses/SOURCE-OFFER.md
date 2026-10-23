@@ -49,17 +49,19 @@ The `opencode` ELF's `NEEDED` entries are `libstdc++.so.6`,
 `libc.musl-aarch64.so.1` and `libgcc_s.so.1`; no shared
 JavaScriptCore or tinycc is listed, and JavaScriptCore source paths
 are embedded in the binary. This confirms static linkage of the
-LGPL components.
+LGPL components. Review packet: [bun-lgpl-review.md](bun-lgpl-review.md).
 
 Bun 1.3.14 source archive:
 https://github.com/oven-sh/bun/archive/refs/tags/bun-v1.3.14.tar.gz
 (commit 0d9b296af33f2b851fcbf4df3e9ec89751734ba4; sha256
 112a5915992807f04b183854d360c2bf87ac7c1587fb5da3c560bdbb75b8c92e).
 
-| LGPL component | License | Source archive | Commit |
+| LGPL component | License | Source archive / repository | Commit |
 | --- | --- | --- | --- |
-| JavaScriptCore | LGPL-2.0-only | https://github.com/oven-sh/WebKit/archive/5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b.tar.gz | 5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b |
+| JavaScriptCore | LGPL-2.0-only | https://github.com/oven-sh/WebKit.git | 5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b |
 | tinycc | LGPL-2.1-only | https://github.com/oven-sh/tinycc/archive/12882eee073cfe5c7621bcfadf679e1372d4537b.tar.gz | 12882eee073cfe5c7621bcfadf679e1372d4537b |
+
+- JavaScriptCore: GitHub source archive returns HTTP 422; use git clone/fetch and checkout this commit.
 
 ## OpenCode dependency closure
 

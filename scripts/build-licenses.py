@@ -763,7 +763,7 @@ def source_offer(data: dict) -> str:
         "`libc.musl-aarch64.so.1` and `libgcc_s.so.1`; no shared",
         "JavaScriptCore or tinycc is listed, and JavaScriptCore source paths",
         "are embedded in the binary. This confirms static linkage of the",
-        "LGPL components.",
+        "LGPL components. Review packet: [bun-lgpl-review.md](bun-lgpl-review.md).",
         "",
     ]
     bun = data.get("bun", {})
@@ -779,15 +779,21 @@ def source_offer(data: dict) -> str:
     bun_lgpl = bun.get("lgpl", {})
     if bun_lgpl:
         lines += [
-            "| LGPL component | License | Source archive | Commit |",
+            "| LGPL component | License | Source archive / repository | Commit |",
             "| --- | --- | --- | --- |",
         ]
+        notes = []
         for name, item in bun_lgpl.items():
             source = item.get("source", {})
             lines.append(
                 f"| {name} | {item.get('license', '')} | {source.get('url', '')} | {source.get('commit', '')} |"
             )
+            if source.get("note"):
+                notes.append(f"- {name}: {source['note']}")
         lines.append("")
+        if notes:
+            lines += notes
+            lines.append("")
     lines += [
         "## OpenCode dependency closure",
         "",
