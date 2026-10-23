@@ -50,6 +50,7 @@ interfaces. Remote-provider traffic is in scope only for v1.1.
 | T10 | Downgrade or update abuse | Reintroduce fixed bugs | REL-2 downgrade refused; signing verification (REL-3); pinned runtime; CI signing | Pending. |
 | T11 | Resource exhaustion / thermal abuse | Battery, heat, DoS | Idle shutdown, busy-only wake lock, crash-loop breaker (D11); LC-4/LC-6 thresholds | Device tests pending. |
 | T12 | Provider MITM (v1.1 remote profile) | Credential/session theft | TLS 1.2+, certificate validation, fail closed, no cleartext (SEC-6) | Not in v1 scope. |
+| T13 | Developer-verification gate blocks installs | Users cannot install/update | Register application ID/signing identity; document ADB/advanced flow; monitor 2026 regional and 2027 global rollout | External policy change; see ADR 0001. |
 
 ## Verified baseline (2026-10-23)
 
@@ -81,6 +82,6 @@ interfaces. Remote-provider traffic is in scope only for v1.1.
 1. Does OpenCode support a unix-socket listener? If yes, prefer it over
    loopback (D7 reversal trigger).
 2. Should the sideload build use MANAGE_EXTERNAL_STORAGE, and how is
-   that surfaced to the user?
+   that surfaced to the user? (Play variant must stay SAF-only.)
 3. Backup policy for the debug build vs release build.
 4. How are git credentials scoped per host and revoked?

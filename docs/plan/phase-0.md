@@ -28,6 +28,10 @@ Status: **Phase 0 complete. Phase 2 in progress.**
   with 16 tests (27 total with contract tests).
 - Threat model draft written; CI workflow for typecheck/tests/inventory
   reproducibility added.
+- S9: D1 accepted (2026-10-23) — GitHub Releases + Obtainium, a
+  self-hosted F-Droid repo after reproducible builds, bundled runtime,
+  Play deferred, app code Apache-2.0. Compliance checklist is in
+  `docs/licenses/`; release items remain open.
 
 ## Remaining skeleton (Phase 1, after G0 decisions)
 
@@ -76,7 +80,7 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
 | S6 | blocked (2.0 artifact) | — |
 | S7 | blocked (device) | — |
 | S8 | blocked (device + keyboards) | — |
-| S9 | open (owner decision) | — |
+| S9 | accepted (D1); licensing checklist in progress | `docs/adr/0001-distribution.md`, `docs/licenses/README.md` |
 
 ## Corrections to the spec found during spikes
 
@@ -101,6 +105,7 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
    available; record pass/fail per used endpoint.
 3. **S1 app-sandbox:** CI emulator (API 31/33/36) + a 16 KB-page
    device; verify start, health and `execute_no_trans` denials.
-4. **S9:** distribution/licensing checklist and D1 decision.
+4. **S9:** complete the `docs/licenses/` checklist (SBOM, notices,
+   source offers, trademark, developer verification).
 5. **Bridge hardening:** abort semantics against the live server and
    WebView transport wiring before G0 interface freeze.

@@ -12,6 +12,8 @@ machine.
 - Legacy application review (research only): [docs/audit/legacy-review.md](docs/audit/legacy-review.md)
 - Phase 0 plan and proposed layout: [docs/plan/phase-0.md](docs/plan/phase-0.md)
 - Threat model: [docs/threat-model.md](docs/threat-model.md)
+- Distribution ADR (accepted): [docs/adr/0001-distribution.md](docs/adr/0001-distribution.md)
+- Licensing checklist: [docs/licenses/README.md](docs/licenses/README.md)
 - Spike status and evidence: [tests/spikes/README.md](tests/spikes/README.md)
 - CI: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 
@@ -43,7 +45,9 @@ machine.
   native PTY, security and diagnostics.
 - React + TypeScript UI in a WebView, connected through a typed bridge.
 - Pinned OpenCode runtime shipped with the app; no first-launch download.
-- Sideload-first distribution pending the licensing/distribution spike (S9).
+- GitHub Releases + Obtainium first; Play deferred (D1 accepted, ADR 0001).
+- App clean-room code is Apache-2.0; third-party notices are tracked in
+  [docs/licenses](docs/licenses/README.md).
 
 ## Clean-room rules
 
@@ -64,6 +68,15 @@ environment audit for details.
 
 1. Run the live STR-5 fault-injection test during a streaming prompt
    (needs provider credentials and an app/UI session).
-2. Complete S9 (distribution/licensing) and freeze D1/D4/D5 at G0.
+2. Sign ADR 0001 (distribution/app license/trademark) and complete the
+   S9 licensing checklist, then freeze D1/D4/D5 at G0.
 3. Stand up Android CI (emulator API 31/33/36 plus a 16 KB-page device)
    for S1/S2/S7/S8.
+
+## License
+
+The clean-room application code is licensed under Apache-2.0; see
+[LICENSE](LICENSE). Bundled third-party components keep their own
+licenses (OpenCode/Bun/musl MIT, PRoot GPL-2.0, Alpine packages mixed);
+see [docs/licenses](docs/licenses/README.md) for notices and source
+offers.
