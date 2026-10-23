@@ -54,6 +54,10 @@ CI compiles the harness **without** running the staging script, so the
 CI APK is a compile check and cannot run S1/S3 until the runtime and
 jniLibs are staged locally.
 
+The rootfs entrypoint check resolves absolute symlinks under the guest
+root, so Alpine's `/bin/sh -> /bin/busybox` link does not need to be
+rewritten on the device.
+
 Stage the runtime into the debug app's private files directory:
 
 ```bash

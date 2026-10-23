@@ -10,6 +10,7 @@ import java.io.InputStream
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.file.Files
 
 data class ProbeRecord(
     val id: String,
@@ -73,7 +74,12 @@ object SpikeProbe {
         )
         return required.joinToString("\n") { relative ->
             val file = File(root, relative)
-            if (file.exists()) "OK      $relative (${file.length()} B)" else "MISSING $relative"
+            val exists = if (relative == "rootfs/bin/sh") {
+                rootfsFileExists(File(root, "rootfs"), "bin/sh")
+            } else {
+                file.exists()
+            }
+            if (exists) "OK      $relative (${file.length()} B)" else "MISSING $relative"
         }
     }
 
@@ -93,7 +99,13 @@ object SpikeProbe {
             "libandroid-shmem.so",
             "rootfs/bin/sh",
         )
-        val missing = required.filterNot { File(root, it).isFile }
+        val missing = required.filterNot { relative ->
+            if (relative == "rootfs/bin/sh") {
+                rootfsFileExists(File(root, "rootfs"), "bin/sh")
+            } else {
+                File(root, relative).isFile
+            }
+        }
         records += ProbeRecord(
             id = "runtime-layout",
             pass = missing.isEmpty(),
@@ -150,7 +162,7 @@ object SpikeProbe {
         if (loader == null) {
             return ProbeRecord("S3-guest-shell", false, "no PRoot loader found")
         }
-        if (!File(rootfs, "bin/sh").isFile) {
+        if (!rootfsFileExists(rootfs, "bin/sh")) {
             return ProbeRecord("S3-guest-shell", false, "rootfs/bin/sh missing under $rootfs")
         }
         prepareRuntime(context)
@@ -198,7 +210,7 @@ object SpikeProbe {
         val loader = File(nativeDir, "libproot_loader.so").takeIf { it.isFile }
             ?: File(root, "loader").takeIf { it.isFile }
         val rootfs = File(root, "rootfs")
-        if (proot == null || loader == null || !File(rootfs, "bin/sh").isFile) {
+        if (proot == null || loader == null || !rootfsFileExists(rootfs, "bin/sh")) {
             return listOf(
                 guest,
                 ProbeRecord("S3-native-pty", false, "missing PRoot, loader or Alpine shell"),
@@ -265,6 +277,26 @@ object SpikeProbe {
             .lineSequence()
             .filter { it.startsWith("PWD=") || it.startsWith("PATH=") || it.startsWith("NODE=") }
             .associate { line -> line.substringBefore('=') to line.substringAfter('=') }
+
+    private fun rootfsFileExists(rootfs: File, relativePath: String): Boolean {
+        val root = rootfs.toPath().toAbsolutePath().normalize()
+        var candidate = root.resolve(relativePath).normalize()
+        repeat(16) {
+            candidate = candidate.toAbsolutePath().normalize()
+            if (!candidate.startsWith(root)) return false
+            if (Files.isSymbolicLink(candidate)) {
+                val target = Files.readSymbolicLink(candidate)
+                candidate = if (target.isAbsolute) {
+                    root.resolve(target.toString().removePrefix("/"))
+                } else {
+                    candidate.parent.resolve(target)
+                }
+            } else {
+                return Files.isRegularFile(candidate)
+            }
+        }
+        return false
+    }
 
     private fun elfRecord(id: String, file: File): ProbeRecord {
         if (!file.isFile) {
