@@ -72,7 +72,8 @@ python3 scripts/build-licenses.py
 - [x] Generate a CycloneDX SBOM for the runtime and rootfs.
 - [x] Generate a CycloneDX SBOM for OpenCode's production dependency
       closure from the pinned `bun.lock`.
-- [x] Pin Bun 1.3.14 source/commit and record the source archive hash.
+- [x] Pin Bun 1.3.14 source/commit and record the source archive hash;
+      pin the WebKit/JavaScriptCore and tinycc commits used by Bun.
 - [x] Generate an Alpine package license inventory from the installed
       DB and APKINDEX repo mapping, including source URLs.
 - [x] Collect per-package Alpine copyright notices from pinned
@@ -143,11 +144,12 @@ release must replace placeholders with the release URL and contact:
 
 1. **Bun LGPL components.** JavaScriptCore (LGPL-2.0-only) and tinycc
    (LGPL-2.1-only) are statically linked into the Bun binary; the
-   `opencode` ELF has no shared JSC/tinycc dependency. Bun 1.3.14 source
-   is pinned, but legal review must decide whether its source/relink
-   steps satisfy the object-file/source-offer requirement. Bun's other
-   bundled libraries are listed in `NOTICES.md`; their versions and
-   presence still need release-time verification.
+   `opencode` ELF has no shared JSC/tinycc dependency. Bun 1.3.14,
+   WebKit/JavaScriptCore and tinycc source commits are pinned, but legal
+   review must decide whether Bun's source/relink steps satisfy the
+   object-file/source-offer requirement. Bun's other bundled libraries
+   are listed in `NOTICES.md`; their versions and presence still need
+   release-time verification.
 2. **OpenCode closure accuracy.** The SBOM follows `bun.lock` install
    paths and aggregates duplicate versions, but it is not a binary scan.
    Verify the bundled set and CC-BY notices at release.

@@ -242,6 +242,11 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
     runtime_binary = artifacts / f"opencode-{version}" / manifest["binary"]
     detected_bun = bun_version(runtime_binary) if runtime_binary.is_file() else None
     bun_source = manifest.get("bun", {}).get("source", {})
+    bun_lgpl = manifest.get("bun", {}).get("lgpl", {})
+    jsc = bun_lgpl.get("JavaScriptCore", {})
+    jsc_source = jsc.get("source", {})
+    tcc = bun_lgpl.get("tinycc", {})
+    tcc_source = tcc.get("source", {})
 
     bun_license = ROOT / "docs" / "licenses" / "texts" / "Bun-LICENSE.md"
     bundled = (
@@ -317,24 +322,48 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
             component(
                 "JavaScriptCore (WebKit)",
                 "bundled in Bun " + detected_bun,
-                "LGPL-2.0-only",
+                jsc.get("license", "LGPL-2.0-only"),
                 references=[
                     {"type": "license", "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"},
-                    {"type": "vcs", "url": "https://github.com/oven-sh/webkit"},
+                    {"type": "vcs", "url": "https://github.com/oven-sh/WebKit"},
+                    *(
+                        [{"type": "source-distribution", "url": jsc_source["url"]}]
+                        if jsc_source.get("url")
+                        else []
+                    ),
                 ],
-                properties=[{"name": "bun:statically-linked", "value": "true"}],
+                properties=[
+                    {"name": "bun:statically-linked", "value": "true"},
+                    *(
+                        [{"name": "source:commit", "value": jsc_source.get("commit", "")}]
+                        if jsc_source.get("url")
+                        else []
+                    ),
+                ],
             )
         )
         runtime_components.append(
             component(
                 "tinycc",
                 "bundled in Bun " + detected_bun,
-                "LGPL-2.1-only",
+                tcc.get("license", "LGPL-2.1-only"),
                 references=[
                     {"type": "license", "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"},
-                    {"type": "vcs", "url": "https://github.com/TinyCC/tinycc"},
+                    {"type": "vcs", "url": "https://github.com/oven-sh/tinycc"},
+                    *(
+                        [{"type": "source-distribution", "url": tcc_source["url"]}]
+                        if tcc_source.get("url")
+                        else []
+                    ),
                 ],
-                properties=[{"name": "bun:statically-linked", "value": "true"}],
+                properties=[
+                    {"name": "bun:statically-linked", "value": "true"},
+                    *(
+                        [{"name": "source:commit", "value": tcc_source.get("commit", "")}]
+                        if tcc_source.get("url")
+                        else []
+                    ),
+                ],
             )
         )
         bundled_components = []
@@ -462,7 +491,7 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
         "packages": packages,
         "licenseSummary": dict(sorted(license_summary.items())),
         "knownGaps": known_gaps,
-        "bun": {"version": detected_bun, "source": bun_source},
+        "bun": {"version": detected_bun, "source": bun_source, "lgpl": bun_lgpl},
         "alpine": {
             "version": alpine_version,
             "rootfsSha256": rootfs_hash,
@@ -747,6 +776,18 @@ def source_offer(data: dict) -> str:
             f"{bun_source.get('sha256', 'not recorded')}).",
             "",
         ]
+    bun_lgpl = bun.get("lgpl", {})
+    if bun_lgpl:
+        lines += [
+            "| LGPL component | License | Source archive | Commit |",
+            "| --- | --- | --- | --- |",
+        ]
+        for name, item in bun_lgpl.items():
+            source = item.get("source", {})
+            lines.append(
+                f"| {name} | {item.get('license', '')} | {source.get('url', '')} | {source.get('commit', '')} |"
+            )
+        lines.append("")
     lines += [
         "## OpenCode dependency closure",
         "",

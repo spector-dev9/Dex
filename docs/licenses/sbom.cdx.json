@@ -729,7 +729,11 @@
         },
         {
           "type": "vcs",
-          "url": "https://github.com/oven-sh/webkit"
+          "url": "https://github.com/oven-sh/WebKit"
+        },
+        {
+          "type": "source-distribution",
+          "url": "https://github.com/oven-sh/WebKit/archive/5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b.tar.gz"
         }
       ],
       "licenses": [
@@ -742,6 +746,10 @@
         {
           "name": "bun:statically-linked",
           "value": "true"
+        },
+        {
+          "name": "source:commit",
+          "value": "5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b"
         }
       ],
       "type": "library",
@@ -1907,7 +1915,11 @@
         },
         {
           "type": "vcs",
-          "url": "https://github.com/TinyCC/tinycc"
+          "url": "https://github.com/oven-sh/tinycc"
+        },
+        {
+          "type": "source-distribution",
+          "url": "https://github.com/oven-sh/tinycc/archive/12882eee073cfe5c7621bcfadf679e1372d4537b.tar.gz"
         }
       ],
       "licenses": [
@@ -1920,6 +1932,10 @@
         {
           "name": "bun:statically-linked",
           "value": "true"
+        },
+        {
+          "name": "source:commit",
+          "value": "12882eee073cfe5c7621bcfadf679e1372d4537b"
         }
       ],
       "type": "library",
@@ -2246,7 +2262,7 @@
       }
     ]
   },
-  "serialNumber": "urn:uuid:1a694e77-5923-5e08-8b60-d741188a8cd5",
+  "serialNumber": "urn:uuid:27ea679a-11d5-5806-936a-ec954402ee93",
   "specVersion": "1.5",
   "version": 1
 }

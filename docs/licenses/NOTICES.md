@@ -14,8 +14,8 @@ This file is a draft. The upstream license text governs; see
 | opencode | 1.19.3 | MIT | https://github.com/anomalyco/opencode |
 | opencode-termux | 1.19.3 | MIT | https://github.com/C04-wq/opencode-termux |
 | bun | 1.3.14 | MIT | https://github.com/oven-sh/bun |
-| JavaScriptCore (WebKit) | bundled in Bun 1.3.14 | LGPL-2.0-only | https://github.com/oven-sh/webkit |
-| tinycc | bundled in Bun 1.3.14 | LGPL-2.1-only | https://github.com/TinyCC/tinycc |
+| JavaScriptCore (WebKit) | bundled in Bun 1.3.14 | LGPL-2.0-only | https://github.com/oven-sh/WebKit |
+| tinycc | bundled in Bun 1.3.14 | LGPL-2.1-only | https://github.com/oven-sh/tinycc |
 | PRoot | 5.1.107.98 | GPL-2.0-or-later | https://github.com/termux/proot/archive/refs/tags/v5.1.107.98.tar.gz |
 | libtalloc | 2.5.0 | LGPL-3.0-or-later | https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz |
 | libandroid-shmem | 0.7 | BSD-3-Clause | https://github.com/termux/libandroid-shmem/archive/refs/tags/v0.7.tar.gz |

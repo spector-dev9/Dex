@@ -56,6 +56,11 @@ https://github.com/oven-sh/bun/archive/refs/tags/bun-v1.3.14.tar.gz
 (commit 0d9b296af33f2b851fcbf4df3e9ec89751734ba4; sha256
 112a5915992807f04b183854d360c2bf87ac7c1587fb5da3c560bdbb75b8c92e).
 
+| LGPL component | License | Source archive | Commit |
+| --- | --- | --- | --- |
+| JavaScriptCore | LGPL-2.0-only | https://github.com/oven-sh/WebKit/archive/5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b.tar.gz | 5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b |
+| tinycc | LGPL-2.1-only | https://github.com/oven-sh/tinycc/archive/12882eee073cfe5c7621bcfadf679e1372d4537b.tar.gz | 12882eee073cfe5c7621bcfadf679e1372d4537b |
+
 ## OpenCode dependency closure
 
 The production/optional lockfile closure contains no GPL/AGPL
