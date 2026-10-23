@@ -16,11 +16,18 @@ Status: **Phase 0 complete. Phase 2 in progress.**
   - S1 partial: binary runs, hash and 64 KB alignment verified, health
     in 4.6–5.6 s on the host.
   - S4 partial: heartbeat ≈10 s, reconnect yields a fresh
-    `server.connected`.
+    `server.connected`; directory-scoped `/event` accepted; SSE parser
+    and resync algorithm implemented and exercised by a 500-trial
+    drop simulation.
   - S5 pass (host): 36/36 planned endpoints, PTY documented, Basic auth
     verified with `OPENCODE_SERVER_PASSWORD`.
 - `contract/` now holds the pinned `/doc` snapshot, the generated
   endpoint inventory and executable contract tests (11 passing).
+- `ui/src/bridge/` holds the transport-agnostic protocol, SSE parser,
+  resync algorithm and gateway client (auth, backoff, resync wiring),
+  with 16 tests (27 total with contract tests).
+- Threat model draft written; CI workflow for typecheck/tests/inventory
+  reproducibility added.
 
 ## Remaining skeleton (Phase 1, after G0 decisions)
 
@@ -30,9 +37,11 @@ ui/
 ├─ src/main.tsx
 ├─ src/App.tsx
 └─ src/bridge/
-   ├─ protocol.ts            envelopes, commands, events, errors
-   ├─ client.ts              transport-agnostic client
-   └─ protocol.test.ts
+   ├─ protocol.ts            envelopes, commands, events, errors (done)
+   ├─ sse.ts                 SSE parser (done)
+   ├─ resync.ts              STR-5 resync algorithm (done)
+   ├─ client.ts              authenticated SSE client (done)
+   └─ *.test.ts              27 tests total with contract suite
 app/                         Kotlin app shell, Gradle KTS, WebView only
 core/                        interface-only modules (runtime, supervisor,
                              gateway, workspace, terminal, security)
@@ -53,7 +62,7 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
 - [x] S9 started: distribution/licensing decision path recorded as an
       open owner decision.
 - [x] Runtime feasibility plan documented, including device-access gap.
-- [ ] Threat model draft (next).
+- [x] Threat model draft (`docs/threat-model.md`).
 
 ## Spike status
 
@@ -62,7 +71,7 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
 | S1 | partial (host) | `tests/spikes/results/S1-host-smoke.md` |
 | S2 | blocked (device + Profile B) | — |
 | S3 | blocked (provider + app) | — |
-| S4 | partial | `tests/spikes/results/S4-sse.md` |
+| S4 | partial (host + simulation) | `tests/spikes/results/S4-sse.md` |
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (2.0 artifact) | — |
 | S7 | blocked (device) | — |
@@ -85,12 +94,13 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
 
 ## Next experiments
 
-1. **S4 completion:** directory-scoped `/event?directory=…`, then the
-   resync algorithm against 500 injected drops (STR-5).
+1. **S4 live STR-5:** run the resync algorithm against 500 real drops
+   during a streaming prompt (needs provider credentials and app/UI
+   session); then measure event-to-paint.
 2. **S6:** run the contract suite against a 2.0.x artifact when one is
    available; record pass/fail per used endpoint.
 3. **S1 app-sandbox:** CI emulator (API 31/33/36) + a 16 KB-page
    device; verify start, health and `execute_no_trans` denials.
 4. **S9:** distribution/licensing checklist and D1 decision.
-5. **Threat model:** other apps, hostile repos, prompt-injected
-   actions, credentials, backups.
+5. **Bridge hardening:** abort semantics against the live server and
+   WebView transport wiring before G0 interface freeze.

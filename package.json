@@ -7,6 +7,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test contract/tests/*.test.mjs"
+    "test": "node --test ui/src/bridge/*.test.ts contract/tests/*.test.mjs",
+    "typecheck": "node ./node_modules/typescript/bin/tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
   }
 }

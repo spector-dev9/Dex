@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck bridge
+        run: npm run typecheck
+
+      - name: Contract and bridge tests
+        run: npm test
+
+      - name: Python syntax
+        run: python3 -m py_compile scripts/*.py tests/spikes/scripts/*.py
+
+      - name: Inventory is reproducible
+        run: |
+          python3 scripts/build-inventory.py
+          git diff --exit-code -- contract/endpoints.json

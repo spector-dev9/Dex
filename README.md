@@ -2,15 +2,18 @@
 
 Clean-room rebuild of an on-device Android client for OpenCode.
 
-Status: **Phase 2 — runtime feasibility.** Repository setup and the
-first host-side spikes are complete. Architecture is provisional until
-gate G0.
+Status: **Phase 2 — runtime feasibility.** Host-side spikes and the
+transport-agnostic bridge foundation are in place. Architecture is
+provisional until gate G0; Android/device work still needs CI or another
+machine.
 
 - Technical specification: [docs/spec.md](docs/spec.md)
 - Development environment audit: [docs/audit/environment.md](docs/audit/environment.md)
 - Legacy application review (research only): [docs/audit/legacy-review.md](docs/audit/legacy-review.md)
 - Phase 0 plan and proposed layout: [docs/plan/phase-0.md](docs/plan/phase-0.md)
+- Threat model: [docs/threat-model.md](docs/threat-model.md)
 - Spike status and evidence: [tests/spikes/README.md](tests/spikes/README.md)
+- CI: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 
 ## Verified so far (host-side, 2026-10-23)
 
@@ -23,7 +26,12 @@ gate G0.
 - Without a password every route is open to any local process —
   confirming the spec's highest-severity finding (D7).
 - `/event` sends `server.connected` then heartbeats every ~10 s; a
-  reconnect delivers a fresh `server.connected`.
+  reconnect delivers a fresh `server.connected`; directory-scoped
+  `/event?directory=…` is accepted.
+- The SSE parser, resync algorithm and gateway client (Basic auth,
+  directory scoping, backoff, 60 s idle watchdog) pass 27 tests,
+  including 500 randomized drop scenarios (simulation, not a live
+  prompt stream).
 - The pinned `/doc` lists all 36 planned endpoints; PTY routes are
   documented there (correcting spec F3), and 51 `/api/*` paths exist
   that Section 4.1 does not mention.
@@ -54,6 +62,8 @@ environment audit for details.
 
 ## Next step
 
-Approve the proposed layout in `docs/plan/phase-0.md`, then run the
-Phase 2 spike harnesses (runtime profile A/B, SSE contract, endpoint
-inventory) before scaffolding the full application.
+1. Run the live STR-5 fault-injection test during a streaming prompt
+   (needs provider credentials and an app/UI session).
+2. Complete S9 (distribution/licensing) and freeze D1/D4/D5 at G0.
+3. Stand up Android CI (emulator API 31/33/36 plus a 16 KB-page device)
+   for S1/S2/S7/S8.

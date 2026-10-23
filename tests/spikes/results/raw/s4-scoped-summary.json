@@ -1,0 +1,170 @@
+{
+  "label": "s4-scoped",
+  "port": 37707,
+  "passwordConfigured": false,
+  "runtimeVersion": "1.19.3",
+  "startedAt": "2026-10-23T05:08:09Z",
+  "health": {
+    "healthy": true,
+    "seconds": 5.902,
+    "status": 200
+  },
+  "authMatrix": {
+    "health": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "doc": {
+      "noAuth": "error:TimeoutError",
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "project": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "session": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "pty": {
+      "noAuth": 200,
+      "basicOpencode": 200,
+      "basicEmptyUser": 200,
+      "bearer": 200,
+      "wrongPassword": 200
+    },
+    "event": {
+      "noAuth": "error:TimeoutError",
+      "basicOpencode": "error:TimeoutError",
+      "basicEmptyUser": "error:TimeoutError",
+      "bearer": "error:TimeoutError",
+      "wrongPassword": "error:TimeoutError"
+    }
+  },
+  "doc": {
+    "status": 200,
+    "path": "/data/data/com.termux/files/home/opencode-mobile/contract/openapi/opencode-s4-scoped.json"
+  },
+  "sse": {
+    "first": {
+      "chunks": [
+        {
+          "at": 0.03,
+          "bytes": 321,
+          "text": "HTTP/1.1 200 OK\r\nCache-Control: no-cache, no-transform\r\nX-Content-Type-Options: nosniff\r\nContent-Type: text/event-stream\r\nVary: Origin\r\nx-accel-buffering: no\r\nDate: Fri, 23 Oct 2026 05:08:36 GMT\r\nTransfer-Encoding: chunked\r\n\r\n59\r\ndata: {\"id\":\"evt_167293926001EwLwyEDmYZklDi\",\"type\":\"server.connected\",\"properties\":{}}\n\n\r\n"
+        },
+        {
+          "at": 10.032,
+          "bytes": 95,
+          "text": "59\r\ndata: {\"id\":\"evt_16729603c001Bzpt1qgQidsQy4\",\"type\":\"server.heartbeat\",\"properties\":{}}\n\n\r\n"
+        }
+      ],
+      "closedByServer": false,
+      "timedOut": true,
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Type": "text/event-stream",
+        "Vary": "Origin",
+        "x-accel-buffering": "no",
+        "Date": "Fri, 23 Oct 2026 05:08:36 GMT",
+        "Transfer-Encoding": "chunked"
+      },
+      "bodyBytes": 190,
+      "eventTypes": [
+        "server.connected",
+        "server.heartbeat"
+      ],
+      "dataLines": [
+        "{\"id\":\"evt_167293926001EwLwyEDmYZklDi\",\"type\":\"server.connected\",\"properties\":{}}",
+        "{\"id\":\"evt_16729603c001Bzpt1qgQidsQy4\",\"type\":\"server.heartbeat\",\"properties\":{}}"
+      ],
+      "elapsed": 12.046,
+      "totalBytes": 416,
+      "path": "/data/data/com.termux/files/home/opencode-mobile/tests/spikes/results/raw/s4-scoped-event.sse"
+    },
+    "reconnect": {
+      "chunks": [
+        {
+          "at": 0.011,
+          "bytes": 321,
+          "text": "HTTP/1.1 200 OK\r\nCache-Control: no-cache, no-transform\r\nX-Content-Type-Options: nosniff\r\nContent-Type: text/event-stream\r\nVary: Origin\r\nx-accel-buffering: no\r\nDate: Fri, 23 Oct 2026 05:08:49 GMT\r\nTransfer-Encoding: chunked\r\n\r\n59\r\ndata: {\"id\":\"evt_167296c0d001VpVx51x0gtmrgg\",\"type\":\"server.connected\",\"properties\":{}}\n\n\r\n"
+        }
+      ],
+      "closedByServer": false,
+      "timedOut": true,
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Type": "text/event-stream",
+        "Vary": "Origin",
+        "x-accel-buffering": "no",
+        "Date": "Fri, 23 Oct 2026 05:08:49 GMT",
+        "Transfer-Encoding": "chunked"
+      },
+      "bodyBytes": 95,
+      "eventTypes": [
+        "server.connected"
+      ],
+      "dataLines": [
+        "{\"id\":\"evt_167296c0d001VpVx51x0gtmrgg\",\"type\":\"server.connected\",\"properties\":{}}"
+      ],
+      "elapsed": 6.024,
+      "totalBytes": 321,
+      "path": "/data/data/com.termux/files/home/opencode-mobile/tests/spikes/results/raw/s4-scoped-event-reconnect.sse"
+    },
+    "directoryScoped": {
+      "chunks": [
+        {
+          "at": 0.008,
+          "bytes": 321,
+          "text": "HTTP/1.1 200 OK\r\nCache-Control: no-cache, no-transform\r\nX-Content-Type-Options: nosniff\r\nContent-Type: text/event-stream\r\nVary: Origin\r\nx-accel-buffering: no\r\nDate: Fri, 23 Oct 2026 05:08:56 GMT\r\nTransfer-Encoding: chunked\r\n\r\n59\r\ndata: {\"id\":\"evt_167298397001NX5mmYP4UrWtGl\",\"type\":\"server.connected\",\"properties\":{}}\n\n\r\n"
+        },
+        {
+          "at": 10.01,
+          "bytes": 95,
+          "text": "59\r\ndata: {\"id\":\"evt_16729aaaa001XyQaoI9Wh9t0BW\",\"type\":\"server.heartbeat\",\"properties\":{}}\n\n\r\n"
+        }
+      ],
+      "closedByServer": false,
+      "timedOut": true,
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Type": "text/event-stream",
+        "Vary": "Origin",
+        "x-accel-buffering": "no",
+        "Date": "Fri, 23 Oct 2026 05:08:56 GMT",
+        "Transfer-Encoding": "chunked"
+      },
+      "bodyBytes": 190,
+      "eventTypes": [
+        "server.connected",
+        "server.heartbeat"
+      ],
+      "dataLines": [
+        "{\"id\":\"evt_167298397001NX5mmYP4UrWtGl\",\"type\":\"server.connected\",\"properties\":{}}",
+        "{\"id\":\"evt_16729aaaa001XyQaoI9Wh9t0BW\",\"type\":\"server.heartbeat\",\"properties\":{}}"
+      ],
+      "elapsed": 12.014,
+      "totalBytes": 416,
+      "path": "/data/data/com.termux/files/home/opencode-mobile/tests/spikes/results/raw/s4-scoped-event-scoped.sse"
+    },
+    "reconnectDeliveredNewConnectedEvent": true
+  }
+}

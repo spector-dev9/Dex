@@ -9,7 +9,7 @@ Gradle, Android SDK or adb). Host-side experiments are labeled
 | S1 | Profiles A and B on Tier A/B/C | 100% of Tier A/B start; if A fails any, default to B | **partial** — pinned artifact runs on host; app sandbox untested → [result](results/S1-host-smoke.md) |
 | S2 | A vs B performance | B rejected as default if >2.5x slower than A | blocked (needs device + Profile B) |
 | S3 | Agent bash honors SHELL into guest | pwd/node -v/PATH identical; else default B | blocked (needs provider + app) |
-| S4 | SSE semantics | Written resync algorithm; STR-5 passes | **partial** — heartbeat ≈10 s, reconnect new `server.connected`; drops/scoping untested → [result](results/S4-sse.md) |
+| S4 | SSE semantics | Written resync algorithm; STR-5 passes | **partial** — heartbeat ≈10 s, reconnect new `server.connected`, directory scoping accepted, parser + 500-trial resync simulation pass; live STR-5 pending → [result](results/S4-sse.md) |
 | S5 | Endpoint inventory, PTY, auth | Inventory committed to contract/ | **pass (host)** — 36/36 endpoints, PTY documented, Basic auth verified → [result](results/S5-endpoints-auth.md) |
 | S6 | Contract suite on 2.0.x | Pin 2.x only if every used endpoint passes | blocked (needs 2.0 artifact) |
 | S7 | Background survival, OEM savers | LC-2 met or per-OEM guidance | blocked (needs device) |
@@ -33,7 +33,10 @@ python3 scripts/fetch-runtime.py
 python3 scripts/verify-runtime.py
 python3 tests/spikes/scripts/probe_server.py --label no-auth --sse-seconds 25
 python3 tests/spikes/scripts/probe_server.py --label with-auth --password test-secret
+python3 tests/spikes/scripts/probe_server.py --label s4-scoped --sse-seconds 12
 python3 scripts/build-inventory.py
+npm install
+npm run typecheck
 npm test
 ```
 

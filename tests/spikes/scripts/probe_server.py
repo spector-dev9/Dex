@@ -137,11 +137,17 @@ def capture_doc(port: int, headers: dict[str, str], out_path: str) -> int:
         return response.status
 
 
-def capture_sse(port: int, headers: dict[str, str], seconds: float, out_path: str) -> dict:
+def capture_sse(
+    port: int,
+    headers: dict[str, str],
+    seconds: float,
+    out_path: str,
+    path: str = "/event",
+) -> dict:
     """Raw-socket SSE capture: records exact bytes, chunk timing and closure."""
     sock = socket.create_connection(("127.0.0.1", port), timeout=5)
     lines = [
-        "GET /event HTTP/1.1",
+        f"GET {path} HTTP/1.1",
         f"Host: 127.0.0.1:{port}",
         "Accept: text/event-stream",
         "Connection: close",
@@ -280,9 +286,18 @@ def main() -> int:
         time.sleep(1)
         sse_path_2 = os.path.join(OUT_DIR, f"{args.label}-event-reconnect.sse")
         second = capture_sse(port, headers, min(6.0, args.sse_seconds), sse_path_2)
-        summary["sse"] = {"first": first, "reconnect": second}
+        scoped_path = os.path.join(OUT_DIR, f"{args.label}-event-scoped.sse")
+        scoped = capture_sse(
+            port,
+            headers,
+            min(12.0, args.sse_seconds),
+            scoped_path,
+            path=f"/event?directory={urllib.parse.quote(WORKSPACE)}",
+        )
+        summary["sse"] = {"first": first, "reconnect": second, "directoryScoped": scoped}
         summary["sse"]["first"]["path"] = sse_path
         summary["sse"]["reconnect"]["path"] = sse_path_2
+        summary["sse"]["directoryScoped"]["path"] = scoped_path
         first_ids = re.findall(r'"id":"(evt_[^"]+)"', first.get("dataLines", [""])[0]) if first.get("dataLines") else []
         second_ids = re.findall(r'"id":"(evt_[^"]+)"', second.get("dataLines", [""])[0]) if second.get("dataLines") else []
         summary["sse"]["reconnectDeliveredNewConnectedEvent"] = bool(
