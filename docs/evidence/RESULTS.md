@@ -70,4 +70,7 @@ linked or appended; host spikes cannot promote device rows.
   2026-10-24 04:22 confirmation JSON is an S1/S3/S7 repeat run and
   explicitly says S8 was not exercised. Extra-key, paste/select, Gboard
   and Samsung Keyboard coverage remains outstanding.
+- A repeat run of the same day
+  (`raw/spike-device-20261024-042222.json`) passed all 13 harness records
+  again, confirming the result is deterministic.
 - G0 remains open; no acceptance value here freezes D4 or D5.
