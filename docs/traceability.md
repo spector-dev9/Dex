@@ -1,9 +1,10 @@
 # Plan traceability
 
-This map tracks the `plan.md` decisions against the current repository and
-distinguishes executable contract evidence from implementation or device
-acceptance. A passing contract test does not imply that the corresponding
-Android service exists.
+This map tracks the root `plan.md` decisions against the current repository
+and distinguishes executable contract evidence from implementation or
+device acceptance. A passing contract test does not imply that the
+corresponding Android service exists. G0 decisions use the separate IDs in
+`docs/spec.md`; see `docs/plan/phase-0.md` for their status.
 
 | Plan item | Current evidence | Status | Remaining acceptance |
 | --- | --- | --- | --- |
@@ -26,7 +27,9 @@ Android service exists.
   parity check validate the tracked contracts and host-side bridge fixture.
 - `./gradlew -PskipApp=true coreCheck` validates the Kotlin API modules and
   compiled bridge parity. It does not build the Android app.
-- The Android assembly is exercised in CI; this environment has no Android
-  SDK installed.
+- Android debug assembly and seven app-local fake-service unit tests have
+  passed in the configured Java 21/Android SDK environment. This validates
+  only the shell and test fixtures, not runtime behavior or device
+  acceptance.
 - Host spikes are not physical-device acceptance. The authoritative device
   statuses remain in `docs/evidence/RESULTS.md`.

@@ -1,9 +1,10 @@
 # G1 core contracts (interface-only)
 
-Status: core contracts compile. A minimal Compose Android shell is present;
-APK compilation is unverified in this environment because the Android SDK
-is not installed. No runtime implementation, bridge handler, JNI code, or
-JavaScript transport is included.
+Status: core contracts and the minimal Compose Android shell compile. An
+app-local unit-test harness contains fake service ports and a partial bridge
+handler for contract-level tests only; none of those fakes are wired into
+the app runtime. No runtime implementation, production bridge handler, JNI
+code, or JavaScript transport is included.
 
 The TypeScript bridge contract is retained as a parity fixture only. It is
 not part of the Android UI or runtime architecture. Its envelope is
@@ -149,7 +150,12 @@ they must not change the envelope shapes above.
 - Android Keystore, log scrubbing and diagnostics storage.
 - Native loader/PRoot process management and JNI `forkpty`.
 - Dependency verification, release signing and dependency locking.
-- Contract tests against fake implementations.
+- Comprehensive contract tests against every fake service and bridge command.
+
+The app-local fake services and partial handler are test fixtures, not
+production implementations or device-acceptance evidence. The supported
+command subset is intentionally incomplete until G0 freezes the runtime,
+transport, and version decisions.
 
 The TypeScript bridge is retained only as a protocol-parity fixture during
 the scaffold phase. It is not an Android UI or a WebView transport; the

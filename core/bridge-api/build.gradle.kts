@@ -1,7 +1,6 @@
 dependencies {
     api(project(":core:common-api"))
     testImplementation(kotlin("test"))
-    testImplementation(libs.kotlinx.coroutines.core)
 }
 
 tasks.test {
@@ -20,4 +19,3 @@ val compiledContractParity by tasks.registering(JavaExec::class) {
 tasks.named("check") {
     dependsOn(compiledContractParity)
 }
-

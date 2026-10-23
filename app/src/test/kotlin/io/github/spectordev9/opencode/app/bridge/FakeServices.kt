@@ -56,6 +56,7 @@ import io.github.spectordev9.opencode.core.workspace.EntryKind
 import io.github.spectordev9.opencode.core.workspace.Precondition
 import io.github.spectordev9.opencode.core.workspace.WriteReceipt
 import io.github.spectordev9.opencode.core.workspace.WorkspaceService
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -65,6 +66,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.Locale
 import java.util.UUID
+import java.util.Base64
 import kotlin.math.min
 
 private fun ByteArray.sha256(): String = java.security.MessageDigest.getInstance("SHA-256")
@@ -138,7 +140,15 @@ class FakeServerSupervisor : ServerSupervisor {
 
     override val state: StateFlow<ServerState> = stateFlow.asStateFlow()
 
-    override suspend fun start(): ApiResult<ServerEndpoint> = ApiResult.Success(ServerEndpoint("127.0.0.1", 4097))
+    override suspend fun start(): ApiResult<ServerEndpoint> {
+        val endpoint = ServerEndpoint("127.0.0.1", 4097)
+        stateFlow.value = ServerState(
+            status = ServerStateStatus.HEALTHY,
+            endpoint = endpoint,
+            version = "1.19.3",
+        )
+        return ApiResult.Success(endpoint)
+    }
 
     override suspend fun stop(graceMillis: Long): ApiResult<Unit> {
         stateFlow.value = ServerState(status = ServerStateStatus.STOPPED)
@@ -185,16 +195,22 @@ class FakeWorkspaceService : WorkspaceService {
     override suspend fun readRange(path: String, offset: Long, length: Int): ApiResult<Chunk> {
         val bytes = files[path] ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing path $path"))
         val from = offset.coerceAtLeast(0L)
+        val start = min(bytes.size.toLong(), from).toInt()
         val safeLength = maxOf(0, length)
-        val to = min(bytes.size.toLong(), from + safeLength.toLong()).toInt()
-        val slice = bytes.copyOfRange(from.toInt(), to)
+        val to = min(bytes.size.toLong(), start.toLong() + safeLength.toLong()).toInt()
+        val slice = bytes.copyOfRange(start, to)
         return ApiResult.Success(Chunk(offset = from, bytes = slice, endOfFile = to >= bytes.size))
     }
 
     override suspend fun write(path: String, data: ByteArray, expect: Precondition): ApiResult<WriteReceipt> {
         val previous = files[path]
-        if (previous != null && expect is Precondition.Match && previous.size.toLong() != expect.sizeBytes) {
-            return ApiResult.Failure(ApiError(ErrorCode.E_CONFLICT, "write precondition failed for $path"))
+        if (expect is Precondition.Match) {
+            val matches = previous != null &&
+                previous.size.toLong() == expect.sizeBytes &&
+                (expect.sha256 == null || previous.sha256() == expect.sha256)
+            if (!matches) {
+                return ApiResult.Failure(ApiError(ErrorCode.E_CONFLICT, "write precondition failed for $path"))
+            }
         }
         files[path] = data.copyOf()
         return ApiResult.Success(
@@ -338,10 +354,23 @@ class FakeLoopbackAuth : LoopbackAuth {
     )
 
     override fun authorizationHeader(credential: LoopbackCredential): String =
-        "Basic ${credential.username}:${credential.password.concatToString()}"
+        "Basic ${
+            Base64.getEncoder().encodeToString(
+                "${credential.username}:${credential.password.concatToString()}".toByteArray(),
+            )
+        }"
 
-    override fun verify(authorizationHeader: String, credential: LoopbackCredential): Boolean =
-        authorizationHeader.contains(credential.username)
+    override fun verify(authorizationHeader: String, credential: LoopbackCredential): Boolean {
+        val encoded = authorizationHeader.removePrefix("Basic ")
+        if (encoded == authorizationHeader) return false
+        val decoded = try {
+            Base64.getDecoder().decode(encoded).toString(Charsets.UTF_8)
+        } catch (_: IllegalArgumentException) {
+            return false
+        }
+        val expected = "${credential.username}:${credential.password.concatToString()}"
+        return decoded == expected
+    }
 }
 
 class FakeDiagnosticsService : DiagnosticsService {
@@ -366,12 +395,23 @@ class FakeDiagnosticsService : DiagnosticsService {
 
 class FakeGateway : OpenCodeGateway {
     override suspend fun <T> call(operation: GatewayOperation<T>): ApiResult<T> {
-        val value: T = when (operation.name) {
-            BridgeCommandNames.RUNTIME_STATUS -> "ready" as T
-            BridgeCommandNames.SESSION_PROMPT_ASYNC -> "accepted" as T
-            else -> "ok" as T
+        val body = when (operation.name) {
+            BridgeCommandNames.RUNTIME_STATUS -> "ready"
+            BridgeCommandNames.SESSION_PROMPT_ASYNC -> "accepted"
+            else -> "ok"
+        }.toByteArray()
+        return try {
+            ApiResult.Success(operation.decoder.decode(200, body))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (exception: Exception) {
+            ApiResult.Failure(
+                ApiError(
+                    code = ErrorCode.E_UPSTREAM,
+                    message = exception.message ?: "fake gateway response could not be decoded",
+                ),
+            )
         }
-        return ApiResult.Success(value)
     }
 
     override fun events(directory: String?): Flow<ServerEvent> = MutableSharedFlow<ServerEvent>()

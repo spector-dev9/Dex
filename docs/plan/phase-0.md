@@ -1,6 +1,72 @@
 # Phase 0 plan — repository setup, audit, feasibility
 
-Status: **Phase 0 complete. Phase 2 in progress.**
+Status: **Phase 0 complete. Phase 2 in progress. G0 is blocked.**
+
+Decision IDs in this document follow `docs/spec.md`: D1 is distribution,
+D4 is the runtime profile, and D5 is the OpenCode version pin. The older
+root `plan.md` uses overlapping decision numbers for a different decision
+set; G0 is governed by `docs/spec.md` and this phase plan.
+
+## G0 decision status
+
+| Decision | Current resolution | Status at G0 | Evidence / remaining work |
+| --- | --- | --- | --- |
+| D1 — distribution | GitHub Releases + Obtainium first; self-hosted F-Droid after reproducible builds; Play deferred; Apache-2.0 app code. | Accepted by owner; release work remains. | `docs/adr/0001-distribution.md`. Complete the S9 legal, source-offer, signing and reproducible-build blockers before release. |
+| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | Host spikes are directional only. Physical-device S1/S2/S3, app-sandbox launch, native PTY comparison and the required device tiers remain pending in `docs/runtime-matrix.md` and `docs/evidence/RESULTS.md`. |
+| D5 — version pin | Keep OpenCode **1.19.3** as the exact current baseline; verify its manifest hash; reject unknown major versions. Re-evaluate only when a distributable 2.x artifact is available. | Resolved for the current baseline; 2.x compatibility is unverified. | `runtime/manifest.json`, `tests/spikes/results/S6-2.x.md`. The 2.x release-artifact check is blocked, not a reason to silently change the pin. |
+
+**G0 is not complete.** The specification requires S1–S9, Tier A/B/C
+baselines, ratified thresholds, and frozen D1/D4/D5. D4 is still evidence-
+gated; S1–S3 are partial host results, S6 is blocked on a distributable
+2.x artifact, S7/S8 are blocked on devices, and S9 still has licensing
+and release-compliance blockers. Do not start G0-dependent production
+service wiring or claim device acceptance until these blockers clear.
+
+### G0 sequencing constraint
+
+The gate currently has a dependency cycle: it requires device evidence
+from S1/S3 (and lifecycle/keyboard evidence from S7/S8), while product
+runtime and PTY implementations are deferred until after G0. Break this
+without prematurely freezing production architecture by building only a
+disposable spike harness under `tests/spikes/` (or a clearly isolated
+debug-only target). It may prove native-library launch, PRoot guest shell,
+PTY behavior, lifecycle and keyboard feasibility; it must not become
+production service wiring or be treated as acceptance until run on the
+required devices.
+
+The immediate blocker is physical test access: `adb devices -l` currently
+reports no connected device. Once Tier A/B/C, a 16 KB-page device and the
+required keyboard devices are available, run the spike harness and attach
+device metadata/results before freezing D4 or ratifying device-dependent
+thresholds.
+
+## Foundation status — what works and what is blocked
+
+**Working and verified in the repository or host environment**
+
+- Kotlin core API contracts compile; compiled TypeScript/Kotlin bridge
+  parity covers protocol v1, 47 commands, errors, timeouts and topics.
+- TypeScript bridge parser, reconnect/resync and contract checks have
+  host-side test coverage; host S4 and S5 spike results are recorded.
+- The minimal Android shell and debug APK have compiled in this
+  environment with Java 21 and the Android SDK. The app-local fake
+  service/partial-handler harness has seven passing unit tests; it is
+  test-only and does not constitute production service wiring.
+- Repository architecture and provisional-annotation checks pass.
+
+**Still blocked or not yet accepted**
+
+- Physical-device S1/S2/S3 evidence, Tier A/B/C baselines, 16 KB page-size
+  launch checks, lifecycle/thermal/soak and keyboard acceptance are all
+  pending. No host result promotes these rows.
+- Runtime packaging/supervision, authenticated ephemeral loopback
+  lifecycle, production Kotlin HTTP/SSE gateway, native workspace
+  operations and native interactive PTY are not implemented.
+- App/UI SSE recovery and event-to-paint measurements are pending.
+- S6 needs a published 2.x distributable artifact. S9 has unresolved
+  LGPL/source-offer, dependency-closure and release-compliance items.
+- The command handler and fake services are partial test fixtures;
+  command payload DTOs and production wiring remain deferred until G0.
 
 ## Done
 
@@ -45,7 +111,8 @@ Status: **Phase 0 complete. Phase 2 in progress.**
 - Plan-to-evidence traceability recorded in `docs/traceability.md`;
   contract evidence is explicitly separated from Android implementation
   and physical-device acceptance.
-- S9: D1 accepted (2026-10-23) — GitHub Releases + Obtainium, a
+- S9: distribution decision accepted (2026-10-23; D1 in `docs/spec.md`) —
+  GitHub Releases + Obtainium, a
   self-hosted F-Droid repo after reproducible builds, bundled runtime,
   Play deferred, app code Apache-2.0. Compliance checklist is in
   `docs/licenses/`.
@@ -98,8 +165,10 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
 - [x] Compiled-class reflection parity for commands, errors, timeouts and
       event topics; `@RequiresG0` markers and `SupervisorConfig`.
 - [x] Minimal Android app shell; debug/release assembly in CI.
-- [ ] Bridge handler, fake service implementations and command payload
-      DTOs (after G0).
+- [ ] Production bridge handler, fake service implementations and command
+      payload DTOs (after G0). A test-only fake-services/partial-handler
+      harness and focused unit tests exist; they are not production wiring
+      or device-acceptance evidence.
 - [ ] G1 acceptance (RT-1..RT-5, SEC-1/2, STR-1/5, LC-3, WS-1/2) on
       devices.
 
@@ -125,9 +194,9 @@ See `docs/architecture/g1-contracts.md`.
 | S4 | pass (host, mock + real provider); app/UI pending | `tests/spikes/results/S4-sse.md` |
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
-| S7 | blocked (device) | — |
-| S8 | blocked (device + keyboards) | — |
-| S9 | accepted (D1); SBOM/inventory done, blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
+| S7 | blocked (device) | `docs/evidence/RESULTS.md` |
+| S8 | blocked (device + keyboards) | `docs/evidence/RESULTS.md` |
+| S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes
 
@@ -153,20 +222,22 @@ See `docs/architecture/g1-contracts.md`.
 
 ## Next experiments
 
-1. **S3 app sandbox + native PTY:** run the guest wrapper inside the
-   app and compare agent-shell/PTY `pwd`, `node -v` and `PATH`.
-2. **S4 app/UI:** repeat the live 500-drop run through the app/UI
-   bridge and measure event-to-paint.
+1. **Unblock device evidence:** acquire the Tier A/B/C, 16 KB-page and
+   keyboard test devices; record their Android versions, ABIs and page
+   sizes in `docs/evidence/RESULTS.md`.
+2. **Pre-G0 feasibility only:** create the isolated spike harness
+   described above, then run S1/S3/S7/S8. Compare agent-shell and PTY
+   `pwd`, `node -v` and `PATH`, and verify launch/cleanup and `execute_no_trans`.
 3. **S6:** run the contract suite against a 2.0.x artifact when one is
    published; `v2.0.32`/`v2.1.3` tags exist but have no release assets
    or npm builds as of 2026-10-23.
-4. **S1 app-sandbox:** CI emulator (API 31/33/36) + a 16 KB-page
-   device; verify start, health and `execute_no_trans` denials.
-5. **S9:** resolve Bun/libtalloc LGPL compliance, verify the OpenCode
+4. **S9:** resolve Bun/libtalloc LGPL compliance, verify the OpenCode
    closure against the binary, review Alpine packages without separate
    copyright files, and complete the remaining checklist (trademark,
    developer verification).
-6. **Bridge hardening:** abort semantics against the live server and
-   WebView transport wiring before G0 interface freeze.
-7. **G1 implementation:** add the command handler, JSON payload DTOs and
-   fake-backed contract tests after G0.
+5. **G0 decision close:** apply the D4 evidence rules, ratify numeric
+   thresholds from measured device baselines, and record the final gate
+   decision. D1 is already accepted and D5 is pinned for the current
+   baseline.
+6. **After G0:** begin production service wiring and command DTOs; then
+   validate app/UI bridge abort/reconnect behavior and event-to-paint.
