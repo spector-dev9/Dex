@@ -21,9 +21,9 @@ linked or appended; host spikes cannot promote device rows.
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | host guest result; isolated harness builds with native PTY probe | harness has not been run on a device |
+| S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md): runtime layout passed; S1/S3 packaging and exec blocked | harness APK lacks staged jniLibs; rebuild after staging |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
-| S7 | Tier A/B/C | pending | none | foreground service and device access |
+| S7 | Tier A/B/C | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
 | S8 | Gboard + Samsung Keyboard | pending | none | device and keyboard access |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
@@ -44,4 +44,10 @@ linked or appended; host spikes cannot promote device rows.
 - `tests/spikes/harness/` can collect S1/S3/S7/S8 device evidence, but
   it is an isolated pre-G0 harness. Running it does not promote a row
   until the report and device metadata are attached here.
+- The first physical device run is recorded in
+  `tests/spikes/results/S3-device-harness-20261024.md`. It confirms the
+  staged runtime layout and S7 foreground-service lifecycle, but S1/S3
+  are blocked because the installed APK was the compile-only CI artifact.
+  A harness APK must be built after staging so the loader and PRoot are in
+  `nativeLibraryDir`; app-private exec is blocked by Android.
 - G0 remains open; no acceptance value here freezes D4 or D5.
