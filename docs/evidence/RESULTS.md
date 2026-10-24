@@ -34,14 +34,14 @@ linked or appended; host spikes cannot promote device rows.
 
 | Requirement | Scope | Status | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
-| S1 | Tier A | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): loader exec `opencode --version` exit 0 on one Infinix device | full server/prompt path, production app/runtime implementation and remaining tiers |
+| S1 | Tier A | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), [runtime-download rerun](spike-20261024-153116.json), and separate user-shared diagnostics: health HTTP 200, session creation, async prompt accepted, and one mock-provider request on one Infinix device | production app/runtime implementation and remaining tiers |
 | S1 | Tier B | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md) covers Tier A device only | production app/runtime implementation and remaining tiers |
 | S1 | Tier C | pending | none | production app/runtime implementation and remaining tiers |
 | S2 cold start | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md) (packaging blocked), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): guest shell and native PTY pass on one device | production app wiring and G0 acceptance run required; harness is pre-G0 |
+| S3 | app sandbox + native PTY | pending | Earlier harness reports claim guest-shell/PTY passes, but the latest user-shared report shows `node: not found`, literal `******` output, and an unsubstantiated `environmentMatch=true`; do not count those S3 results | corrected harness rebuild and device rerun; production shell wiring and G0 acceptance are also required |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
 | S7 | Tier A/B/C | pending | [first device run](tests/spikes/results/S3-device-harness-20261024.md), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
 | S8 | Gboard + Samsung Keyboard | pending | [runtime-download rerun](spike-20261024-153116.json) records 7 text changes, final length 6, and zero key-down events. Owner-approved earlier “emojikeyboard” result remains unverified for IME identity. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
@@ -57,13 +57,14 @@ linked or appended; host spikes cannot promote device rows.
 ## Notes
 
 - The earlier physical-device runs predate the current official
-  OpenCode package and remain historical evidence. The new
+  OpenCode package and remain historical evidence. The official-package
   `spike-20261024-080149.json` report records OpenCode `1.19.3`,
-  Alpine `3.20.3`, successful loader/guest-shell/native-PTY and
-  foreground-service start/stop probes on an Infinix X6870 running
-  Android 16 with 4 KB pages. The report does not include the staged
-  archive SHA-256, so it does not independently prove byte-for-byte
-  correspondence with the pinned artifact.
+  Alpine `3.20.3`, successful loader and foreground-service start/stop
+  probes on an Infinix X6870 running Android 16 with 4 KB pages. Its
+  guest-shell/native-PTY passes are invalidated because the probe did not
+  establish Node or valid environment values. The report does not include
+  the staged archive SHA-256, so it does not independently prove
+  byte-for-byte correspondence with the pinned artifact.
 - The new S8 result confirms text changes were recorded but reports
   `keyDownEvents=0`; it does not demonstrate hardware-key events,
   keyboard identity, paste/select behavior, or named Gboard/Samsung
@@ -85,10 +86,11 @@ linked or appended; host spikes cannot promote device rows.
   `nativeLibraryDir`; app-private exec is blocked by Android.
 - Second physical device run on 2026-10-24
   (`tests/spikes/results/S3-device-harness-20261024-staged.md`): the
-  rebuilt post-staging APK passes every S1/S3 probe — loader runs
-  `opencode --version` (exit 0, stdout `1.19.3`), PRoot guest shell and
-  the native `forkpty` comparison both pass, and the S7 service
-  lifecycle completes. The initial side-load again showed the whole
+  rebuilt post-staging APK passes S1 loader execution
+  (`opencode --version`, exit 0, stdout `1.19.3`) and the S7 service
+  lifecycle completes. Its PRoot guest-shell and native `forkpty` results
+  were reported as passing but are invalidated by the false-pass defect
+  documented below. The initial side-load again showed the whole
   runtime payload missing from `files/spike`; fixed by pushing the
   pinned `spike-runtime.tar.gz` and extracting with
   `adb shell run-as` (no root). Rows stay `pending` because this is the
@@ -104,12 +106,14 @@ linked or appended; host spikes cannot promote device rows.
   explicitly says S8 was not exercised. Extra-key, paste/select, Gboard
   and Samsung Keyboard coverage remains outstanding.
 - A repeat run of the same day
-  (`raw/spike-device-20261024-042222.json`) passed all 13 harness records
-  again, confirming the result is deterministic.
+  (`raw/spike-device-20261024-042222.json`) reported all 13 harness
+  records passing again. The S3 results are invalidated by the same
+  probe defect; this repeat does not make them admissible.
 - The official-package rerun is a separate report at
   `raw/spike-20261024-080149.json`. It passes the staged runtime layout,
-  OpenCode loader version, PRoot guest shell, native PTY comparison, and
-  foreground-service start/stop. It records five S8 text changes but no
+  OpenCode loader version and foreground-service start/stop. Its claimed
+  PRoot guest-shell and native PTY passes are invalidated by the defect
+  noted below. It records five S8 text changes but no
   key-down events. This remains partial harness evidence: S1 server and
   prompt behavior, long-duration service survival, tier coverage, and
   full S8 acceptance are still outstanding.
@@ -119,9 +123,28 @@ linked or appended; host spikes cannot promote device rows.
   hashes match the manifest; the download/install action took 39.05 s.
   The preceding attempt had already completed and cached these archives
   before Alpine APK extraction failed on PAX metadata, so this rerun is
-  not a cold-network speed measurement. Loader, guest-shell, PTY and FGS
-  probes pass again. S8 records seven text changes and zero key-down
+  not a cold-network speed measurement. Loader and service lifecycle
+  probes pass again. The S3 probes are
+  invalidated by the same false-pass defect. S8 records seven text changes and zero key-down
   events. This remains pre-G0 evidence on a 4 KB-page device; it does not
-  satisfy the device matrix, server/prompt round trip, long-duration FGS
-  test, or named keyboard acceptance.
+  satisfy the device matrix, long-duration FGS test, or named keyboard
+  acceptance. The separate S1 diagnostics prove one mock prompt round
+  trip, but not the required tier/device matrix.
+- The later user-shared Infinix X6870 / Android 16 report is not admissible
+  as an S3 pass: its guest output reports `node: not found` and contains
+  literal `******` instead of the requested environment values, while the
+  native PTY record still says `environmentMatch=true`. The Kotlin and
+  native probes previously used a `printf` format with no conversions and
+  accepted incomplete marker data. The harness now emits explicit `D=`,
+  `P=` and `N=` values, requires all three values and a valid Node version,
+  and fails both probes when Node is unavailable. This corrected APK still
+  needs a device rerun; S3 remains pending.
+- In the same later report S7 start/stop was observed, and S8 recorded
+  text changes but `keyDownEvents=0`; this does not satisfy keyboard
+  acceptance. The harness now labels future records `S8-ime-observation`
+  and states that keyboard acceptance is not assessed. Separately supplied
+  S1 diagnostics recorded health HTTP 200,
+  successful session creation, accepted async prompt submission, and one
+  mock-provider request. This single harness path is useful evidence but
+  does not close the full device matrix or G0.
 - G0 remains open; no acceptance value here freezes D4 or D5.

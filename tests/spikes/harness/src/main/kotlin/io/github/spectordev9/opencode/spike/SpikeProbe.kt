@@ -26,6 +26,7 @@ data class ProbeRecord(
 object SpikeProbe {
     private const val MAX_OUTPUT_CHARS = 64_000
     private const val REQUIRED_ALIGNMENT = 16_384L
+    private val NODE_VERSION_PATTERN = Regex("^v\\d+\\.\\d+\\.\\d+(?:[-+].*)?$")
 
     fun runtimeDir(context: Context): File = File(context.filesDir, "spike")
 
@@ -190,7 +191,9 @@ object SpikeProbe {
             "/root",
             "/bin/sh",
             "-c",
-            "printf 'PWD=%s\\nPATH=%s\\nNODE=%s\\n' \"\$PWD\" \"\$PATH\" \"\$(node -v 2>&1)\"; " +
+            "node_version=\$(node -v 2>&1); node_status=\$?; " +
+                "printf 'D=%s\\nP=%s\\nN=%s\\n' \"\$PWD\" \"\$PATH\" \"\$node_version\"; " +
+                "[ \"\$node_status\" -eq 0 ] || exit \"\$node_status\"; " +
                 "/bin/cat /etc/alpine-release 2>/dev/null; echo GUEST-OK",
         )
         val env = runtimeEnvironment(context).apply {
@@ -210,7 +213,17 @@ object SpikeProbe {
             workDir = rootfs,
             timeoutMs = 60_000,
         )
-        return record.copy(pass = record.pass && record.stdout.contains("GUEST-OK"))
+        val environment = probeEnvironment(record.stdout)
+        val environmentValid = hasValidProbeEnvironment(environment)
+        val detail = if (environmentValid) {
+            record.detail
+        } else {
+            "${record.detail}; expected PWD, PATH and a successful node -v result"
+        }
+        return record.copy(
+            pass = record.pass && record.exitCode == 0 && record.stdout.contains("GUEST-OK") && environmentValid,
+            detail = detail,
+        )
     }
 
     fun runGuestPtyComparison(context: Context): List<ProbeRecord> {
@@ -259,7 +272,9 @@ object SpikeProbe {
         val normalized = output.replace("\r\n", "\n").replace('\r', '\n')
         val guestValues = probeEnvironment(guest.stdout)
         val ptyValues = probeEnvironment(normalized)
-        val matches = guestValues.isNotEmpty() && guestValues == ptyValues
+        val matches = hasValidProbeEnvironment(guestValues) &&
+            hasValidProbeEnvironment(ptyValues) &&
+            guestValues == ptyValues
         val hasTerminalSize = normalized.lineSequence().any { it.trim() == "24 80" }
         val passed = exitCode == 0 &&
             normalized.contains("GUEST-PTY-OK") &&
@@ -287,8 +302,14 @@ object SpikeProbe {
     private fun probeEnvironment(output: String): Map<String, String> =
         output.replace("\r\n", "\n").replace('\r', '\n')
             .lineSequence()
-            .filter { it.startsWith("PWD=") || it.startsWith("PATH=") || it.startsWith("NODE=") }
+            .filter { it.startsWith("D=") || it.startsWith("P=") || it.startsWith("N=") }
             .associate { line -> line.substringBefore('=') to line.substringAfter('=') }
+
+    private fun hasValidProbeEnvironment(environment: Map<String, String>): Boolean =
+        environment.keys == setOf("D", "P", "N") &&
+            environment["D"].orEmpty().isNotBlank() &&
+            environment["P"].orEmpty().isNotBlank() &&
+            NODE_VERSION_PATTERN.matches(environment["N"].orEmpty())
 
     private fun rootfsFileExists(rootfs: File, relativePath: String): Boolean {
         val root = rootfs.toPath().toAbsolutePath().normalize()

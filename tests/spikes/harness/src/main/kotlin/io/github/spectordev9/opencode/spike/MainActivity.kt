@@ -250,10 +250,11 @@ class MainActivity : Activity() {
     private fun writeReport() {
         SpikeReport.upsert(
             ProbeRecord(
-                id = "S8-keyboard-ime",
+                id = "S8-ime-observation",
                 pass = imeTextChanges > 0,
                 detail = "textChanges=$imeTextChanges; finalTextLength=${imeField.text.length}; " +
-                    "keyDownEvents=$imeKeyDownEvents; lastKey=$imeLastKey; input text omitted",
+                    "keyDownEvents=$imeKeyDownEvents; lastKey=$imeLastKey; " +
+                    "keyboardAcceptance=not-assessed; input text omitted",
             ),
         )
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&

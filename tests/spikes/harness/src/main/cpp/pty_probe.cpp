@@ -19,7 +19,9 @@ namespace {
 constexpr size_t kMaxOutputBytes = 64 * 1024;
 constexpr char kProbeScript[] =
     "stty -echo; stty size; "
-    "printf 'PWD=%s\\nPATH=%s\\nNODE=%s\\n' \"$PWD\" \"$PATH\" \"$(node -v 2>&1)\"; "
+    "node_version=$(node -v 2>&1); node_status=$?; "
+    "printf 'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; "
+    "[ \"$node_status\" -eq 0 ] || exit \"$node_status\"; "
     "printf 'GUEST-PTY-OK\\n'; exit\n";
 
 std::string fromJava(JNIEnv* env, jstring value) {

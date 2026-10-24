@@ -58,7 +58,7 @@ Staged contents: `opencode 1.19.3`, musl loader/libc
 (5.1.107.100), `loader`, `libtalloc.so.2` (2.5.0),
 `libandroid-shmem.so` (0.7), Alpine 3.20.3 minirootfs with busybox.
 
-## Results (first fully passing device run)
+## Results (historically reported as passing; S3 pass invalidated)
 
 | Probe | Result | Detail |
 | --- | --- | --- |
@@ -67,8 +67,8 @@ Staged contents: `opencode 1.19.3`, musl loader/libc
 | `S3-native-proot-loader` | PASS | `libproot_loader.so` 18136 B, executable, minLoadAlign=16384 (16 KB-ok) |
 | `runtime-layout` | PASS | staged runtime complete under `files/spike` |
 | `S1-loader` | PASS | musl loader + `opencode --version`, exit=0, stdout `1.19.3` (2334 ms) |
-| `S3-guest-shell` | PASS ×2 | PRoot guest: exit=0, PWD/PATH echoed, Alpine `3.20.3`, `GUEST-OK` (155/104 ms) |
-| `S3-native-pty` | PASS | `forkpty` probe: exit=0, terminal size 80x24, environment match with guest shell (378 ms) |
+| `S3-guest-shell` | Reported PASS ×2; invalidated | PRoot guest: exit=0, Alpine `3.20.3`, `GUEST-OK`; the probe did not verify the environment output and Node was unavailable |
+| `S3-native-pty` | Reported PASS; invalidated | `forkpty` probe: exit=0 and terminal size 80x24; the environment comparison used unverified/missing values |
 | `S7-fgs-start` | PASS | `startForegroundService` requested |
 | `S7-service` | PASS | `onCreate`, `startForeground onStartCommand startId=1`, `onDestroy` observed |
 | `S7-fgs-stop` | PASS | `stopService` requested |
@@ -88,31 +88,36 @@ Additional observations:
 
 ## Confirmation run (2026-10-24 04:22 IST)
 
-A repeat full pass on the same install/staging state, `generatedAt`
+A repeat report on the same install/staging state, `generatedAt`
 `2026-10-24T04:22:22+05:30`, report exported by the harness to the phone
 Download folder and pulled from Termux storage access (no ADB needed).
-All 13 records match the first run's outcomes:
+All 13 records repeat the first run's reported outcomes; S3 remains
+invalidated by the same probe defect:
 
 | Probe | Result | Notes |
 | --- | --- | --- |
 | `S1-native-loader` / `S3-native-proot` / `S3-native-proot-loader` | PASS ×3 | identical ELF/alignment details |
 | `runtime-layout` | PASS | unchanged staging |
 | `S1-loader` | PASS | exit=0, `1.19.3` (1560 ms, down from 2334 ms — warm file cache) |
-| `S3-guest-shell` | PASS ×2 | exit=0, `GUEST-OK` (53/104 ms) |
-| `S3-native-pty` | PASS | exit=0, 80x24, environmentMatch=true (181 ms) |
+| `S3-guest-shell` | Reported PASS ×2; invalidated | exit=0, `GUEST-OK`; Node and valid environment fields were not established |
+| `S3-native-pty` | Reported PASS; invalidated | exit=0, 80x24; `environmentMatch=true` is not admissible without valid fields |
 | `S7-fgs-start` / `S7-service` / `S7-fgs-stop` | PASS | full lifecycle again (`onCreate` → `startForeground` → `onDestroy`) |
 
-The repeat run rules out a one-off: loader exec, PRoot guest shell and
-native PTY pass deterministically on this device state.
+The repeat run confirms loader execution and terminal-size reporting on
+this device state. It does not establish S3 because both guest-shell
+reports used the same flawed pass criteria.
 
 ## Interpretation
 
-With the staged runtime both packaging (`S1-native-loader`,
-`S3-native-proot*`) and execution (`S1-loader`, `S3-guest-shell`,
-`S3-native-pty`) now pass on the physical device, resolving every
-blocker listed in [`S3-device-harness-20261024.md`](S3-device-harness-20261024.md):
-no app-data exec was attempted and none was needed — all binaries ran
-from `nativeLibraryDir` or 16 KB-aligned musl loading.
+With the staged runtime, packaging (`S1-native-loader`,
+`S3-native-proot*`) and loader execution (`S1-loader`) pass on the
+physical device. The earlier guest-shell and PTY results are invalidated:
+the guest had no Node, and the probe's `printf` format had no conversions,
+so its pass result did not prove that PWD, PATH or Node were available or
+matched. A later user-shared report confirmed `node: not found`, literal
+`******` output and a misleading `environmentMatch=true`. The harness was
+corrected to require all environment fields and a valid Node version; a
+new device run is needed before claiming S3.
 
 This is still the isolated pre-G0 harness: it proves the Phase 2
 packaging + PTY strategy on device, and does not by itself promote an
