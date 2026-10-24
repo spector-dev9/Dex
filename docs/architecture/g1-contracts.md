@@ -1,10 +1,12 @@
-# G1 core contracts (interface-only)
+# G1 core contracts and runtime boundary
 
 Status: core contracts and the minimal Compose Android shell compile. An
 app-local unit-test harness contains fake service ports and a partial bridge
 handler for contract-level tests only; none of those fakes are wired into
-the app runtime. No runtime implementation, production bridge handler, JNI
-code, or JavaScript transport is included.
+the app runtime. The `core:runtime` JVM module validates the pinned manifest
+and installed file layout, but installation, artifact-content verification,
+platform process launch, production bridge handling, and JNI are not yet
+implemented.
 
 The TypeScript bridge contract is retained as a parity fixture only. It is
 not part of the Android UI or runtime architecture. Its envelope is
@@ -19,6 +21,7 @@ All source lives under `io.github.spectordev9.opencode.core.<module>`.
 | --- | --- | --- |
 | `core:common-api` | IDs, typed errors/results, timeout defaults | none |
 | `core:runtime-api` | runtime state, verified artifacts, process spawning | `common-api` |
+| `core:runtime` | manifest and runtime file validation; platform launcher port | `common-api`, `runtime-api` |
 | `core:supervisor-api` | loopback server lifecycle, health and backoff | `common-api` |
 | `core:gateway-api` | typed HTTP operations, SSE events, health | `common-api` |
 | `core:workspace-api` | path-scoped list/read/write/mkdir/rename/trash | `common-api` |
@@ -30,6 +33,7 @@ All source lives under `io.github.spectordev9.opencode.core.<module>`.
 
 ```text
 common
+  ├── runtime-api
   ├── runtime
   ├── supervisor
   ├── gateway
@@ -48,12 +52,15 @@ independent of service implementation details.
 
 Rules checked by `scripts/check-architecture.py`:
 
-- exactly the ten `core/*-api` modules are included;
+- exactly ten contract `core/*-api` modules plus `model`, `opencode-client`,
+  and `runtime` are included;
 - `common-api` has no project dependency and no core imports;
-- every other module depends only on `common-api`, directly or by import;
+- implementation modules depend only on their relevant core contracts;
+- `runtime-api` remains free of implementation and serialization dependencies;
 - core source has no Android/AndroidX imports;
 - every Kotlin file sits in the package matching its module directory; and
-- only `common-api` may declare the coroutines dependency.
+- only modules that expose coroutine-based contracts or implementations may
+  declare the coroutines dependency.
 
 ## Service ports
 

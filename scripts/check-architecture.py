@@ -19,6 +19,7 @@ MODULE_PACKAGES = {
     "git-api": "git",
     "model": "model",
     "opencode-client": "opencode.client",
+    "runtime": "runtime.impl",
     "runtime-api": "runtime",
     "security-api": "security",
     "supervisor-api": "supervisor",
@@ -35,6 +36,7 @@ ALLOWED_PROJECT_DEPENDENCIES["opencode-client"] = {
     "gateway-api",
     "model",
 }
+ALLOWED_PROJECT_DEPENDENCIES["runtime"] = {"common-api", "runtime-api"}
 ALLOWED_EXTERNAL_DEPENDENCIES = {
     "common-api": {"libs.kotlinx.coroutines.core"},
     "model": {
@@ -42,7 +44,7 @@ ALLOWED_EXTERNAL_DEPENDENCIES = {
         "libs.junit.jupiter",
         "libs.junit.platform.launcher",
     },
-    "runtime-api": {
+    "runtime": {
         "libs.kotlinx.serialization.json",
         "libs.junit.jupiter",
         "libs.junit.platform.launcher",
