@@ -9,9 +9,11 @@ import io.github.spectordev9.opencode.core.runtime.RuntimeInfo
 import io.github.spectordev9.opencode.core.runtime.RuntimeProfile
 import io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Files
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.div
 import kotlin.io.path.readBytes
+import kotlin.io.path.readText
 import kotlin.io.path.writeBytes
 import kotlin.io.path.createSymbolicLinkPointingTo
 import kotlin.test.Test
@@ -50,8 +52,9 @@ class RuntimeManagerImplTest {
     @Test
     fun `ensureReady succeeds with a valid manifest and required files`() = runBlocking {
         val root = createTempDirectory("runtime-manager")
-        (root / "opencode").writeBytes("binary".toByteArray())
-        (root / "ld-musl-aarch64.so.1").writeBytes("loader".toByteArray())
+        val installed = Files.createDirectory(root / "environment")
+        (installed / "opencode").writeBytes("binary".toByteArray())
+        (installed / "ld-musl-aarch64.so.1").writeBytes("loader".toByteArray())
         writeManifest(root)
 
         val manager = ManifestRuntimeManager(root, FakeRuntimeProcessLauncher())
@@ -61,14 +64,15 @@ class RuntimeManagerImplTest {
         assertEquals(RuntimeStateStatus.READY, manager.state.value.status)
         assertEquals("1.19.3", result.value.version)
         assertEquals(RuntimeProfile.A_DIRECT, result.value.profile)
-        assertTrue(result.value.rootPath.startsWith(root.toString()))
+        assertEquals(installed.toRealPath().toString(), result.value.rootPath)
     }
 
     @Test
     fun `ensureReady rejects an extracted binary that does not match its pinned digest`() = runBlocking {
         val root = createTempDirectory("runtime-binary-mismatch")
-        (root / "opencode").writeBytes("tampered binary".toByteArray())
-        (root / "ld-musl-aarch64.so.1").writeBytes("loader".toByteArray())
+        val installed = Files.createDirectory(root / "environment")
+        (installed / "opencode").writeBytes("tampered binary".toByteArray())
+        (installed / "ld-musl-aarch64.so.1").writeBytes("loader".toByteArray())
         writeManifest(root)
 
         val manager = ManifestRuntimeManager(root, FakeRuntimeProcessLauncher())
@@ -82,7 +86,8 @@ class RuntimeManagerImplTest {
     @Test
     fun `manifest rejects absolute required file paths`() = runBlocking {
         val root = createTempDirectory("runtime-unsafe-manifest")
-        (root / "opencode").writeBytes("binary".toByteArray())
+        val installed = Files.createDirectory(root / "environment")
+        (installed / "opencode").writeBytes("binary".toByteArray())
         writeManifest(root, required = """["opencode", "/tmp/outside"]""")
 
         val manager = ManifestRuntimeManager(root, FakeRuntimeProcessLauncher())
@@ -97,15 +102,36 @@ class RuntimeManagerImplTest {
         val root = createTempDirectory("runtime-symlink")
         val outside = createTempDirectory("runtime-outside") / "external"
         outside.writeBytes("external".toByteArray())
-        (root / "opencode").writeBytes("binary".toByteArray())
-        (root / "ld-musl-aarch64.so.1").createSymbolicLinkPointingTo(outside)
-        writeManifest(root)
+        val installed = Files.createDirectory(root / "environment")
+        (installed / "opencode").writeBytes("binary".toByteArray())
+        (installed / "ld-musl-aarch64.so.1").createSymbolicLinkPointingTo(outside)
+        writeManifest(root, required = """["opencode", "ld-musl-aarch64.so.1"]""")
 
         val manager = ManifestRuntimeManager(root, FakeRuntimeProcessLauncher())
         val result = manager.ensureReady()
 
         assertIs<ApiResult.Failure>(result)
         assertEquals(RuntimeStateStatus.FAILED, manager.state.value.status)
+    }
+
+    @Test
+    fun `ensureReady rejects an active version directory that escapes the runtime root`() = runBlocking {
+        val root = createTempDirectory("runtime-active-version")
+        val binary = "binary".toByteArray()
+        val digest = sha256(binary)
+        val outside = createTempDirectory("runtime-version-outside")
+        (outside / "opencode").writeBytes(binary)
+        Files.createDirectory(root / "versions")
+        Files.createSymbolicLink(root / "versions" / digest, outside)
+        (root / "active-runtime").writeBytes(digest.toByteArray())
+        writeManifest(root, binaryHash = digest)
+
+        val manager = ManifestRuntimeManager(root, FakeRuntimeProcessLauncher())
+        val result = manager.ensureReady()
+
+        assertIs<ApiResult.Failure>(result)
+        assertEquals(RuntimeStateStatus.FAILED, manager.state.value.status)
+        assertTrue(manager.state.value.reason.orEmpty().contains("outside the runtime root"))
     }
 
     @Test
@@ -121,27 +147,113 @@ class RuntimeManagerImplTest {
     @Test
     fun `spawn delegates only after runtime is ready`() = runBlocking {
         val root = createTempDirectory("runtime-spawn-ready")
-        (root / "opencode").writeBytes("binary".toByteArray())
-        (root / "ld-musl-aarch64.so.1").writeBytes("loader".toByteArray())
+        val installed = Files.createDirectory(root / "environment")
+        (installed / "opencode").writeBytes("binary".toByteArray())
+        (installed / "ld-musl-aarch64.so.1").writeBytes("loader".toByteArray())
         writeManifest(root)
         val launcher = FakeRuntimeProcessLauncher()
         val manager = ManifestRuntimeManager(root, launcher)
         manager.ensureReady()
 
-        val spec = ProcessSpec("opencode", workingDirectory = root.toString())
+        val spec = ProcessSpec("opencode", workingDirectory = installed.toString())
         val result = manager.spawn(spec)
 
         assertIs<ApiResult.Success<ManagedProcess>>(result)
         assertEquals(spec, launcher.requestedSpec)
     }
 
+    @Test
+    fun `installArtifact installs from pinned manifest and transitions to ready`() = runBlocking {
+        val root = createTempDirectory("runtime-install-manager")
+        val archive = root / "opencode.tar.gz"
+        archive.writeBytes("archive bytes".toByteArray())
+        val executable = "binary".toByteArray()
+        writeManifest(
+            root,
+            artifactHash = sha256(archive.readBytes()),
+            binaryHash = sha256(executable),
+        )
+        val installer = RuntimeArtifactInstaller(
+            extractor = RuntimeArchiveExtractor { _, destination ->
+                (destination / "opencode").writeBytes(executable)
+            },
+        )
+        val manager = ManifestRuntimeManager(
+            rootDirectory = root,
+            processLauncher = FakeRuntimeProcessLauncher(),
+            installer = installer,
+        )
+
+        val result = manager.installArtifact(archive)
+
+        val runtime = assertIs<ApiResult.Success<RuntimeInfo>>(result).value
+        assertEquals(RuntimeStateStatus.READY, manager.state.value.status)
+        assertEquals("1.19.3", runtime.version)
+        val installedVersion = root / "versions" / sha256(executable)
+        assertTrue(Files.isRegularFile(installedVersion / "opencode"))
+        assertEquals(sha256(executable), (root / "active-runtime").readText())
+        assertEquals(installedVersion.toRealPath().toString(), runtime.rootPath)
+    }
+
+    @Test
+    fun `installArtifact keeps valid installed runtime when new archive verification fails`() = runBlocking {
+        val root = createTempDirectory("runtime-install-invalid-archive")
+        val installed = Files.createDirectory(root / "environment")
+        (installed / "opencode").writeBytes("binary".toByteArray())
+        (installed / "ld-musl-aarch64.so.1").writeBytes("loader".toByteArray())
+        writeManifest(root)
+        val archive = root / "bad.tar.gz"
+        archive.writeBytes("tampered".toByteArray())
+        val manager = ManifestRuntimeManager(root, FakeRuntimeProcessLauncher())
+
+        val result = manager.installArtifact(archive)
+
+        assertIs<ApiResult.Failure>(result)
+        assertEquals(RuntimeStateStatus.READY, manager.state.value.status)
+        assertEquals("binary", (installed / "opencode").readText())
+    }
+
+    @Test
+    fun `installAlpineRootfs uses the trusted manifest pin and restores runtime state`() = runBlocking {
+        val root = createTempDirectory("runtime-manager-alpine")
+        val archive = root / "alpine.tar.gz"
+        archive.writeBytes("pinned Alpine archive".toByteArray())
+        val archiveHash = sha256(archive.readBytes())
+        writeManifest(root, alpineJson = """,
+          "alpine": {"version": "3.20.3", "sha256": "$archiveHash"}""")
+        val installer = AlpineRootfsInstaller(
+            extractor = RuntimeArchiveExtractor { _, destination ->
+                Files.createDirectories(destination.resolve("bin"))
+                listOf("sh", "busybox").forEach { name ->
+                    val executable = Files.writeString(destination.resolve("bin").resolve(name), name)
+                    executable.toFile().setExecutable(true)
+                }
+            },
+        )
+        val manager = ManifestRuntimeManager(
+            rootDirectory = root,
+            processLauncher = FakeRuntimeProcessLauncher(),
+            alpineInstaller = installer,
+        )
+
+        val result = manager.installAlpineRootfs(archive)
+
+        val installed = assertIs<ApiResult.Success<java.nio.file.Path>>(result).value
+        assertEquals(
+            root.resolve("rootfs-versions").resolve(archiveHash),
+            installed,
+        )
+        assertEquals(RuntimeStateStatus.ABSENT, manager.state.value.status)
+        assertEquals("sh", Files.readString(installed.resolve("bin/sh")))
+    }
+
     private fun writeManifest(
         root: java.nio.file.Path,
-        required: String = """["opencode", "ld-musl-aarch64.so.1"]""",
+        required: String = """["opencode"]""",
+        artifactHash: String = "a".repeat(64),
+        binaryHash: String = sha256("binary".toByteArray()),
+        alpineJson: String = "",
     ) {
-        val binaryHash = java.security.MessageDigest.getInstance("SHA-256")
-            .digest("binary".toByteArray())
-            .joinToString("") { "%02x".format(it) }
         (root / "manifest.json").writeBytes(
             """
             {
@@ -150,11 +262,16 @@ class RuntimeManagerImplTest {
               "binary": "opencode",
               "binarySha256": "$binaryHash",
               "required": $required,
-              "artifact": {"sha256": "${"a".repeat(64)}"}
+              "artifact": {"sha256": "$artifactHash"}$alpineJson
             }
             """.trimIndent().toByteArray(),
         )
     }
+
+    private fun sha256(bytes: ByteArray): String =
+        java.security.MessageDigest.getInstance("SHA-256")
+            .digest(bytes)
+            .joinToString("") { "%02x".format(it) }
 
     private class FakeRuntimeProcessLauncher : RuntimeProcessLauncher {
         var requestedSpec: ProcessSpec? = null

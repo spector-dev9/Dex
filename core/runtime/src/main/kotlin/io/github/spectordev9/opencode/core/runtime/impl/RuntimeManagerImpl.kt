@@ -12,6 +12,9 @@ import io.github.spectordev9.opencode.core.runtime.RuntimeProfile
 import io.github.spectordev9.opencode.core.runtime.RuntimeState
 import io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.StandardCopyOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +26,8 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.io.path.inputStream
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
@@ -42,11 +47,18 @@ private data class RuntimeManifestFile(
     val loader: String? = null,
     val required: List<String> = emptyList(),
     val artifact: RuntimeManifestArtifact = RuntimeManifestArtifact(),
+    val alpine: RuntimeManifestAlpine? = null,
 )
 
 @Serializable
 private data class RuntimeManifestArtifact(
     val url: String = "",
+    val sha256: String = "",
+)
+
+@Serializable
+private data class RuntimeManifestAlpine(
+    val version: String = "",
     val sha256: String = "",
 )
 
@@ -84,18 +96,151 @@ class ManifestRuntimeManager(
     private val processLauncher: RuntimeProcessLauncher,
     private val manifestFile: Path = rootDirectory.resolve("manifest.json"),
     override val profile: RuntimeProfile = RuntimeProfile.A_DIRECT,
+    private val installer: RuntimeArtifactInstaller = RuntimeArtifactInstaller(),
+    private val alpineInstaller: AlpineRootfsInstaller = AlpineRootfsInstaller(),
+    private val installedDirectory: Path = rootDirectory.resolve("environment"),
 ) : RuntimeManager {
     private val stateFlow = MutableStateFlow(RuntimeState(status = RuntimeStateStatus.ABSENT))
     private val json = runtimeManifestJson
 
     override val state: StateFlow<RuntimeState> = stateFlow.asStateFlow()
+
+    suspend fun installArtifact(archive: Path): ApiResult<RuntimeInfo> {
+        val manifest = try {
+            parseManifest(manifestFile)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: IOException) {
+            return failed(
+                RuntimeStateStatus.FAILED,
+                failure.message ?: "runtime manifest could not be read",
+                ErrorCode.E_RUNTIME_DOWN,
+            )
+        } catch (failure: IllegalArgumentException) {
+            return failed(
+                RuntimeStateStatus.FAILED,
+                failure.message ?: "invalid runtime manifest",
+                ErrorCode.E_UNSUPPORTED_VERSION,
+            )
+        } catch (failure: SerializationException) {
+            return failed(
+                RuntimeStateStatus.FAILED,
+                failure.message ?: "invalid runtime manifest",
+                ErrorCode.E_UNSUPPORTED_VERSION,
+            )
+        }
+        val manifestProfile = try {
+            normalizeRuntimeProfile(manifest.profile)
+        } catch (failure: IllegalArgumentException) {
+            return failed(
+                RuntimeStateStatus.FAILED,
+                failure.message ?: "unsupported runtime profile",
+                ErrorCode.E_UNSUPPORTED_VERSION,
+            )
+        }
+        if (manifestProfile != profile) {
+            return failed(
+                RuntimeStateStatus.FAILED,
+                "manifest profile does not match configured runtime profile",
+                ErrorCode.E_UNSUPPORTED_VERSION,
+            )
+        }
+        if (!isSafeRelativeFileName(manifest.binary) || manifest.binary !in manifest.required) {
+            return failed(
+                RuntimeStateStatus.FAILED,
+                "manifest binary is not a safe required file",
+                ErrorCode.E_UNSUPPORTED_VERSION,
+            )
+        }
+
+        stateFlow.value = RuntimeState(status = RuntimeStateStatus.INSTALLING, version = manifest.version)
+        val result = withContext(Dispatchers.IO) {
+            installer.install(
+                archive = archive,
+                expectedArchiveSha256 = manifest.artifact.sha256,
+                targetDirectory = versionDirectory(manifest.binarySha256),
+                executableName = manifest.binary,
+                expectedExecutableSha256 = manifest.binarySha256,
+            )
+        }
+        if (result is ApiResult.Failure) {
+            ensureReady()
+            return result
+        }
+        try {
+            activateVersion(manifest.binarySha256)
+        } catch (failure: IOException) {
+            val activationError = ApiError(
+                ErrorCode.E_RUNTIME_DOWN,
+                "runtime was installed but could not be activated: ${failure.message}",
+            )
+            return if (ensureReady() is ApiResult.Success) {
+                ApiResult.Failure(activationError)
+            } else {
+                failed(
+                    RuntimeStateStatus.FAILED,
+                    activationError.message ?: "runtime could not be activated",
+                    activationError.code,
+                )
+            }
+        }
+        return ensureReady()
+    }
+
+    suspend fun installAlpineRootfs(archive: Path): ApiResult<Path> {
+        val manifest = try {
+            parseManifest(manifestFile)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: IOException) {
+            return ApiResult.Failure(
+                ApiError(ErrorCode.E_RUNTIME_DOWN, failure.message ?: "runtime manifest could not be read"),
+            )
+        } catch (failure: IllegalArgumentException) {
+            return ApiResult.Failure(
+                ApiError(ErrorCode.E_UNSUPPORTED_VERSION, failure.message ?: "invalid runtime manifest"),
+            )
+        } catch (failure: SerializationException) {
+            return ApiResult.Failure(
+                ApiError(ErrorCode.E_UNSUPPORTED_VERSION, failure.message ?: "invalid runtime manifest"),
+            )
+        }
+        val alpine = manifest.alpine
+            ?: return ApiResult.Failure(
+                ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "manifest does not pin an Alpine rootfs"),
+            )
+        if (alpine.version.isBlank() || !alpine.sha256.matches(Regex("[a-fA-F0-9]{64}"))) {
+            return ApiResult.Failure(ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "invalid Alpine rootfs pin"))
+        }
+
+        val previousState = stateFlow.value
+        stateFlow.value = RuntimeState(status = RuntimeStateStatus.INSTALLING, version = alpine.version)
+        return try {
+            when (
+                val result = withContext(Dispatchers.IO) {
+                    alpineInstaller.install(
+                        archive = archive,
+                        expectedArchiveSha256 = alpine.sha256,
+                        targetDirectory = rootDirectory.resolve("rootfs-versions")
+                            .resolve(alpine.sha256.lowercase(Locale.US)),
+                    )
+                }
+            ) {
+                is ApiResult.Failure -> result
+                is ApiResult.Success -> ApiResult.Success(result.value.directory)
+            }
+        } finally {
+            stateFlow.value = previousState
+        }
+    }
+
     override suspend fun ensureReady(): ApiResult<RuntimeInfo> {
         return try {
             val manifest = parseManifest(manifestFile)
             require(normalizeRuntimeProfile(manifest.profile) == profile) {
                 "manifest profile does not match configured runtime profile"
             }
-            val runtimeDir = rootDirectory.toRealPath()
+            val runtimeDir = resolveInstalledDirectory(manifest.binarySha256).toRealPath()
             if (!runtimeDir.exists() || !runtimeDir.isDirectory()) {
                 stateFlow.value = RuntimeState(
                     status = RuntimeStateStatus.FAILED,
@@ -182,5 +327,56 @@ class ManifestRuntimeManager(
             "manifest artifact sha-256 is invalid"
         }
         return manifest
+    }
+
+    private fun resolveInstalledDirectory(expectedBinarySha256: String): Path {
+        val activeVersionFile = rootDirectory.resolve("active-runtime")
+        if (!Files.exists(activeVersionFile, LinkOption.NOFOLLOW_LINKS)) {
+            return installedDirectory
+        }
+        require(!Files.isSymbolicLink(activeVersionFile) &&
+            Files.isRegularFile(activeVersionFile, LinkOption.NOFOLLOW_LINKS)) {
+            "active runtime marker is not a regular file"
+        }
+        val activeHash = Files.readString(activeVersionFile, StandardCharsets.UTF_8)
+        require(activeHash.matches(Regex("[a-fA-F0-9]{64}")) &&
+            activeHash.equals(expectedBinarySha256, ignoreCase = true)) {
+            "active runtime marker does not match the pinned executable"
+        }
+        val root = rootDirectory.toRealPath()
+        val runtimeDirectory = versionDirectory(activeHash).toRealPath()
+        require(runtimeDirectory.startsWith(root)) {
+            "active runtime directory resolves outside the runtime root"
+        }
+        return runtimeDirectory
+    }
+
+    private fun versionDirectory(binarySha256: String): Path =
+        rootDirectory.resolve("versions").resolve(binarySha256.lowercase(Locale.US))
+
+    private fun activateVersion(binarySha256: String) {
+        Files.createDirectories(rootDirectory)
+        val marker = rootDirectory.resolve("active-runtime")
+        val temporaryMarker = Files.createTempFile(rootDirectory, ".active-runtime-", ".tmp")
+        try {
+            Files.writeString(temporaryMarker, binarySha256.lowercase(Locale.US), StandardCharsets.UTF_8)
+            Files.move(
+                temporaryMarker,
+                marker,
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING,
+            )
+        } finally {
+            Files.deleteIfExists(temporaryMarker)
+        }
+    }
+
+    private fun failed(
+        status: RuntimeStateStatus,
+        reason: String,
+        code: ErrorCode,
+    ): ApiResult.Failure {
+        stateFlow.value = RuntimeState(status = status, reason = reason)
+        return ApiResult.Failure(ApiError(code, reason))
     }
 }

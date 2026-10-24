@@ -10,7 +10,6 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.security.MessageDigest
 import java.util.Comparator
-import java.util.UUID
 
 data class InstalledRuntimeArtifact(
     val directory: Path,
@@ -53,6 +52,35 @@ class RuntimeArtifactInstaller(
         val target = targetDirectory.toAbsolutePath().normalize()
         val parent = target.parent
             ?: return ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "runtime target has no parent"))
+        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+            if (Files.isSymbolicLink(target) || !Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
+                return ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "runtime target is not a real directory"))
+            }
+            val existingExecutable = target.resolve(executableName)
+            if (!Files.isRegularFile(existingExecutable, LinkOption.NOFOLLOW_LINKS)) {
+                return ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "existing runtime executable is invalid"))
+            }
+            return try {
+                val existingHash = sha256(existingExecutable)
+                if (!existingHash.equals(expectedExecutableSha256, ignoreCase = true)) {
+                    ApiResult.Failure(
+                        ApiError(ErrorCode.E_RUNTIME_DOWN, "existing runtime target has a different executable digest"),
+                    )
+                } else {
+                    ApiResult.Success(
+                        InstalledRuntimeArtifact(
+                            directory = target,
+                            executable = existingExecutable,
+                            sha256 = existingHash,
+                            sizeBytes = Files.size(existingExecutable),
+                        ),
+                    )
+                }
+            } catch (ioFailure: IOException) {
+                failure("existing runtime executable could not be read", ioFailure)
+            }
+        }
+
         val staging = try {
             Files.createDirectories(parent)
             Files.createTempDirectory(parent, ".${target.fileName}.staging-")
@@ -91,43 +119,10 @@ class RuntimeArtifactInstaller(
             )
         }
 
-        val backup = parent.resolve(".${target.fileName}.backup-${UUID.randomUUID()}")
-        var previousRuntimeMoved = false
         try {
-            if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-                if (Files.isSymbolicLink(target) || !Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
-                    return failedAfterCleanup(
-                        staging,
-                        "runtime target is not a real directory",
-                        IOException(target.toString()),
-                    )
-                }
-                Files.move(target, backup, ATOMIC_MOVE)
-                previousRuntimeMoved = true
-            }
             Files.move(staging, target, ATOMIC_MOVE)
         } catch (failure: IOException) {
-            if (previousRuntimeMoved) {
-                try {
-                    Files.move(backup, target, ATOMIC_MOVE)
-                } catch (restoreFailure: IOException) {
-                    failure.addSuppressed(restoreFailure)
-                }
-            }
             return failedAfterCleanup(staging, "runtime could not be atomically installed", failure)
-        }
-
-        if (previousRuntimeMoved) {
-            try {
-                deleteTree(backup)
-            } catch (failure: IOException) {
-                return ApiResult.Failure(
-                    ApiError(
-                        ErrorCode.E_RUNTIME_DOWN,
-                        "runtime installed, but previous version cleanup failed at $backup: ${failure.message}",
-                    ),
-                )
-            }
         }
 
         return ApiResult.Success(

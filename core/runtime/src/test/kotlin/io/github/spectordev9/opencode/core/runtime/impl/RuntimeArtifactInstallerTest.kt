@@ -90,7 +90,7 @@ class RuntimeArtifactInstallerTest {
     }
 
     @Test
-    fun `install replaces prior runtime only after staged executable is verified`() {
+    fun `install does not replace an existing immutable runtime directory`() {
         val parent = createTempDirectory("runtime-install-replace")
         val archive = parent / "runtime.tar.gz"
         archive.writeBytes("archive".toByteArray())
@@ -107,8 +107,8 @@ class RuntimeArtifactInstallerTest {
             expectedExecutableSha256 = sha256(executableBytes),
         )
 
-        assertIs<ApiResult.Success<InstalledRuntimeArtifact>>(result)
-        assertEquals("new version", (target / "opencode").readText())
+        assertIs<ApiResult.Failure>(result)
+        assertEquals("old version", (target / "opencode").readText())
         assertTrue(Files.isDirectory(target))
         assertEquals(setOf("runtime", "runtime.tar.gz"), Files.list(parent).use { paths ->
             paths.map { it.fileName.toString() }.toList().toSet()
