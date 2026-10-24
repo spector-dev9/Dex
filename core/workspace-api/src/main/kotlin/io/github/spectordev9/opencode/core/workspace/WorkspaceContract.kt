@@ -42,6 +42,10 @@ data class WriteReceipt(
     val sha256: String,
 )
 
+/**
+ * Paths are workspace-root-relative; a leading slash denotes the virtual
+ * workspace root, never an operating-system absolute path.
+ */
 interface WorkspaceService {
     suspend fun list(path: String): ApiResult<List<Entry>>
 

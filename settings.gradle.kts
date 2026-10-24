@@ -29,6 +29,7 @@ include(
     ":core:security-api",
     ":core:supervisor-api",
     ":core:terminal-api",
+    ":core:workspace",
     ":core:workspace-api",
 )
 
