@@ -114,6 +114,12 @@ jobs:
       - name: Build debug and release APKs
         run: ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 
+      - name: Check release manifest security invariants
+        run: |
+          python3 tests/security/test_release_manifest.py
+          python3 scripts/check-release-manifest.py \
+            app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
+
       - name: Compile isolated spike harness
         run: ./gradlew --no-daemon -PspikeHarness=true -PskipApp=true :spike-harness:assembleDebug
 

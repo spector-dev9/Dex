@@ -1,8 +1,10 @@
 # Threat model (v0.1)
 
-Scope: the on-device app (Kotlin native layer + React WebView), the
-pinned OpenCode runtime and guest environment, and their local
-interfaces. Remote-provider traffic is in scope only for v1.1.
+Scope: the native Kotlin/Jetpack Compose app, the pinned OpenCode runtime
+and guest environment, and their local interfaces. There is no React
+WebView in the current app; the TypeScript bridge is retained as a
+parity fixture, and the app-local bridge handler is test-only. Remote
+provider traffic is in scope only for v1.1.
 
 ## Assets
 
@@ -18,7 +20,7 @@ interfaces. Remote-provider traffic is in scope only for v1.1.
 
 ## Trust boundaries
 
-1. **WebView ↔ Kotlin bridge** — typed commands/events over WebMessagePort.
+1. **UI ↔ application services** — planned native service boundary; production app wiring is not implemented.
 2. **Gateway ↔ OpenCode server** — HTTP/SSE on 127.0.0.1 with Basic auth.
 3. **App ↔ other local apps** — same-device UIDs; loopback is not private.
 4. **Guest (Alpine/PRoot) ↔ Android host** — shared filesystem and process tree.
@@ -38,16 +40,16 @@ interfaces. Remote-provider traffic is in scope only for v1.1.
 
 | ID | Threat | Impact | Controls | Residual / verification |
 | --- | --- | --- | --- | --- |
-| T1 | Local app calls loopback routes | Shell/file control | D6: random 256-bit per-launch secret, Basic auth, Keystore; free port; 127.0.0.1 bind; gateway is the only holder | Core credential generation and Basic verification are implemented behind `SecretStore`; production Keystore storage, listener integration, and SEC-1 second-UID testing remain open. On 1.19.3, no password leaves all routes open; setting the password enforces Basic `opencode:<secret>`. |
-| T2 | Hostile repo content (hooks, config, symlinks) | Code execution, data theft | Explicit permission prompts (SEC-4); no auto-approve default; workspace path policy (WS-1); git hooks visible; HTTPS-only git (D9) | Repo-specific hook execution remains user-visible but powerful. Needs a test fixture repo. |
-| T3 | Prompt-injected agent actions | Unwanted writes/shell | Every permission request shown and answerable (SEC-4); transcript shows agent file/shell calls; no silent background approvals | Model-dependent. Add E2E prompt-injection fixtures. |
-| T4 | Credential exfiltration | Account/repo compromise | Keystore-wrapped secrets (D7); GIT_ASKPASS helper, no tokens in URLs (D9); provider credentials mode 600; log scrubber (SEC-2); backups disabled | Verified only by design so far; SEC-2 scan pending. |
-| T5 | WebView/bridge injection | Privileged actions without user intent | WebViewAssetLoader, no remote content in the app origin; typed bridge with allowlisted commands; no `addJavascriptInterface`; CSP | Needs SEC-3 manifest/CSP lint and a bridge fuzz test. |
-| T6 | Path traversal / symlink escape | Read/write outside project | D8 canonical-path checks, no symlink escape, mtime+size+hash preconditions, in-app trash; WS-1 fuzz (100k paths) | Implementation pending; WS-1 is release-blocking. |
-| T7 | Runtime tampering / supply chain | Arbitrary code execution | D5 exact pin + sha-256 + manifest; unknown majors refused; runtime shipped in APK; SBOM/osv-scanner (SEC-5); no first-launch download | Host spike verified hash and 64 KB alignment. Reproducible build pending (REL-1). |
-| T8 | Secret leakage via logs/backups | Credential disclosure | SEC-2: scan APK/logcat/crash dumps/process args; mode 600; `allowBackup=false`; redaction in diagnostics | Pending implementation and scan. |
-| T9 | Guest escape / host compromise via PRoot | Host compromise | PRoot is ptrace-based, not a security boundary; run as app UID; no root; guest only sees app-private dirs; permission prompts | Accepted residual risk; document that PRoot is not a sandbox. |
-| T10 | Downgrade or update abuse | Reintroduce fixed bugs | REL-2 downgrade refused; signing verification (REL-3); pinned runtime; CI signing | Pending. |
+| T1 | Another local app calls loopback routes | Shell/file control | Random 256-bit per-launch password, Basic auth as `opencode:<secret>`, ephemeral port and 127.0.0.1 bind are required | Core credential generation and Basic verification exist and pass host tests. Production Keystore storage, listener/gateway wiring and SEC-1 second-UID verification are not implemented; production wiring is G0-gated. On OpenCode 1.19.3, omitting the password leaves routes open. |
+| T2 | Hostile repository content (hooks, config, symlinks) | Code execution, data theft | Workspace path/symlink guards (WS-1); permission prompts and visible Git hook execution are required | Host workspace guards and tests exist. Git and approval flows are not implemented; WS-2 durability and target-device acceptance remain open. Repo-hook fixture testing is pending. |
+| T3 | Prompt-injected agent actions | Unwanted writes/shell | Permission requests must be shown and answerable; agent file/shell activity must be visible; no silent approvals | These UI/service flows are not implemented. Model-dependent risk remains; add E2E prompt-injection fixtures after integration. |
+| T4 | Credential exfiltration | Account/repository compromise | Keystore-backed secret storage, Git credentials outside URLs, provider credential mode 600, log redaction and backups disabled | `SecretStore` and `LogScrubber` are contracts, not production implementations. Git credential handling and SEC-2 scans are pending. The current app manifest disables backups. |
+| T5 | Privileged command or service-boundary misuse | Actions without user intent | Native Compose; service ports and typed command contract; validate inputs and require explicit authorization at the eventual app-service boundary | No WebView or production bridge handler exists. TypeScript bridge parity and app bridge tests are fixtures only, not a security boundary. WebView/CSP controls are not applicable. SEC-3 lint now checks the merged release manifest for exported components, backups, permissions and global cleartext; the release APK/CI gate and loopback-only cleartext policy remain pending. |
+| T6 | Path traversal / symlink escape | Read/write outside project | Canonical workspace-root checks, no symlink traversal, mtime+size+SHA-256 write preconditions, trash/restore; WS-1 100,000-case path run | Host implementation and tests exist, including symlink and 100,000-path rejection cases. G1 device acceptance and the WS-2 durability stress remain pending. |
+| T7 | Runtime tampering / supply chain | Arbitrary code execution | Exact manifest pins and SHA-256 verification; immutable installation; unknown majors refused; SBOM and osv-scanner (SEC-5) | OpenCode/Alpine host installer paths verify pins and publish immutable content-addressed/versioned assets. Full runtime-content validation, production process launch and reproducible builds remain pending. The plan downloads pinned runtime artifacts on first run; they are not shipped in the APK. |
+| T8 | Secret leakage via logs/backups | Credential disclosure | SEC-2 scan of APK/logcat/app logs/crash dumps/process arguments; provider credentials mode 600; `allowBackup=false`; diagnostics redaction | `allowBackup=false` is present in the app manifest. Secret scanning, production redaction and provider-credential handling are not implemented or verified. |
+| T9 | Guest escape / host compromise via PRoot | Host compromise | Run PRoot as app UID without root; expose only approved paths; permission prompts | Accepted residual risk: PRoot is ptrace-based and is not a security boundary. Production bind restrictions and permission UI are not implemented. |
+| T10 | Downgrade or update abuse | Reintroduce fixed bugs | Refuse downgrade; verify signing; pin runtime artifacts | Update/rollback policy, signing verification and CI signing remain pending. |
 | T11 | Resource exhaustion / thermal abuse | Battery, heat, DoS | Idle shutdown, busy-only wake lock, crash-loop breaker (D11); LC-4/LC-6 thresholds | Device tests pending. |
 | T12 | Provider MITM (v1.1 remote profile) | Credential/session theft | TLS 1.2+, certificate validation, fail closed, no cleartext (SEC-6) | Not in v1 scope. |
 | T13 | Developer-verification gate blocks installs | Users cannot install/update | Register application ID/signing identity; document ADB/advanced flow; monitor 2026 regional and 2027 global rollout | External policy change; see ADR 0001. |
@@ -60,8 +62,9 @@ interfaces. Remote-provider traffic is in scope only for v1.1.
   `OPENCODE_SERVER_PASSWORD`, including `/global/health` and `/event`.
   The accepted username is `opencode`; Bearer and empty-user forms are
   rejected.
-- PTY routes are documented in the pinned `/doc`; they are still not
-  used by the new app (D10).
+- PTY routes are documented in the pinned `/doc`; the new app does not
+  yet use them. The plan still requires a native PTY rather than relying
+  on OpenCode's agent-mediated shell routes.
 
 ## Assumptions
 
@@ -79,8 +82,8 @@ interfaces. Remote-provider traffic is in scope only for v1.1.
 
 ## Open questions
 
-1. Does OpenCode support a unix-socket listener? If yes, prefer it over
-   loopback (D7 reversal trigger).
+1. Does OpenCode support a unix-socket listener? If yes, assess it
+   against authenticated loopback before production listener wiring.
 2. Should the sideload build use MANAGE_EXTERNAL_STORAGE, and how is
    that surfaced to the user? (Play variant must stay SAF-only.)
 3. Backup policy for the debug build vs release build.
