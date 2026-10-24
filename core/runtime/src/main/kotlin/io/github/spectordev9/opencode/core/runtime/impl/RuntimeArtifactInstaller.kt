@@ -29,8 +29,8 @@ fun interface RuntimeArchiveExtractor {
 }
 
 class RuntimeArtifactInstaller(
-    private val verifier: RuntimeArtifactVerifier,
-    private val extractor: RuntimeArchiveExtractor,
+    private val verifier: RuntimeArtifactVerifier = RuntimeArtifactVerifier(),
+    private val extractor: RuntimeArchiveExtractor = OpenCodeTarGzExtractor(),
 ) {
     fun install(
         archive: Path,
