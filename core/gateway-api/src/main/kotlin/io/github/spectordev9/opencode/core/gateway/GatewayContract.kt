@@ -45,6 +45,7 @@ data class ServerEvent(
     val directory: String? = null,
     val sequence: Long? = null,
     val payload: Map<String, Any?> = emptyMap(),
+    val id: String? = null,
 )
 
 interface OpenCodeGateway {

@@ -12,26 +12,53 @@ SETTINGS = ROOT / "settings.gradle.kts"
 ROOT_BUILD = ROOT / "build.gradle.kts"
 PACKAGE_PREFIX = "io.github.spectordev9.opencode.core"
 MODULE_PACKAGES = {
-    module: module.removesuffix("-api")
-    for module in (
-        "bridge-api",
-        "common-api",
-        "diagnostics-api",
-        "gateway-api",
-        "git-api",
-        "runtime-api",
-        "security-api",
-        "supervisor-api",
-        "terminal-api",
-        "workspace-api",
-    )
+    "bridge-api": "bridge",
+    "common-api": "common",
+    "diagnostics-api": "diagnostics",
+    "gateway-api": "gateway",
+    "git-api": "git",
+    "model": "model",
+    "opencode-client": "opencode.client",
+    "runtime-api": "runtime",
+    "security-api": "security",
+    "supervisor-api": "supervisor",
+    "terminal-api": "terminal",
+    "workspace-api": "workspace",
 }
 EXPECTED_MODULES = tuple(MODULE_PACKAGES)
 ALLOWED_PROJECT_DEPENDENCIES = {
-    module: (set() if module == "common-api" else {"common-api"})
+    module: (set() if module in {"common-api", "model"} else {"common-api"})
     for module in EXPECTED_MODULES
 }
-SELF_MODULE_PATTERN = re.compile(r"^io\.github\.spectordev9\.opencode\.core\.([a-z]+)")
+ALLOWED_PROJECT_DEPENDENCIES["opencode-client"] = {
+    "common-api",
+    "gateway-api",
+    "model",
+}
+ALLOWED_EXTERNAL_DEPENDENCIES = {
+    "common-api": {"libs.kotlinx.coroutines.core"},
+    "model": {
+        "libs.kotlinx.serialization.json",
+        "libs.junit.jupiter",
+        "libs.junit.platform.launcher",
+    },
+    "opencode-client": {
+        "libs.kotlinx.coroutines.core",
+        "libs.kotlinx.serialization.json",
+        "libs.okhttp",
+        "libs.okhttp.sse",
+        "libs.junit.jupiter",
+        "libs.junit.platform.launcher",
+        "libs.mockwebserver",
+    },
+}
+ALLOWED_PLUGIN_REFERENCES = {
+    "libs.plugins.kotlin.jvm",
+    "libs.plugins.kotlin.serialization",
+}
+SELF_MODULE_PATTERN = re.compile(
+    r"^io\.github\.spectordev9\.opencode\.core\.([a-z]+(?:\.[a-z]+)*)"
+)
 ANDROID_IMPORT_PATTERN = re.compile(r"^(android|androidx|com\.android)\.")
 DIRECT_DEPENDENCY = re.compile(
     r"\b(?:api|implementation|compileOnly|runtimeOnly)\s*\(\s*\"([^\"]+)\""
@@ -85,10 +112,12 @@ def module_dependencies(module: str, errors: list[str]) -> list[str]:
         if target_module not in expected_project:
             errors.append(f"{path}: {module} may not depend on {target_module}")
 
+    allowed_external = ALLOWED_EXTERNAL_DEPENDENCIES.get(module, set())
     for reference in CATALOG_REFERENCE.findall(text):
-        if module == "common-api" and reference == "libs.kotlinx.coroutines.core":
+        if reference in ALLOWED_PLUGIN_REFERENCES:
             continue
-        errors.append(f"{path}: external dependency is not allowed: {reference}")
+        if reference not in allowed_external:
+            errors.append(f"{path}: external dependency is not allowed: {reference}")
 
     for coordinate in DIRECT_DEPENDENCY.findall(text):
         errors.append(f"{path}: direct dependency is not allowed: {coordinate}")
@@ -114,7 +143,9 @@ def check_sources(module: str, dependencies: list[str], errors: list[str]) -> in
     package_module = MODULE_PACKAGES[module]
     kotlin_root = ROOT / "core" / module / "src" / "main" / "kotlin"
     expected_package_dir = (
-        kotlin_root / Path(*PACKAGE_PREFIX.split(".")) / package_module
+        kotlin_root
+        / Path(*PACKAGE_PREFIX.split("."))
+        / Path(*package_module.split("."))
     )
     if not expected_package_dir.is_dir():
         errors.append(f"{expected_package_dir}: missing package directory")
