@@ -59,7 +59,7 @@ def verify_pin(path: str, expected: str, label: str) -> None:
 
 def run_fetch(force: bool) -> None:
     command = [sys.executable, os.path.join(ROOT, "scripts", "fetch-runtime.py")]
-    command.extend(["--alpine", "--android-libs", "--alpine-runtime-libs"])
+    command.extend(["--alpine", "--android-libs", "--alpine-runtime-libs", "--alpine-node"])
     if force:
         command.append("--force")
     print("fetching pinned runtime, Alpine rootfs and Android libraries")
@@ -144,16 +144,17 @@ def extract_alpine_runtime_package(archive_path: str, rootfs: str) -> None:
             parts = name.split("/")
             if name.startswith("/") or ".." in parts:
                 fail(f"unsafe path in Alpine runtime package: {name}")
-            if name not in ("usr", "usr/lib") and not name.startswith("usr/lib/"):
-                continue
-            target = os.path.realpath(os.path.join(rootfs, name))
-            if target != root and not target.startswith(root + os.sep):
+            lexical_target = os.path.abspath(os.path.join(rootfs, name))
+            if lexical_target != root and not lexical_target.startswith(root + os.sep):
                 fail(f"Alpine runtime package escapes rootfs: {name}")
+            target = os.path.realpath(lexical_target)
+            if target != root and not target.startswith(root + os.sep):
+                fail(f"Alpine runtime package resolves outside rootfs: {name}")
             if member.issym() or member.islnk():
                 if os.path.isabs(member.linkname):
                     fail(f"absolute link in Alpine runtime package: {name}")
-                resolved = os.path.realpath(
-                    os.path.join(os.path.dirname(target), member.linkname)
+                resolved = os.path.abspath(
+                    os.path.normpath(os.path.join(os.path.dirname(lexical_target), member.linkname))
                 )
                 if resolved != root and not resolved.startswith(root + os.sep):
                     fail(f"Alpine runtime package link escapes rootfs: {name}")
@@ -233,6 +234,16 @@ def stage(
         verify_pin(package_archive, spec["sha256"], spec["name"])
         extract_alpine_runtime_package(package_archive, rootfs)
 
+    node_runtime = manifest["nodeRuntime"]
+    for spec in node_runtime["packages"]:
+        package_archive = os.path.join(artifacts, os.path.basename(spec["url"]))
+        verify_pin(package_archive, spec["sha256"], spec["name"])
+        extract_alpine_runtime_package(package_archive, rootfs)
+    node_path = os.path.join(rootfs, node_runtime["executable"])
+    if not os.path.isfile(node_path):
+        fail(f"pinned Alpine Node package did not install {node_runtime['executable']}")
+    os.chmod(node_path, os.stat(node_path).st_mode | 0o111)
+
     for name in manifest["runtimeLibraries"]:
         matches = []
         for directory, _, files in os.walk(rootfs):
@@ -260,6 +271,7 @@ def stage(
         "OpenCode Phase 2 spike runtime",
         f"opencode: {version} ({manifest['artifact']['sha256']})",
         f"alpine: {alpine['version']} ({alpine['sha256']})",
+        f"node: {node_runtime['version']} {node_runtime['architecture']}-{node_runtime['libc']}",
         f"proot: {manifest['proot']['version']} ({manifest['proot']['sha256']})",
         f"libtalloc: {manifest['libtalloc']['version']} ({manifest['libtalloc']['sha256']})",
         f"libandroid-shmem: {manifest['libandroid-shmem']['version']} "

@@ -3,6 +3,7 @@ package io.github.spectordev9.opencode.spike
 import android.content.Context
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.runtime.impl.AlpineRootfsInstaller
+import io.github.spectordev9.opencode.core.runtime.impl.AlpineRuntimePackageInstaller
 import io.github.spectordev9.opencode.core.runtime.impl.AlpineRootfsTarGzExtractor
 import io.github.spectordev9.opencode.core.runtime.impl.RuntimeArtifactInstaller
 import java.io.IOException
@@ -62,6 +63,8 @@ object SpikeRuntimeInstaller {
         val artifact = manifest.getJSONObject("artifact")
         val alpine = manifest.getJSONObject("alpine")
         val packages = manifest.getJSONArray("alpineRuntimePackages")
+        val nodeRuntime = manifest.getJSONObject("nodeRuntime")
+        val nodePackages = nodeRuntime.getJSONArray("packages")
         val downloadSpecs = buildList {
             add(
                 DownloadSpec(
@@ -85,6 +88,18 @@ object SpikeRuntimeInstaller {
                 add(
                     DownloadSpec(
                         item = "Alpine package $packageName",
+                        url = spec.getString("url"),
+                        sha256 = spec.getString("sha256"),
+                        destination = cache.resolve("$packageName-${spec.getString("version")}.apk"),
+                    ),
+                )
+            }
+            for (index in 0 until nodePackages.length()) {
+                val spec = nodePackages.getJSONObject(index)
+                val packageName = spec.getString("name")
+                add(
+                    DownloadSpec(
+                        item = "Alpine Node package $packageName",
                         url = spec.getString("url"),
                         sha256 = spec.getString("sha256"),
                         destination = cache.resolve("$packageName-${spec.getString("version")}.apk"),
@@ -132,6 +147,30 @@ object SpikeRuntimeInstaller {
             packageEvidence += "$packageName sha256=${spec.getString("sha256")} bytes=${Files.size(archive)}"
         }
 
+        val nodePackageInstaller = AlpineRuntimePackageInstaller()
+        for (index in 0 until nodePackages.length()) {
+            val spec = nodePackages.getJSONObject(index)
+            val packageName = spec.getString("name")
+            val archive = downloaded.getValue("Alpine Node package $packageName")
+            when (
+                val result = nodePackageInstaller.install(
+                    archive = archive,
+                    expectedArchiveSha256 = spec.getString("sha256"),
+                    packageName = packageName,
+                    rootfsDirectory = rootfs,
+                )
+            ) {
+                is ApiResult.Success -> Unit
+                is ApiResult.Failure ->
+                    throw IOException(result.error.message ?: "Alpine Node package installation failed")
+            }
+            packageEvidence += "$packageName sha256=${spec.getString("sha256")} bytes=${Files.size(archive)}"
+        }
+        val nodePath = rootfs.resolve(nodeRuntime.getString("executable"))
+        if (!Files.isRegularFile(nodePath) || !Files.isExecutable(nodePath)) {
+            throw IOException("pinned Alpine Node package did not install an executable $nodePath")
+        }
+
         val runtimeLibraries = manifest.getJSONArray("runtimeLibraries")
         for (index in 0 until runtimeLibraries.length()) {
             val libraryName = runtimeLibraries.getString(index)
@@ -164,6 +203,7 @@ object SpikeRuntimeInstaller {
             "OpenCode executable sha256=${installedOpenCode.sha256} bytes=${installedOpenCode.sizeBytes}",
             "Alpine ${alpine.getString("version")} archive sha256=${installedAlpine.archiveSha256} " +
                 "bytes=${Files.size(alpineArchive)}",
+            "Node ${nodeRuntime.getString("version")} installed at $nodePath",
         ).plus(packageEvidence).joinToString("\n")
     }
 

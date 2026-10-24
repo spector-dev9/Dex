@@ -8,6 +8,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
+import java.nio.file.StandardCopyOption.COPY_ATTRIBUTES
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.StandardOpenOption.CREATE_NEW
 import java.nio.file.StandardOpenOption.WRITE
@@ -223,6 +224,7 @@ class AlpineRuntimeLibraryInstaller(
                 )
             }
         }
+
         return result
     }
 
@@ -255,4 +257,160 @@ class AlpineRuntimeLibraryInstaller(
             "libstdc++" to "libstdc++.so.6",
         )
     }
+}
+
+class AlpineRuntimePackageInstaller(
+    private val verifier: RuntimeArtifactVerifier = RuntimeArtifactVerifier(),
+    private val extractor: RuntimeArchiveExtractor = AlpineRootfsTarGzExtractor(),
+) {
+    fun install(
+        archive: Path,
+        expectedArchiveSha256: String,
+        packageName: String,
+        rootfsDirectory: Path,
+    ): ApiResult<Path> {
+        if (!packageName.matches(Regex("[A-Za-z0-9_.+-]+"))) {
+            return ApiResult.Failure(
+                ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "invalid pinned Alpine package name"),
+            )
+        }
+        val verifiedArchive = when (val result = verifier.verify(archive, expectedArchiveSha256)) {
+            is ApiResult.Failure -> return result
+            is ApiResult.Success -> result.value
+        }
+        val rootPath = rootfsDirectory.toAbsolutePath().normalize()
+        val root = try {
+            if (Files.isSymbolicLink(rootPath) || !Files.isDirectory(rootPath, NOFOLLOW_LINKS)) {
+                return ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "Alpine rootfs is not a real directory"))
+            }
+            rootPath.toRealPath()
+        } catch (failure: IOException) {
+            return failure("Alpine rootfs could not be resolved", failure)
+        }
+        val stagingParent = root.parent
+            ?: return ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "Alpine rootfs has no parent"))
+        val staging = try {
+            Files.createTempDirectory(stagingParent, ".${root.fileName}-$packageName-")
+        } catch (failure: IOException) {
+            return failure("Alpine package staging directory could not be created", failure)
+        }
+
+        var result: ApiResult<Path> = try {
+            extractor.extract(verifiedArchive.path, staging)
+            installTree(staging, root)
+            ApiResult.Success(root)
+        } catch (failure: IOException) {
+            failure("pinned Alpine package could not be installed", failure)
+        } catch (unsupported: UnsupportedOperationException) {
+            failure(
+                "Alpine package storage does not support atomic install",
+                IOException(unsupported.message, unsupported),
+            )
+        }
+        try {
+            deleteTree(staging)
+        } catch (cleanupFailure: IOException) {
+            result = when (result) {
+                is ApiResult.Failure -> failure(
+                    "${result.error.message ?: "Alpine package installation failed"}; staging cleanup failed",
+                    cleanupFailure,
+                )
+                is ApiResult.Success -> failure(
+                    "Alpine package installed but staging cleanup failed",
+                    cleanupFailure,
+                )
+            }
+        }
+        return result
+    }
+
+    private fun installTree(staging: Path, root: Path) {
+        Files.walk(staging).use { paths ->
+            paths.filter { it != staging }
+                .sorted(compareBy<Path> { it.nameCount })
+                .forEach { source ->
+                    val relative = staging.relativize(source)
+                    val destination = root.resolve(relative).normalize()
+                    if (!destination.startsWith(root)) {
+                        throw IOException("Alpine package path escapes its rootfs")
+                    }
+                    ensureParents(root, destination.parent)
+                    when {
+                        Files.isSymbolicLink(source) -> installSymlink(staging, root, source, destination)
+                        Files.isDirectory(source, NOFOLLOW_LINKS) -> ensureDirectory(root, destination)
+                        Files.isRegularFile(source, NOFOLLOW_LINKS) -> installFile(destination, source)
+                        else -> throw IOException("unsupported Alpine package entry: $relative")
+                    }
+                }
+        }
+    }
+
+    private fun installSymlink(staging: Path, root: Path, source: Path, destination: Path) {
+        val link = Files.readSymbolicLink(source)
+        if (link.isAbsolute || !source.parent.resolve(link).normalize().startsWith(staging)) {
+            throw IOException("Alpine package symlink escapes its extraction directory")
+        }
+        if (!destination.parent.resolve(link).normalize().startsWith(root)) {
+            throw IOException("Alpine package symlink escapes its rootfs")
+        }
+        if (Files.exists(destination, NOFOLLOW_LINKS)) {
+            if (Files.isDirectory(destination, NOFOLLOW_LINKS) && !Files.isSymbolicLink(destination)) {
+                throw IOException("Alpine package symlink conflicts with a directory")
+            }
+            Files.delete(destination)
+        }
+        Files.createSymbolicLink(destination, link)
+    }
+
+    private fun installFile(destination: Path, source: Path) {
+        if (Files.exists(destination, NOFOLLOW_LINKS) &&
+            (Files.isSymbolicLink(destination) || !Files.isRegularFile(destination, NOFOLLOW_LINKS))
+        ) {
+            throw IOException("Alpine package file conflicts with a non-file path")
+        }
+        val temporary = Files.createTempFile(destination.parent, ".${destination.fileName}-", ".part")
+        try {
+            Files.copy(source, temporary, COPY_ATTRIBUTES, REPLACE_EXISTING)
+            Files.move(temporary, destination, ATOMIC_MOVE, REPLACE_EXISTING)
+        } finally {
+            Files.deleteIfExists(temporary)
+        }
+    }
+
+    private fun ensureParents(root: Path, parent: Path?) {
+        if (parent == null || !parent.normalize().startsWith(root)) {
+            throw IOException("Alpine package parent escapes its rootfs")
+        }
+        var current = root
+        for (segment in root.relativize(parent)) {
+            current = current.resolve(segment)
+            ensureDirectory(root, current)
+        }
+    }
+
+    private fun ensureDirectory(root: Path, directory: Path) {
+        if (!directory.normalize().startsWith(root)) {
+            throw IOException("Alpine package directory escapes its rootfs")
+        }
+        if (Files.exists(directory, NOFOLLOW_LINKS)) {
+            if (Files.isSymbolicLink(directory) || !Files.isDirectory(directory, NOFOLLOW_LINKS)) {
+                throw IOException("Alpine package directory conflicts with a non-directory")
+            }
+        } else {
+            Files.createDirectory(directory)
+        }
+        if (!directory.toRealPath().startsWith(root)) {
+            throw IOException("Alpine package directory resolves outside its rootfs")
+        }
+    }
+
+    private fun deleteTree(path: Path) {
+        if (!Files.exists(path, NOFOLLOW_LINKS)) return
+        Files.walk(path).use { paths ->
+            paths.sorted(Comparator.reverseOrder()).forEach { Files.delete(it) }
+        }
+    }
+
+    private fun failure(message: String, cause: IOException): ApiResult.Failure =
+        ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "$message: ${cause.message}"))
 }

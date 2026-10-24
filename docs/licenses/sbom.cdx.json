@@ -37,6 +37,47 @@
       "externalReferences": [
         {
           "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ada-libs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/8310983997e289c56912406d7303bad1612a82c4/main/ada"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "( Apache-2.0 OR MIT ) AND MPL-2.0"
+          }
+        }
+      ],
+      "name": "ada-libs",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "ada"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "( Apache-2.0 OR MIT ) AND MPL-2.0"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "2.7.8-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/ada-libs@2.7.8-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "2.7.8-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
           "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/alpine-baselayout"
         },
         {
@@ -284,6 +325,45 @@
     {
       "externalReferences": [
         {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/brotli-libs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/bdeb5ac39445d803f7d97bb9b3cf9171d9a35f52/main/brotli"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "brotli-libs",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "brotli"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MIT"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.1.0-r2"
+        }
+      ],
+      "purl": "pkg:apk/alpine/brotli-libs@1.1.0-r2?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.1.0-r2"
+    },
+    {
+      "externalReferences": [
+        {
           "type": "license",
           "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
         },
@@ -469,6 +549,45 @@
     {
       "externalReferences": [
         {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/c-ares"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/e0e2025ea57e73d16c78170938d21c92f509a504/main/c-ares"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "c-ares",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "c-ares"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MIT"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.33.1-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/c-ares@1.33.1-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.33.1-r0"
+    },
+    {
+      "externalReferences": [
+        {
           "type": "license",
           "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
         },
@@ -497,6 +616,47 @@
       ],
       "type": "library",
       "version": "bundled in Bun 1.3.14"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ca-certificates"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/d0a696da2932feaa483492b66c2bedeed8dd2a8e/main/ca-certificates"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0 AND MIT"
+          }
+        }
+      ],
+      "name": "ca-certificates",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "ca-certificates"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MPL-2.0 AND MIT"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "20261020-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/ca-certificates@20261020-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "20261020-r0"
     },
     {
       "externalReferences": [
@@ -724,6 +884,45 @@
     {
       "externalReferences": [
         {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/icu-libs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/dbc3f736ffdfa58fcd2d509c2ceb4f2a42fde57e/main/icu"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "ICU"
+        }
+      ],
+      "name": "icu-libs",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "icu"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "ICU"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "74.2-r1"
+        }
+      ],
+      "purl": "pkg:apk/alpine/icu-libs@74.2-r1?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "74.2-r1"
+    },
+    {
+      "externalReferences": [
+        {
           "type": "license",
           "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
         },
@@ -826,6 +1025,45 @@
     {
       "externalReferences": [
         {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libbase64"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3c536716cfca1bb83634318bc8a33f7889f8044a/main/base64"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "BSD-2-Clause"
+        }
+      ],
+      "name": "libbase64",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "base64"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "BSD-2-Clause"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "0.5.2-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/libbase64@0.5.2-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "0.5.2-r0"
+    },
+    {
+      "externalReferences": [
+        {
           "type": "license",
           "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
         },
@@ -863,7 +1101,7 @@
         },
         {
           "type": "vcs",
-          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl"
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/a88fd8f44ad58cbeb9631a5dd3a0ec51a6e38c76/main/openssl"
         }
       ],
       "licenses": [
@@ -890,9 +1128,9 @@
           "value": "3.3.7-r0"
         }
       ],
-      "purl": "pkg:apk/alpine/libcrypto3@3.3.2-r0?arch=aarch64&distro=alpine-3.20.3",
+      "purl": "pkg:apk/alpine/libcrypto3@3.3.7-r0?arch=aarch64&distro=alpine-3.20.3",
       "type": "library",
-      "version": "3.3.2-r0"
+      "version": "3.3.7-r0"
     },
     {
       "externalReferences": [
@@ -1069,7 +1307,7 @@
         },
         {
           "type": "vcs",
-          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl"
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/a88fd8f44ad58cbeb9631a5dd3a0ec51a6e38c76/main/openssl"
         }
       ],
       "licenses": [
@@ -1096,9 +1334,9 @@
           "value": "3.3.7-r0"
         }
       ],
-      "purl": "pkg:apk/alpine/libssl3@3.3.2-r0?arch=aarch64&distro=alpine-3.20.3",
+      "purl": "pkg:apk/alpine/libssl3@3.3.7-r0?arch=aarch64&distro=alpine-3.20.3",
       "type": "library",
-      "version": "3.3.2-r0"
+      "version": "3.3.7-r0"
     },
     {
       "externalReferences": [
@@ -1472,6 +1710,84 @@
       "purl": "pkg:apk/alpine/musl-utils@1.2.5-r0?arch=aarch64&distro=alpine-3.20.3",
       "type": "library",
       "version": "1.2.5-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/nghttp2-libs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/ae8006da014ff8c8692cb7fa844abab320cc3176/main/nghttp2"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "nghttp2-libs",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "nghttp2"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MIT"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "1.62.1-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/nghttp2-libs@1.62.1-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "1.62.1-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/nodejs"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/6c78678d94fd2c351135f174bedbfea1cafb69e1/main/nodejs"
+        }
+      ],
+      "licenses": [
+        {
+          "expression": "MIT"
+        }
+      ],
+      "name": "nodejs",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "nodejs"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "MIT"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "20.15.1-r0"
+        }
+      ],
+      "purl": "pkg:apk/alpine/nodejs@20.15.1-r0?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "20.15.1-r0"
     },
     {
       "externalReferences": [
@@ -2186,7 +2502,7 @@
         },
         {
           "type": "vcs",
-          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/fad2d175bd85eb4c5566765375392a7394dfbcf2/main/zlib"
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/c859479f9fdc87bd0ad38270d1fd332477304599/main/zlib"
         }
       ],
       "licenses": [
@@ -2213,9 +2529,9 @@
           "value": "1.3.2-r0"
         }
       ],
-      "purl": "pkg:apk/alpine/zlib@1.3.1-r1?arch=aarch64&distro=alpine-3.20.3",
+      "purl": "pkg:apk/alpine/zlib@1.3.2-r0?arch=aarch64&distro=alpine-3.20.3",
       "type": "library",
-      "version": "1.3.1-r1"
+      "version": "1.3.2-r0"
     },
     {
       "externalReferences": [
@@ -2317,7 +2633,7 @@
       }
     ]
   },
-  "serialNumber": "urn:uuid:8571ee61-4533-58b7-840d-1728658f6543",
+  "serialNumber": "urn:uuid:0f4f98cf-b19d-566d-a52c-4d5f19e410e4",
   "specVersion": "1.5",
   "version": 1
 }

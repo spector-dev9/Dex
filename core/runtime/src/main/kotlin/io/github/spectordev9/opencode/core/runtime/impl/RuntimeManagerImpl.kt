@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
@@ -51,6 +52,7 @@ private data class RuntimeManifestFile(
     val alpine: RuntimeManifestAlpine? = null,
     val runtimeLibraries: List<String> = emptyList(),
     val alpineRuntimePackages: List<RuntimeManifestAlpinePackage> = emptyList(),
+    val nodeRuntime: RuntimeManifestNodeRuntime? = null,
 )
 
 @Serializable
@@ -72,6 +74,16 @@ private data class RuntimeManifestAlpinePackage(
     val version: String = "",
     val url: String = "",
     val sha256: String = "",
+)
+
+@Serializable
+private data class RuntimeManifestNodeRuntime(
+    val version: String = "",
+    @SerialName("package") val packageName: String = "",
+    val architecture: String = "",
+    val libc: String = "",
+    val executable: String = "",
+    val packages: List<RuntimeManifestAlpinePackage> = emptyList(),
 )
 
 private fun sha256Hex(bytes: ByteArray): String =
@@ -111,6 +123,7 @@ class ManifestRuntimeManager(
     private val installer: RuntimeArtifactInstaller = RuntimeArtifactInstaller(),
     private val alpineInstaller: AlpineRootfsInstaller = AlpineRootfsInstaller(),
     private val alpineLibraryInstaller: AlpineRuntimeLibraryInstaller = AlpineRuntimeLibraryInstaller(),
+    private val alpinePackageInstaller: AlpineRuntimePackageInstaller = AlpineRuntimePackageInstaller(),
     private val artifactDownloader: RuntimeArtifactDownloader = RuntimeArtifactDownloader(),
     private val installedDirectory: Path = rootDirectory.resolve("environment"),
 ) : RuntimeManager {
@@ -435,6 +448,85 @@ class ManifestRuntimeManager(
                         return installed
                     }
                 }
+            }
+        }
+        manifest.nodeRuntime?.let { nodeRuntime ->
+            if (!nodeRuntime.version.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+")) ||
+                nodeRuntime.packageName != "nodejs" ||
+                nodeRuntime.architecture != "aarch64" ||
+                nodeRuntime.libc != "musl" ||
+                nodeRuntime.packages.isEmpty() ||
+                nodeRuntime.packages.map { it.name }.toSet().size != nodeRuntime.packages.size ||
+                nodeRuntime.executable.isBlank() ||
+                nodeRuntime.executable.startsWith("/") ||
+                nodeRuntime.executable.split('/').any { it.isEmpty() || it == "." || it == ".." }
+            ) {
+                return failed(
+                    RuntimeStateStatus.FAILED,
+                    "manifest Alpine Node runtime pin is invalid",
+                    ErrorCode.E_UNSUPPORTED_VERSION,
+                )
+            }
+            for (packagePin in nodeRuntime.packages) {
+                if (packagePin.version.isBlank() || !packagePin.sha256.matches(RUNTIME_SHA256_PATTERN)) {
+                    return failed(
+                        RuntimeStateStatus.FAILED,
+                        "invalid Alpine Node package pin: ${packagePin.name}",
+                        ErrorCode.E_UNSUPPORTED_VERSION,
+                    )
+                }
+                val packagePath = rootDirectory.resolve("downloads")
+                    .resolve("alpine-node-${packagePin.name}-${packagePin.sha256.lowercase(Locale.US)}.apk")
+                val downloaded = withContext(Dispatchers.IO) {
+                    artifactDownloader.download(packagePin.url, packagePin.sha256, packagePath)
+                }
+                when (downloaded) {
+                    is ApiResult.Failure -> {
+                        stateFlow.value = RuntimeState(
+                            RuntimeStateStatus.FAILED,
+                            downloaded.error.message,
+                            manifest.alpine?.version,
+                        )
+                        return downloaded
+                    }
+                    is ApiResult.Success -> {
+                        val installed = withContext(Dispatchers.IO) {
+                            alpinePackageInstaller.install(
+                                archive = downloaded.value,
+                                expectedArchiveSha256 = packagePin.sha256,
+                                packageName = packagePin.name,
+                                rootfsDirectory = installedRootfs,
+                            )
+                        }
+                        if (installed is ApiResult.Failure) {
+                            stateFlow.value = RuntimeState(
+                                RuntimeStateStatus.FAILED,
+                                installed.error.message,
+                                manifest.alpine?.version,
+                            )
+                            return installed
+                        }
+                    }
+                }
+            }
+            val nodePath = installedRootfs.resolve(nodeRuntime.executable)
+            val nodeInstalled = try {
+                Files.isRegularFile(nodePath) &&
+                    Files.isExecutable(nodePath) &&
+                    nodePath.toRealPath().startsWith(installedRootfs.toRealPath())
+            } catch (failure: IOException) {
+                return failed(
+                    RuntimeStateStatus.FAILED,
+                    "pinned Alpine Node runtime could not be verified: ${failure.message}",
+                    ErrorCode.E_RUNTIME_DOWN,
+                )
+            }
+            if (!nodeInstalled) {
+                return failed(
+                    RuntimeStateStatus.FAILED,
+                    "pinned Alpine Node runtime did not install ${nodeRuntime.executable}",
+                    ErrorCode.E_RUNTIME_DOWN,
+                )
             }
         }
         return installPinnedArtifact()

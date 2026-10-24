@@ -11,11 +11,13 @@ the binary.
 
 | Package | Version | License | Build recipe / source |
 | --- | --- | --- | --- |
+| ada-libs | 2.7.8-r0 | ( Apache-2.0 OR MIT ) AND MPL-2.0 | https://gitlab.alpinelinux.org/alpine/aports/-/tree/8310983997e289c56912406d7303bad1612a82c4/main/ada |
 | alpine-baselayout | 3.6.5-r0 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout |
 | alpine-baselayout-data | 3.6.5-r0 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout |
 | apk-tools | 2.14.4-r0 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/d435c805af8af4171438da3ec3429c094aac4c6e/main/apk-tools |
 | busybox | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |
 | busybox-binsh | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |
+| ca-certificates | 20261020-r0 | MPL-2.0 AND MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/d0a696da2932feaa483492b66c2bedeed8dd2a8e/main/ca-certificates |
 | ca-certificates-bundle | 20240705-r0 | MPL-2.0 AND MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates |
 | libgcc | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc |
 | libstdc++ | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc |

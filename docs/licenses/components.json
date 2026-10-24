@@ -410,15 +410,29 @@
     "Bun-bundled library versions and presence are taken from Bun's LICENSE.md, not from the binary; verify at release. Bun also lists lint/fmt/typechecker code ports in the same table; those are covered by the Bun LICENSE but not split into components."
   ],
   "licenseSummary": {
+    "( Apache-2.0 OR MIT ) AND MPL-2.0": 1,
     "Apache-2.0": 2,
+    "BSD-2-Clause": 1,
     "GPL-2.0-only": 7,
     "GPL-2.0-or-later AND LGPL-2.1-or-later": 2,
-    "MIT": 2,
+    "ICU": 1,
+    "MIT": 6,
     "MIT AND BSD-2-Clause AND GPL-2.0-or-later": 1,
-    "MPL-2.0 AND MIT": 1,
+    "MPL-2.0 AND MIT": 2,
     "Zlib": 1
   },
   "packages": [
+    {
+      "commit": "8310983997e289c56912406d7303bad1612a82c4",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ada-libs",
+      "license": "( Apache-2.0 OR MIT ) AND MPL-2.0",
+      "name": "ada-libs",
+      "origin": "ada",
+      "repo": "main",
+      "repositoryVersion": "2.7.8-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/8310983997e289c56912406d7303bad1612a82c4/main/ada",
+      "version": "2.7.8-r0"
+    },
     {
       "commit": "66187892e05b03a41d08e9acabd19b7576a1c875",
       "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/alpine-baselayout",
@@ -464,6 +478,17 @@
       "version": "2.14.4-r0"
     },
     {
+      "commit": "bdeb5ac39445d803f7d97bb9b3cf9171d9a35f52",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/brotli-libs",
+      "license": "MIT",
+      "name": "brotli-libs",
+      "origin": "brotli",
+      "repo": "main",
+      "repositoryVersion": "1.1.0-r2",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/bdeb5ac39445d803f7d97bb9b3cf9171d9a35f52/main/brotli",
+      "version": "1.1.0-r2"
+    },
+    {
       "commit": "1747c01fb96905f101c25609011589d28e01cbb8",
       "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/busybox",
       "license": "GPL-2.0-only",
@@ -486,6 +511,28 @@
       "version": "1.36.1-r29"
     },
     {
+      "commit": "e0e2025ea57e73d16c78170938d21c92f509a504",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/c-ares",
+      "license": "MIT",
+      "name": "c-ares",
+      "origin": "c-ares",
+      "repo": "main",
+      "repositoryVersion": "1.33.1-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/e0e2025ea57e73d16c78170938d21c92f509a504/main/c-ares",
+      "version": "1.33.1-r0"
+    },
+    {
+      "commit": "d0a696da2932feaa483492b66c2bedeed8dd2a8e",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ca-certificates",
+      "license": "MPL-2.0 AND MIT",
+      "name": "ca-certificates",
+      "origin": "ca-certificates",
+      "repo": "main",
+      "repositoryVersion": "20261020-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/d0a696da2932feaa483492b66c2bedeed8dd2a8e/main/ca-certificates",
+      "version": "20261020-r0"
+    },
+    {
       "commit": "5d17fc7e5ae113319f201d781607ffe4bee95b61",
       "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/ca-certificates-bundle",
       "license": "MPL-2.0 AND MIT",
@@ -497,15 +544,37 @@
       "version": "20240705-r0"
     },
     {
-      "commit": "f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b",
+      "commit": "dbc3f736ffdfa58fcd2d509c2ceb4f2a42fde57e",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/icu-libs",
+      "license": "ICU",
+      "name": "icu-libs",
+      "origin": "icu",
+      "repo": "main",
+      "repositoryVersion": "74.2-r1",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/dbc3f736ffdfa58fcd2d509c2ceb4f2a42fde57e/main/icu",
+      "version": "74.2-r1"
+    },
+    {
+      "commit": "3c536716cfca1bb83634318bc8a33f7889f8044a",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libbase64",
+      "license": "BSD-2-Clause",
+      "name": "libbase64",
+      "origin": "base64",
+      "repo": "main",
+      "repositoryVersion": "0.5.2-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3c536716cfca1bb83634318bc8a33f7889f8044a/main/base64",
+      "version": "0.5.2-r0"
+    },
+    {
+      "commit": "a88fd8f44ad58cbeb9631a5dd3a0ec51a6e38c76",
       "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libcrypto3",
       "license": "Apache-2.0",
       "name": "libcrypto3",
       "origin": "openssl",
       "repo": "main",
       "repositoryVersion": "3.3.7-r0",
-      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl",
-      "version": "3.3.2-r0"
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/a88fd8f44ad58cbeb9631a5dd3a0ec51a6e38c76/main/openssl",
+      "version": "3.3.7-r0"
     },
     {
       "commit": "3f9204e1a873a55c29fcfa8ba42ec8209b264472",
@@ -519,15 +588,15 @@
       "version": "13.2.1_git20240309-r1"
     },
     {
-      "commit": "f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b",
+      "commit": "a88fd8f44ad58cbeb9631a5dd3a0ec51a6e38c76",
       "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libssl3",
       "license": "Apache-2.0",
       "name": "libssl3",
       "origin": "openssl",
       "repo": "main",
       "repositoryVersion": "3.3.7-r0",
-      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl",
-      "version": "3.3.2-r0"
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/a88fd8f44ad58cbeb9631a5dd3a0ec51a6e38c76/main/openssl",
+      "version": "3.3.7-r0"
     },
     {
       "commit": "3f9204e1a873a55c29fcfa8ba42ec8209b264472",
@@ -563,6 +632,28 @@
       "version": "1.2.5-r0"
     },
     {
+      "commit": "ae8006da014ff8c8692cb7fa844abab320cc3176",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/nghttp2-libs",
+      "license": "MIT",
+      "name": "nghttp2-libs",
+      "origin": "nghttp2",
+      "repo": "main",
+      "repositoryVersion": "1.62.1-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/ae8006da014ff8c8692cb7fa844abab320cc3176/main/nghttp2",
+      "version": "1.62.1-r0"
+    },
+    {
+      "commit": "6c78678d94fd2c351135f174bedbfea1cafb69e1",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/nodejs",
+      "license": "MIT",
+      "name": "nodejs",
+      "origin": "nodejs",
+      "repo": "main",
+      "repositoryVersion": "20.15.1-r0",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/6c78678d94fd2c351135f174bedbfea1cafb69e1/main/nodejs",
+      "version": "20.15.1-r0"
+    },
+    {
       "commit": "e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6",
       "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/scanelf",
       "license": "GPL-2.0-only",
@@ -585,15 +676,15 @@
       "version": "1.36.1-r29"
     },
     {
-      "commit": "fad2d175bd85eb4c5566765375392a7394dfbcf2",
+      "commit": "c859479f9fdc87bd0ad38270d1fd332477304599",
       "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/zlib",
       "license": "Zlib",
       "name": "zlib",
       "origin": "zlib",
       "repo": "main",
       "repositoryVersion": "1.3.2-r0",
-      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/fad2d175bd85eb4c5566765375392a7394dfbcf2/main/zlib",
-      "version": "1.3.1-r1"
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/c859479f9fdc87bd0ad38270d1fd332477304599/main/zlib",
+      "version": "1.3.2-r0"
     }
   ],
   "runtime": [

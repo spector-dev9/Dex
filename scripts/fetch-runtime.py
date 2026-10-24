@@ -114,6 +114,11 @@ def main() -> int:
         action="store_true",
         help="also fetch the pinned Alpine libgcc and libstdc++ packages",
     )
+    parser.add_argument(
+        "--alpine-node",
+        action="store_true",
+        help="also fetch the pinned Alpine arm64-musl Node.js package and dependencies",
+    )
     args = parser.parse_args()
 
     with open(args.manifest, encoding="utf-8") as handle:
@@ -204,6 +209,29 @@ def main() -> int:
                         f"expected {spec['sha256']}, got {actual}"
                     )
             result["alpineRuntimePackages"].append(
+                {
+                    "name": spec["name"],
+                    "version": spec["version"],
+                    "archive": package_archive,
+                    "sha256": spec["sha256"],
+                }
+            )
+
+    if args.alpine_node:
+        node_runtime = manifest["nodeRuntime"]
+        result["nodeRuntimePackages"] = []
+        for spec in node_runtime["packages"]:
+            package_archive = os.path.join(args.dest, os.path.basename(spec["url"]))
+            if args.force or not os.path.isfile(package_archive):
+                download_verified(spec["url"], package_archive, spec["sha256"])
+            else:
+                actual = sha256(package_archive)
+                if actual != spec["sha256"]:
+                    fail(
+                        f"cached {spec['name']} sha-256 mismatch: "
+                        f"expected {spec['sha256']}, got {actual}"
+                    )
+            result["nodeRuntimePackages"].append(
                 {
                     "name": spec["name"],
                     "version": spec["version"],

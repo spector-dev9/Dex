@@ -291,20 +291,24 @@ class RuntimeManagerImplTest {
     }
 
     @Test
-    fun `installPinnedRuntime downloads and installs OpenCode Alpine and pinned runtime libraries`() = runBlocking {
+    fun `installPinnedRuntime installs OpenCode Alpine runtime libraries and pinned Node packages`() = runBlocking {
         val root = createTempDirectory("runtime-pinned-full-install")
         val artifactUrl = "https://runtime.test/opencode.tar.gz"
         val alpineUrl = "https://runtime.test/alpine.tar.gz"
         val packageUrl = "https://runtime.test/libgcc.apk"
+        val nodePackageUrl = "https://runtime.test/nodejs.apk"
         val artifactBytes = "OpenCode archive".toByteArray()
         val alpineBytes = "Alpine archive".toByteArray()
         val packageBytes = "libgcc archive".toByteArray()
+        val nodePackageBytes = "nodejs archive".toByteArray()
         val executable = "verified OpenCode executable".toByteArray()
         val library = "verified libgcc library".toByteArray()
+        val nodeBinary = "verified Node binary".toByteArray()
         val urlsToBytes = mapOf(
             artifactUrl to artifactBytes,
             alpineUrl to alpineBytes,
             packageUrl to packageBytes,
+            nodePackageUrl to nodePackageBytes,
         )
         writeManifest(
             root,
@@ -324,7 +328,20 @@ class RuntimeManagerImplTest {
                 "version": "13.2.1_git20240309-r1",
                 "url": "$packageUrl",
                 "sha256": "${sha256(packageBytes)}"
-              }]
+              }],
+              "nodeRuntime": {
+                "version": "20.15.1",
+                "package": "nodejs",
+                "architecture": "aarch64",
+                "libc": "musl",
+                "executable": "usr/bin/node",
+                "packages": [{
+                  "name": "nodejs",
+                  "version": "20.15.1-r0",
+                  "url": "$nodePackageUrl",
+                  "sha256": "${sha256(nodePackageBytes)}"
+                }]
+              }
             """,
         )
         val installer = RuntimeArtifactInstaller(
@@ -348,6 +365,13 @@ class RuntimeManagerImplTest {
                 destination.resolve("usr/lib/libgcc_s.so.1").writeBytes(library)
             },
         )
+        val packageInstaller = AlpineRuntimePackageInstaller(
+            extractor = RuntimeArchiveExtractor { _, destination ->
+                val node = Files.createDirectories(destination.resolve("usr/bin")).resolve("node")
+                node.writeBytes(nodeBinary)
+                node.toFile().setExecutable(true)
+            },
+        )
         val downloader = RuntimeArtifactDownloader(
             connectionFactory = HttpsConnectionFactory { url ->
                 FakeHttpsConnection(url) { bytes = urlsToBytes.getValue(url.toString()) }
@@ -359,6 +383,7 @@ class RuntimeManagerImplTest {
             installer = installer,
             alpineInstaller = alpineInstaller,
             alpineLibraryInstaller = libraryInstaller,
+            alpinePackageInstaller = packageInstaller,
             artifactDownloader = downloader,
         )
 
@@ -369,6 +394,8 @@ class RuntimeManagerImplTest {
         assertEquals("1.19.3", runtime.version)
         val rootfs = root.resolve("rootfs-versions").resolve(sha256(alpineBytes))
         assertEquals(library.toList(), Files.readAllBytes(rootfs.resolve("usr/lib/libgcc_s.so.1")).toList())
+        assertEquals(nodeBinary.toList(), Files.readAllBytes(rootfs.resolve("usr/bin/node")).toList())
+        assertTrue(Files.isExecutable(rootfs.resolve("usr/bin/node")))
         assertTrue(Files.isRegularFile(root.resolve("versions").resolve(sha256(executable)).resolve("opencode")))
     }
 

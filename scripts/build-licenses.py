@@ -243,10 +243,10 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
                 "repositoryVersion": mapping.get("version", ""),
             }
         )
-    installed_names = {item["name"] for item in packages}
-    for spec in manifest.get("alpineRuntimePackages", []):
-        if spec["name"] in installed_names:
-            continue
+    package_index = {item["name"]: index for index, item in enumerate(packages)}
+    alpine_packages = list(manifest.get("alpineRuntimePackages", []))
+    alpine_packages.extend(manifest.get("nodeRuntime", {}).get("packages", []))
+    for spec in alpine_packages:
         mapping = repo_by_name.get(spec["name"])
         if mapping is None or mapping["version"] != spec["version"]:
             fail(f"runtime package is not present at its pinned Alpine version: {spec['name']}")
@@ -255,19 +255,22 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
             "o": mapping["origin"],
             "c": mapping["commit"],
         }
-        packages.append(
-            {
-                "name": spec["name"],
-                "version": spec["version"],
-                "repo": mapping["repo"],
-                "origin": mapping["origin"],
-                "license": mapping["license"],
-                "commit": mapping["commit"],
-                "sourceUrl": alpine_source_url(package_fields, mapping["repo"], alpine_version),
-                "distributionUrl": alpine_package_url(spec["name"], mapping["repo"], alpine_version),
-                "repositoryVersion": mapping["version"],
-            }
-        )
+        package = {
+            "name": spec["name"],
+            "version": spec["version"],
+            "repo": mapping["repo"],
+            "origin": mapping["origin"],
+            "license": mapping["license"],
+            "commit": mapping["commit"],
+            "sourceUrl": alpine_source_url(package_fields, mapping["repo"], alpine_version),
+            "distributionUrl": alpine_package_url(spec["name"], mapping["repo"], alpine_version),
+            "repositoryVersion": mapping["version"],
+        }
+        if spec["name"] in package_index:
+            packages[package_index[spec["name"]]] = package
+        else:
+            package_index[spec["name"]] = len(packages)
+            packages.append(package)
     packages.sort(key=lambda item: (item["name"], item["version"]))
 
     runtime_binary = artifacts / f"opencode-{version}" / manifest["binary"]

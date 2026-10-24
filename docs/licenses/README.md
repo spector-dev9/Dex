@@ -21,6 +21,7 @@ and SEC-5.
 | libandroid-shmem | 0.7 | BSD-3-Clause | `termux/libandroid-shmem` | Include copyright and license |
 | Alpine minirootfs | 3.20.3 | mixed | Alpine release | Per-package notices; source offer for GPL/LGPL/MPL packages |
 | Alpine `libgcc` / `libstdc++` | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | Alpine v3.20 aarch64 packages | Include notices and corresponding GCC source offer |
+| Alpine Node.js runtime | 20.15.1 (arm64/musl) | MIT plus pinned dependency licenses | Alpine v3.20 aarch64 packages in `runtime/manifest.json` | Notices and package versions are included in the generated inventory/SBOM |
 | App clean-room code | — | Apache-2.0 (accepted) | this repo | Include `LICENSE`; publish source with releases |
 | React/TypeScript/Vite/CodeMirror/xterm.js | not added | MIT/BSD/Apache-2.0 | npm | Bundle notices via license scan |
 
@@ -55,7 +56,7 @@ offer is a release blocker until reviewed.
 Regenerate after any runtime, rootfs or dependency change:
 
 ```bash
-python3 scripts/fetch-runtime.py --alpine --android-libs
+python3 scripts/fetch-runtime.py --alpine --android-libs --alpine-runtime-libs --alpine-node
 python3 scripts/build-opencode-sbom.py   # network; caches npm metadata
 python3 scripts/build-licenses.py
 ```

@@ -32,6 +32,81 @@
       "sha256": "ee68ab3af02350f2135b6c0de393a55be88fbb20171e6182cdda6517c38b60a0"
     }
   ],
+  "nodeRuntime": {
+    "version": "20.15.1",
+    "package": "nodejs",
+    "architecture": "aarch64",
+    "libc": "musl",
+    "executable": "usr/bin/node",
+    "packages": [
+      {
+        "name": "nodejs",
+        "version": "20.15.1-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/nodejs-20.15.1-r0.apk",
+        "sha256": "2e75ebaa9d9eb5d5b17dd21d4907dbf9259c30b33003e7be9501b778fc8d859f"
+      },
+      {
+        "name": "ca-certificates",
+        "version": "20261020-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/ca-certificates-20261020-r0.apk",
+        "sha256": "50ecdec3d7f291491bc11b8db4cdf051dbad8ea7258f5cff75964c97d825d93e"
+      },
+      {
+        "name": "ada-libs",
+        "version": "2.7.8-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/ada-libs-2.7.8-r0.apk",
+        "sha256": "64a7e8b02c79562dc8f5b07abfcc9c657281c4bed3e364e213156e92ab9089c3"
+      },
+      {
+        "name": "libbase64",
+        "version": "0.5.2-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libbase64-0.5.2-r0.apk",
+        "sha256": "73cdea2524e0d82e3910051d388bce974498818e906e816da93a4aa130f5fed7"
+      },
+      {
+        "name": "brotli-libs",
+        "version": "1.1.0-r2",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/brotli-libs-1.1.0-r2.apk",
+        "sha256": "2146736e8d34bb9389c7902b942066d17bf36439a5c44aeb9b21d625d992f55d"
+      },
+      {
+        "name": "c-ares",
+        "version": "1.33.1-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/c-ares-1.33.1-r0.apk",
+        "sha256": "f07a70d10515800596a93a2a4de8847fb6ca8f336d0d1d6bc721c01373a43df9"
+      },
+      {
+        "name": "libcrypto3",
+        "version": "3.3.7-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libcrypto3-3.3.7-r0.apk",
+        "sha256": "2831d5455f72447b266be24800b51dbadcbadf6628611cbb0e7c81f467552967"
+      },
+      {
+        "name": "icu-libs",
+        "version": "74.2-r1",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/icu-libs-74.2-r1.apk",
+        "sha256": "193583994519ca266a7b8e768483dc0d361868b5f22a2a1345bdabd3fbd04ee0"
+      },
+      {
+        "name": "nghttp2-libs",
+        "version": "1.62.1-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/nghttp2-libs-1.62.1-r0.apk",
+        "sha256": "1391bc9bae1a8e29e0179e730022e428ed1a6efe875aa862b675635c8c3f6bb7"
+      },
+      {
+        "name": "libssl3",
+        "version": "3.3.7-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libssl3-3.3.7-r0.apk",
+        "sha256": "7074e5b8fa4560e4bfd1566da365f2cf33c76be91eeeaf27d95a99fe00552164"
+      },
+      {
+        "name": "zlib",
+        "version": "1.3.2-r0",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/zlib-1.3.2-r0.apk",
+        "sha256": "08057738baed0c0e2e98a0c064abaa658974915e874664fc78694999bec37609"
+      }
+    ]
+  },
   "alpine": {
     "version": "3.20.3",
     "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/aarch64/alpine-minirootfs-3.20.3-aarch64.tar.gz",

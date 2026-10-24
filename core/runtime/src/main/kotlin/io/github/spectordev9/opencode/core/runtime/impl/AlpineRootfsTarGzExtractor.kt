@@ -2,6 +2,8 @@ package io.github.spectordev9.opencode.core.runtime.impl
 
 import java.io.IOException
 import java.io.InputStream
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
@@ -32,6 +34,7 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
 
     private fun readMembers(archive: Path): List<Member> {
         val members = mutableListOf<Member>()
+        var paxMetadata = emptyMap<String, String>()
         GZIPInputStream(Files.newInputStream(archive).buffered()).use { input ->
             val header = ByteArray(BLOCK_SIZE)
             while (readBlock(input, header)) {
@@ -41,27 +44,31 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
                     return members
                 }
                 verifyChecksum(header)
-                val name = readString(header, NAME_OFFSET, NAME_LENGTH)
-                val prefix = readString(header, PREFIX_OFFSET, PREFIX_LENGTH)
-                val archivePath = if (prefix.isEmpty()) name else "$prefix/$name"
-                val path = normalizeArchivePath(archivePath)
                 val type = header[TYPE_OFFSET].toInt().toChar().let { if (it == '\u0000') '0' else it }
                 val size = readOctal(header, SIZE_OFFSET, SIZE_LENGTH)
                 if (type == 'x') {
-                    skipPaxHeader(input, size)
+                    paxMetadata = skipPaxHeader(input, size)
                     continue
                 }
+                val path = normalizeArchivePath(
+                    paxMetadata["path"] ?: readArchivePath(header),
+                )
                 if (type !in setOf('0', '5', '2')) {
                     throw IOException("unsupported Alpine archive entry type: $type")
                 }
                 if (size < 0 || size > MAX_ENTRY_SIZE) throw IOException("Alpine archive entry is too large")
                 if (type != '0' && size != 0L) throw IOException("non-file Alpine entry has a payload")
                 val mode = readOctal(header, MODE_OFFSET, MODE_LENGTH)
-                val link = if (type == '2') readString(header, LINK_OFFSET, LINK_LENGTH) else null
+                val link = if (type == '2') {
+                    paxMetadata["linkpath"] ?: readString(header, LINK_OFFSET, LINK_LENGTH)
+                } else {
+                    null
+                }
                 if (type == '2' && path.isEmpty()) throw IOException("Alpine archive cannot link the root")
                 if (members.size >= MAX_ENTRIES) throw IOException("Alpine archive contains too many entries")
                 members += Member(path, type, size, mode, link)
                 if (type == '0') skipEntry(input, size) else skipPadding(input, 0)
+                paxMetadata = emptyMap()
             }
         }
         throw IOException("Alpine archive is missing its end marker")
@@ -121,6 +128,7 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
     private fun extractFiles(archive: Path, root: Path, expectedMembers: List<Member>) {
         GZIPInputStream(Files.newInputStream(archive).buffered()).use { input ->
             var index = 0
+            var paxMetadata = emptyMap<String, String>()
             val header = ByteArray(BLOCK_SIZE)
             while (readBlock(input, header)) {
                 if (header.all { it == 0.toByte() }) {
@@ -131,13 +139,14 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
                 verifyChecksum(header)
                 val type = header[TYPE_OFFSET].toInt().toChar()
                 if (type == 'x') {
-                    skipPaxHeader(input, readOctal(header, SIZE_OFFSET, SIZE_LENGTH))
+                    paxMetadata = skipPaxHeader(input, readOctal(header, SIZE_OFFSET, SIZE_LENGTH))
                     continue
                 }
                 val member = expectedMembers.getOrNull(index++)
                     ?: throw IOException("Alpine archive changed during extraction")
-                val parsed = parseMember(header)
+                val parsed = parseMember(header, paxMetadata)
                 if (parsed != member) throw IOException("Alpine archive changed during extraction")
+                paxMetadata = emptyMap()
                 if (member.type == '0') {
                     val file = root.resolve(member.path).normalize()
                     val parent = file.parent ?: throw IOException("Alpine file entry has no parent")
@@ -155,15 +164,23 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
         }
     }
 
-    private fun parseMember(header: ByteArray): Member {
-        val name = readString(header, NAME_OFFSET, NAME_LENGTH)
-        val prefix = readString(header, PREFIX_OFFSET, PREFIX_LENGTH)
-        val archivePath = if (prefix.isEmpty()) name else "$prefix/$name"
+    private fun parseMember(header: ByteArray, paxMetadata: Map<String, String>): Member {
+        val archivePath = paxMetadata["path"] ?: readArchivePath(header)
         val type = header[TYPE_OFFSET].toInt().toChar().let { if (it == '\u0000') '0' else it }
         val size = readOctal(header, SIZE_OFFSET, SIZE_LENGTH)
         val mode = readOctal(header, MODE_OFFSET, MODE_LENGTH)
-        val link = if (type == '2') readString(header, LINK_OFFSET, LINK_LENGTH) else null
+        val link = if (type == '2') {
+            paxMetadata["linkpath"] ?: readString(header, LINK_OFFSET, LINK_LENGTH)
+        } else {
+            null
+        }
         return Member(normalizeArchivePath(archivePath), type, size, mode, link)
+    }
+
+    private fun readArchivePath(header: ByteArray): String {
+        val name = readString(header, NAME_OFFSET, NAME_LENGTH)
+        val prefix = readString(header, PREFIX_OFFSET, PREFIX_LENGTH)
+        return if (prefix.isEmpty()) name else "$prefix/$name"
     }
 
     private fun normalizeArchivePath(value: String): String {
@@ -306,7 +323,7 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
         skipPadding(input, size)
     }
 
-    private fun skipPaxHeader(input: InputStream, size: Long) {
+    private fun skipPaxHeader(input: InputStream, size: Long): Map<String, String> {
         if (size <= 0 || size > MAX_PAX_HEADER_SIZE) {
             throw IOException("invalid Alpine PAX header size")
         }
@@ -317,13 +334,14 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
             if (read < 0) throw IOException("truncated Alpine PAX header")
             if (read > 0) offset += read
         }
-        validatePaxMetadata(payload)
+        val metadata = validatePaxMetadata(payload)
         skipPadding(input, size)
+        return metadata
     }
 
-    private fun validatePaxMetadata(payload: ByteArray) {
+    private fun validatePaxMetadata(payload: ByteArray): Map<String, String> {
         var offset = 0
-        val seenKeys = mutableSetOf<String>()
+        val metadata = mutableMapOf<String, String>()
         while (offset < payload.size) {
             val space = (offset until payload.size).firstOrNull { payload[it] == ' '.code.toByte() }
                 ?: throw IOException("invalid Alpine PAX record")
@@ -339,12 +357,11 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
                 throw IOException("invalid Alpine PAX record length")
             }
             val record = payload.copyOfRange(space + 1, offset + length - 1)
-                .toString(Charsets.US_ASCII)
-            val separator = record.indexOf('=')
+            val separator = record.indexOf('='.code.toByte())
             if (separator <= 0) throw IOException("invalid Alpine PAX record")
-            val key = record.substring(0, separator)
-            val value = record.substring(separator + 1)
-            if (!seenKeys.add(key)) throw IOException("duplicate Alpine PAX metadata: $key")
+            val key = record.copyOfRange(0, separator).toString(Charsets.US_ASCII)
+            val value = decodePaxValue(record.copyOfRange(separator + 1, record.size))
+            if (key in metadata) throw IOException("duplicate Alpine PAX metadata: $key")
             when (key) {
                 "atime", "ctime" -> if (!value.matches(Regex("[0-9]+(?:\\.[0-9]+)?"))) {
                     throw IOException("invalid Alpine PAX timestamp")
@@ -352,11 +369,27 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
                 "APK-TOOLS.checksum.SHA1" -> if (!value.matches(Regex("[a-fA-F0-9]{40}"))) {
                     throw IOException("invalid Alpine package checksum metadata")
                 }
+                "path", "linkpath" -> if (value.isEmpty() || '\u0000' in value || '\\' in value) {
+                    throw IOException("invalid Alpine PAX path metadata")
+                }
                 else -> throw IOException("unsupported Alpine PAX metadata: $key")
             }
+            metadata[key] = value
             offset += length
         }
+        return metadata
     }
+
+    private fun decodePaxValue(bytes: ByteArray): String =
+        try {
+            Charsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(bytes))
+                .toString()
+        } catch (failure: CharacterCodingException) {
+            throw IOException("invalid UTF-8 in Alpine PAX metadata", failure)
+        }
 
     private fun skipPadding(input: InputStream, size: Long) {
         val padding = (BLOCK_SIZE - size % BLOCK_SIZE) % BLOCK_SIZE

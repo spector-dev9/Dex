@@ -2,6 +2,22 @@
   "alpineVersion": "3.20.3",
   "packages": [
     {
+      "copyright": "Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/8310983997e289c56912406d7303bad1612a82c4/main/ada/APKBUILD",
+        "https://gitlab.alpinelinux.org/alpine/ada"
+      ],
+      "license": "( Apache-2.0 OR MIT ) AND MPL-2.0",
+      "licenseTexts": [
+        "texts/Apache-2.0.txt",
+        "texts/MIT.txt",
+        "texts/MPL-2.0.txt"
+      ],
+      "name": "ada-libs",
+      "origin": "ada",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/8310983997e289c56912406d7303bad1612a82c4/main/ada"
+    },
+    {
       "copyright": "Alpine Linux contributors. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the GPL-2.0-only license.",
       "evidence": [
         "https://gitlab.alpinelinux.org/alpine/aports/-/raw/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout/APKBUILD"
@@ -41,7 +57,7 @@
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/aab68f8c9ab434a46710de8e12fb3206e2930a59/main/alpine-keys"
     },
     {
-      "copyright": "Copyright (C) 2005-2008 Natanael Copa; Copyright (C) 2008-2011 Timo Ter\u00e4s; libfetch portions Copyright (c) 2008-2010 Joerg Sonnenberger and other NetBSD contributors.",
+      "copyright": "Copyright (C) 2005-2008 Natanael Copa; Copyright (C) 2008-2011 Timo Teräs; libfetch portions Copyright (c) 2008-2010 Joerg Sonnenberger and other NetBSD contributors.",
       "evidence": [
         "https://gitlab.alpinelinux.org/alpine/aports/-/raw/d435c805af8af4171438da3ec3429c094aac4c6e/main/apk-tools/APKBUILD",
         "https://gitlab.alpinelinux.org/alpine/apk-tools/-/raw/v2.14.4/LICENSE",
@@ -54,6 +70,20 @@
       "name": "apk-tools",
       "origin": "apk-tools",
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/d435c805af8af4171438da3ec3429c094aac4c6e/main/apk-tools"
+    },
+    {
+      "copyright": "Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/bdeb5ac39445d803f7d97bb9b3cf9171d9a35f52/main/brotli/APKBUILD",
+        "https://github.com/google/brotli"
+      ],
+      "license": "MIT",
+      "licenseTexts": [
+        "texts/MIT.txt"
+      ],
+      "name": "brotli-libs",
+      "origin": "brotli",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/bdeb5ac39445d803f7d97bb9b3cf9171d9a35f52/main/brotli"
     },
     {
       "copyright": "Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive.",
@@ -84,7 +114,36 @@
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox"
     },
     {
-      "copyright": "certdata.txt: Mozilla Foundation and the owners of the included CA certificates; c_rehash.c: Copyright (c) 2013-2014 Timo Ter\u00e4s.",
+      "copyright": "Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/e0e2025ea57e73d16c78170938d21c92f509a504/main/c-ares/APKBUILD",
+        "https://github.com/c-ares/c-ares"
+      ],
+      "license": "MIT",
+      "licenseTexts": [
+        "texts/MIT.txt"
+      ],
+      "name": "c-ares",
+      "origin": "c-ares",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/e0e2025ea57e73d16c78170938d21c92f509a504/main/c-ares"
+    },
+    {
+      "copyright": "certdata.txt: Mozilla Foundation and the owners of the included CA certificates; c_rehash.c: Copyright (c) 2013-2014 Timo Teräs.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/d0a696da2932feaa483492b66c2bedeed8dd2a8e/main/ca-certificates/APKBUILD",
+        "https://gitlab.alpinelinux.org/alpine/ca-certificates"
+      ],
+      "license": "MPL-2.0 AND MIT",
+      "licenseTexts": [
+        "texts/MPL-2.0.txt",
+        "texts/MIT.txt"
+      ],
+      "name": "ca-certificates",
+      "origin": "ca-certificates",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/d0a696da2932feaa483492b66c2bedeed8dd2a8e/main/ca-certificates"
+    },
+    {
+      "copyright": "certdata.txt: Mozilla Foundation and the owners of the included CA certificates; c_rehash.c: Copyright (c) 2013-2014 Timo Teräs.",
       "evidence": [
         "https://gitlab.alpinelinux.org/alpine/aports/-/raw/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates/APKBUILD",
         "https://gitlab.alpinelinux.org/alpine/ca-certificates/-/raw/20240705/certdata.txt",
@@ -98,6 +157,32 @@
       "name": "ca-certificates-bundle",
       "origin": "ca-certificates",
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates"
+    },
+    {
+      "copyright": "Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/dbc3f736ffdfa58fcd2d509c2ceb4f2a42fde57e/main/icu/APKBUILD",
+        "https://github.com/unicode-org/icu"
+      ],
+      "license": "ICU",
+      "licenseTexts": [],
+      "name": "icu-libs",
+      "origin": "icu",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/dbc3f736ffdfa58fcd2d509c2ceb4f2a42fde57e/main/icu"
+    },
+    {
+      "copyright": "Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/3c536716cfca1bb83634318bc8a33f7889f8044a/main/base64/APKBUILD",
+        "https://github.com/aklomp/base64"
+      ],
+      "license": "BSD-2-Clause",
+      "licenseTexts": [
+        "texts/BSD-2-Clause.txt"
+      ],
+      "name": "libbase64",
+      "origin": "base64",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3c536716cfca1bb83634318bc8a33f7889f8044a/main/base64"
     },
     {
       "copyright": "Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson.",
@@ -160,7 +245,7 @@
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc"
     },
     {
-      "copyright": "Copyright \u00a9 2005-2020 Rich Felker, et al.",
+      "copyright": "Copyright © 2005-2020 Rich Felker, et al.",
       "evidence": [
         "https://gitlab.alpinelinux.org/alpine/aports/-/raw/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl/APKBUILD",
         "https://git.musl-libc.org/cgit/musl/plain/COPYRIGHT?h=v1.2.5"
@@ -174,7 +259,7 @@
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl"
     },
     {
-      "copyright": "musl: Copyright \u00a9 2005-2020 Rich Felker, et al.; getconf/getent: Copyright (c) 1996, 1998 and 2004-2006 The NetBSD Foundation; iconv: Copyright \u00a9 2011 Rich Felker.",
+      "copyright": "musl: Copyright © 2005-2020 Rich Felker, et al.; getconf/getent: Copyright (c) 1996, 1998 and 2004-2006 The NetBSD Foundation; iconv: Copyright © 2011 Rich Felker.",
       "evidence": [
         "https://gitlab.alpinelinux.org/alpine/aports/-/raw/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl/APKBUILD",
         "https://git.musl-libc.org/cgit/musl/plain/COPYRIGHT?h=v1.2.5",
@@ -191,6 +276,34 @@
       "name": "musl-utils",
       "origin": "musl",
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl"
+    },
+    {
+      "copyright": "Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/ae8006da014ff8c8692cb7fa844abab320cc3176/main/nghttp2/APKBUILD",
+        "https://github.com/nghttp2/nghttp2"
+      ],
+      "license": "MIT",
+      "licenseTexts": [
+        "texts/MIT.txt"
+      ],
+      "name": "nghttp2-libs",
+      "origin": "nghttp2",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/ae8006da014ff8c8692cb7fa844abab320cc3176/main/nghttp2"
+    },
+    {
+      "copyright": "Copyright Node.js contributors; see the upstream license and Alpine APKBUILD.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/6c78678d94fd2c351135f174bedbfea1cafb69e1/main/nodejs/APKBUILD",
+        "https://github.com/nodejs/node"
+      ],
+      "license": "MIT",
+      "licenseTexts": [
+        "texts/MIT.txt"
+      ],
+      "name": "nodejs",
+      "origin": "nodejs",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/6c78678d94fd2c351135f174bedbfea1cafb69e1/main/nodejs"
     },
     {
       "copyright": "Copyright 2005-2012 Gentoo Foundation; Copyright 2005-2012 Ned Ludd; Copyright 2005-2012 Mike Frysinger.",

@@ -76,22 +76,30 @@ verified and versions are not pinned.
 
 | Package | Version | License | Source |
 | --- | --- | --- | --- |
+| ada-libs | 2.7.8-r0 | ( Apache-2.0 OR MIT ) AND MPL-2.0 | https://gitlab.alpinelinux.org/alpine/aports/-/tree/8310983997e289c56912406d7303bad1612a82c4/main/ada |
 | alpine-baselayout | 3.6.5-r0 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout |
 | alpine-baselayout-data | 3.6.5-r0 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/66187892e05b03a41d08e9acabd19b7576a1c875/main/alpine-baselayout |
 | alpine-keys | 2.4-r1 | MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/aab68f8c9ab434a46710de8e12fb3206e2930a59/main/alpine-keys |
 | apk-tools | 2.14.4-r0 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/d435c805af8af4171438da3ec3429c094aac4c6e/main/apk-tools |
+| brotli-libs | 1.1.0-r2 | MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/bdeb5ac39445d803f7d97bb9b3cf9171d9a35f52/main/brotli |
 | busybox | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |
 | busybox-binsh | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |
+| c-ares | 1.33.1-r0 | MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/e0e2025ea57e73d16c78170938d21c92f509a504/main/c-ares |
+| ca-certificates | 20261020-r0 | MPL-2.0 AND MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/d0a696da2932feaa483492b66c2bedeed8dd2a8e/main/ca-certificates |
 | ca-certificates-bundle | 20240705-r0 | MPL-2.0 AND MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates |
-| libcrypto3 | 3.3.2-r0 | Apache-2.0 | https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl |
+| icu-libs | 74.2-r1 | ICU | https://gitlab.alpinelinux.org/alpine/aports/-/tree/dbc3f736ffdfa58fcd2d509c2ceb4f2a42fde57e/main/icu |
+| libbase64 | 0.5.2-r0 | BSD-2-Clause | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3c536716cfca1bb83634318bc8a33f7889f8044a/main/base64 |
+| libcrypto3 | 3.3.7-r0 | Apache-2.0 | https://gitlab.alpinelinux.org/alpine/aports/-/tree/a88fd8f44ad58cbeb9631a5dd3a0ec51a6e38c76/main/openssl |
 | libgcc | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc |
-| libssl3 | 3.3.2-r0 | Apache-2.0 | https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl |
+| libssl3 | 3.3.7-r0 | Apache-2.0 | https://gitlab.alpinelinux.org/alpine/aports/-/tree/a88fd8f44ad58cbeb9631a5dd3a0ec51a6e38c76/main/openssl |
 | libstdc++ | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc |
 | musl | 1.2.5-r0 | MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl |
 | musl-utils | 1.2.5-r0 | MIT AND BSD-2-Clause AND GPL-2.0-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl |
+| nghttp2-libs | 1.62.1-r0 | MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/ae8006da014ff8c8692cb7fa844abab320cc3176/main/nghttp2 |
+| nodejs | 20.15.1-r0 | MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/6c78678d94fd2c351135f174bedbfea1cafb69e1/main/nodejs |
 | scanelf | 1.3.7-r2 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6/main/pax-utils |
 | ssl_client | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |
-| zlib | 1.3.1-r1 | Zlib | https://gitlab.alpinelinux.org/alpine/aports/-/tree/fad2d175bd85eb4c5566765375392a7394dfbcf2/main/zlib |
+| zlib | 1.3.2-r0 | Zlib | https://gitlab.alpinelinux.org/alpine/aports/-/tree/c859479f9fdc87bd0ad38270d1fd332477304599/main/zlib |
 
 ## Copyright notices
 
@@ -108,12 +116,15 @@ verified and versions are not pinned.
 
 | License | Packages |
 | --- | --- |
+| ( Apache-2.0 OR MIT ) AND MPL-2.0 | 1 |
 | Apache-2.0 | 2 |
+| BSD-2-Clause | 1 |
 | GPL-2.0-only | 7 |
 | GPL-2.0-or-later AND LGPL-2.1-or-later | 2 |
-| MIT | 2 |
+| ICU | 1 |
+| MIT | 6 |
 | MIT AND BSD-2-Clause AND GPL-2.0-or-later | 1 |
-| MPL-2.0 AND MIT | 1 |
+| MPL-2.0 AND MIT | 2 |
 | Zlib | 1 |
 
 ## Alpine package copyright notices
@@ -123,19 +134,27 @@ Collected from the pinned APKBUILDs and upstream sources; evidence:
 
 | Package | License | Copyright |
 | --- | --- | --- |
+| ada-libs | ( Apache-2.0 OR MIT ) AND MPL-2.0 | Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree. |
 | alpine-baselayout | GPL-2.0-only | Alpine Linux contributors. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the GPL-2.0-only license. |
 | alpine-baselayout-data | GPL-2.0-only | Alpine Linux contributors. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the GPL-2.0-only license. |
 | alpine-keys | MIT | Alpine Linux project release keys. The APKBUILD ships no separate copyright file; this notice is based on package metadata and the MIT license. |
 | apk-tools | GPL-2.0-only | Copyright (C) 2005-2008 Natanael Copa; Copyright (C) 2008-2011 Timo Teräs; libfetch portions Copyright (c) 2008-2010 Joerg Sonnenberger and other NetBSD contributors. |
+| brotli-libs | MIT | Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree. |
 | busybox | GPL-2.0-only | Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive. |
 | busybox-binsh | GPL-2.0-only | Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive. |
+| c-ares | MIT | Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree. |
+| ca-certificates | MPL-2.0 AND MIT | certdata.txt: Mozilla Foundation and the owners of the included CA certificates; c_rehash.c: Copyright (c) 2013-2014 Timo Teräs. |
 | ca-certificates-bundle | MPL-2.0 AND MIT | certdata.txt: Mozilla Foundation and the owners of the included CA certificates; c_rehash.c: Copyright (c) 2013-2014 Timo Teräs. |
+| icu-libs | ICU | Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree. |
+| libbase64 | BSD-2-Clause | Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree. |
 | libcrypto3 | Apache-2.0 | Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson. |
 | libgcc | GPL-2.0-or-later AND LGPL-2.1-or-later | Copyright notices for the GCC runtime libraries are contained in the GCC source distribution and are attributed to the Free Software Foundation and GCC contributors. |
 | libssl3 | Apache-2.0 | Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson. |
 | libstdc++ | GPL-2.0-or-later AND LGPL-2.1-or-later | Copyright notices for libstdc++ are contained in the GCC source distribution and are attributed to the Free Software Foundation and GCC contributors. |
 | musl | MIT | Copyright © 2005-2020 Rich Felker, et al. |
 | musl-utils | MIT AND BSD-2-Clause AND GPL-2.0-or-later | musl: Copyright © 2005-2020 Rich Felker, et al.; getconf/getent: Copyright (c) 1996, 1998 and 2004-2006 The NetBSD Foundation; iconv: Copyright © 2011 Rich Felker. |
+| nghttp2-libs | MIT | Copyright notices are provided by the upstream project; see the Alpine APKBUILD and source tree. |
+| nodejs | MIT | Copyright Node.js contributors; see the upstream license and Alpine APKBUILD. |
 | scanelf | GPL-2.0-only | Copyright 2005-2012 Gentoo Foundation; Copyright 2005-2012 Ned Ludd; Copyright 2005-2012 Mike Frysinger. |
 | ssl_client | GPL-2.0-only | Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive. |
 | zlib | Zlib | Copyright (C) 1995-2022 Jean-loup Gailly and Mark Adler. |

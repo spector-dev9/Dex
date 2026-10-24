@@ -12,7 +12,7 @@ set; G0 is governed by `docs/spec.md` and this phase plan.
 | Decision | Current resolution | Status at G0 | Evidence / remaining work |
 | --- | --- | --- | --- |
 | D1 — distribution | GitHub Releases + Obtainium first; self-hosted F-Droid after reproducible builds; Play deferred; Apache-2.0 app code. | Accepted by owner; release work remains. | `docs/adr/0001-distribution.md`. Complete the S9 legal, source-offer, signing and reproducible-build blockers before release. |
-| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | The official-package harness proves loader launch on one Infinix Android 16 device (4 KB pages). Its S3 guest-shell/native-PTY pass is invalidated: `node` was missing and the old probe accepted output without parsed environment values. Full S1/S3 device evidence, S2 comparison, required device tiers and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
+| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | The official-package harness proves loader launch on one Infinix Android 16 device (4 KB pages). Its S3 guest-shell/native-PTY pass is invalidated: `node` was missing and the old probe accepted output without parsed environment values. Node.js 20.15.1 arm64/musl is now pinned and installed by the harness; a corrected S3 device rerun, full S1 evidence, S2 comparison, required device tiers and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
 | D5 — version pin | Keep OpenCode **1.19.3** as the exact current baseline; verify its manifest hash; reject unknown major versions. Re-evaluate only when a distributable 2.x artifact is available. | Resolved for the current baseline; 2.x compatibility is unverified. | `runtime/manifest.json`, `tests/spikes/results/S6-2.x.md`. The 2.x release-artifact check is blocked, not a reason to silently change the pin. |
 
 **G0 is not complete.** The specification requires S1–S9, Tier A/B/C
@@ -22,7 +22,9 @@ official package, as recorded in
 `tests/spikes/results/raw/spike-20261024-080149.json`. The same report's
 S3 pass is invalidated: the guest did not have Node, and the probe could
 pass without verifying its environment markers. The corrected probe needs
-a device rerun. This does not satisfy the required device matrix. S2, longer-duration
+a device rerun; the harness now installs the pinned Alpine Node.js
+20.15.1 arm64/musl package and dependencies before probing. This does not
+satisfy the required device matrix. S2, longer-duration
 and cross-tier S7, keyboard S8, S6's 2.x artifact decision and S9
 compliance items remain open. Do not start G0-dependent production
 service wiring or claim gate acceptance until these blockers clear.

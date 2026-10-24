@@ -41,7 +41,7 @@ linked or appended; host spikes cannot promote device rows.
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | Earlier harness reports claim guest-shell/PTY passes, but the latest user-shared report shows `node: not found`, literal `******` output, and an unsubstantiated `environmentMatch=true`; do not count those S3 results | corrected harness rebuild and device rerun; production shell wiring and G0 acceptance are also required |
+| S3 | app sandbox + native PTY | pending | Earlier harness reports claim guest-shell/PTY passes, but the latest user-shared report shows `node: not found`, literal `******` output, and an unsubstantiated `environmentMatch=true`; do not count those results. Pinned Alpine Node.js 20.15.1 arm64/musl package and dependencies are now staged/downloaded by the harness. | rebuild/install and rerun on device; verify `node -v`, matching environment markers and production shell wiring before G0 acceptance |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
 | S7 | Tier A/B/C | pending | [first device run](../../tests/spikes/results/S3-device-harness-20261024.md), [staged rerun](../../tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](../../tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
 | S8 | Gboard + Samsung Keyboard | pending | [runtime-download rerun](spike-20261024-153116.json) records 7 text changes, final length 6, and zero key-down events. Owner-approved earlier “emojikeyboard” result remains unverified for IME identity. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
@@ -137,8 +137,12 @@ linked or appended; host spikes cannot promote device rows.
   native probes previously used a `printf` format with no conversions and
   accepted incomplete marker data. The harness now emits explicit `D=`,
   `P=` and `N=` values, requires all three values and a valid Node version,
-  and fails both probes when Node is unavailable. This corrected APK still
-  needs a device rerun; S3 remains pending.
+  and fails both probes when Node is unavailable. The manifest now pins
+  Alpine Node.js 20.15.1 arm64/musl and its shared-library dependency
+  packages; the host stage and on-device installers place the executable at
+  `rootfs/usr/bin/node`. All package hashes are verified, and host ELF
+  inspection confirms the required shared objects are staged. Device
+  execution (`node -v`) still needs confirmation; S3 remains pending.
 - In the same later report S7 start/stop was observed, and S8 recorded
   text changes but `keyDownEvents=0`; this does not satisfy keyboard
   acceptance. The harness now labels future records `S8-ime-observation`

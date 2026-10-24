@@ -38,8 +38,9 @@ adb install -r tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.
 ```
 
 The staging script downloads the official OpenCode release, pinned
-Alpine rootfs/runtime packages and Android libraries with
-`scripts/fetch-runtime.py --alpine --android-libs --alpine-runtime-libs`,
+Alpine rootfs/runtime packages, Node.js 20.15.1 for arm64/musl and its
+runtime dependencies, and Android libraries with
+`scripts/fetch-runtime.py --alpine --android-libs --alpine-runtime-libs --alpine-node`,
 verifies their hashes, creates `runtime/artifacts/spike-runtime.tar.gz`, and copies
 `libldmusl.so`, `libproot.so` and `libproot_loader.so` into the
 gitignored `src/main/jniLibs/arm64-v8a/` directory. It also stages
@@ -49,10 +50,11 @@ The harness sets `PROOT_LOADER` to the packaged PRoot loader; without it
 PRoot would look for the Termux `libexec` path.
 
 At runtime, tap **Download and verify pinned runtime**. The harness reads the
-same `runtime/manifest.json` used by the host installers and downloads the
-pinned OpenCode archive, Alpine minirootfs and Alpine runtime packages over
-HTTPS concurrently (up to four at a time). It verifies each SHA-256 before
-installation and stores the results in app-private storage. The OpenCode
+same `runtime/manifest.json` and downloads the pinned OpenCode archive, Alpine
+minirootfs, Alpine runtime packages, Node.js package and its pinned dependency
+packages over HTTPS concurrently (up to four at a time). It verifies each
+SHA-256 before installation, installs the Node package set into the guest
+rootfs, and stores downloaded archives in app-private storage. The OpenCode
 executable and rootfs are installed using the core runtime installers. The
 first download is large; progress and failures are shown in the harness.
 PRoot entrypoints remain packaged native libraries and are never downloaded
@@ -83,8 +85,10 @@ by the guest-shell probe, sets an 80x24 terminal, and compares the
 reported guest working directory, `PATH` and successful `node -v` result.
 The report uses `D=`, `P=` and `N=` markers; missing fields or a failed
 Node invocation fail the probe instead of being treated as an environment
-match. This is feasibility evidence only, not the production `PtyService`
-implementation.
+match (`D` is `pwd`, `P` is `PATH`, and `N` is the `node -v` output).
+The harness installs the pinned Alpine Node.js 20.15.1 arm64/musl package
+and its dependencies into the guest before running S3. This is feasibility
+evidence only, not the production `PtyService` implementation.
 
 CI compiles the harness **without** running the staging script, so the
 CI APK is a compile check. It can fetch the OpenCode/Alpine runtime, but
