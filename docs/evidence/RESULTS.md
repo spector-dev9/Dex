@@ -34,21 +34,21 @@ linked or appended; host spikes cannot promote device rows.
 
 | Requirement | Scope | Status | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
-| S1 | Tier A | pending | Earlier harness runs and [physical report](spike-20261025-003215.json): on an Infinix X6870 / Android 16 / arm64 / 4 KB pages, loader, authenticated health, and one mock-provider prompt round trip passed. Separate [session/mock trace](../../tests/spikes/results/S1-session-roundtrip-user-log.txt) records session creation and async prompt acceptance. | production app/runtime implementation and remaining tiers |
-| S1 | Tier B | pending | [staged harness run](../../tests/spikes/results/S3-device-harness-20261024-staged.md) covers Tier A device only | production app/runtime implementation and remaining tiers |
+| S1 | Tier A | pending | Two physical harness summaries ([Device 1](Device%201), [Device 2](Test%202)) each report OpenCode 1.19.3 loader, authenticated health, and two complete mock-provider prompt round trips. Both used the same APK SHA-256 `a5e0deb3ab7e6bf61983803a3a8ea3908d3aa064186d449f286d26e7105980b6`. | production app/runtime implementation and required tier-specific device matrix |
+| S1 | Tier B | pending | The two physical runs are Android 16 arm64 devices, but supplied memory/OS data do not establish the specified Tier B profile (6 GB, Android 13/14). See [Device 1](Device%201) and [Device 2](Test%202). | test on representative Tier B device and production app/runtime implementation |
 | S1 | Tier C | pending | none | production app/runtime implementation and remaining tiers |
 | S2 cold start | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | The corrected [physical report](spike-20261025-003215.json) now verifies guest `N=v20.15.1`, `GUEST-OK`, and matching `D/P/N` values in native PTY on one Infinix X6870 device. | production shell wiring, additional device tiers, and any 16 KB-page device; this isolated harness run is not full G0 acceptance |
+| S3 | app sandbox + native PTY | pending | Both [Device 1](Device%201) and [Device 2](Test%202) summaries report `N=v20.15.1`, `GUEST-OK`, and matching native-PTY environment values on Android 16 arm64 devices with 4 KB pages. | production agent-shell wiring, comparison against actual agent bash, representative device tiers, and a 16 KB-page device; isolated harness results are feasibility only |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
-| S7 | Tier A/B/C | pending | Earlier reports show start/stop lifecycle. The [physical report](spike-20261025-003215.json) contains no 30-minute soak. The updated harness can measure a single exploratory foreground-service soak and thermal samples. | agent-task survival, 19/20 repeated runs, and Tier A/B/C coverage |
-| S8 | Gboard + Samsung Keyboard | pending | The [physical report](spike-20261025-003215.json) records 8 text changes and 2 key-down events; keyboard acceptance is explicitly not assessed. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
+| S7 | Tier A/B/C | pending | The exploratory harness soak failed its 30-minute minimum on both devices: [Device 1](Device%201) ran 782,647 ms (~13 min); [Device 2](Test%202) ran 25,237 ms (~25 sec). Both reported a fresh heartbeat at export; screen-off was not measured. | investigate failures; run with screen off and an agent task; 19/20 repeated runs and Tier A/B/C coverage |
+| S8 | Gboard + Samsung Keyboard | pending | Both device summaries identify Gboard, record text changes, and report zero key-down events; keyboard acceptance is not assessed. See [Device 1](Device%201) and [Device 2](Test%202). | Samsung Keyboard and named Gboard acceptance runs, extra-key events, paste/select coverage |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
 | RT-5 | 16 KB-page device | pending | none | no 16 KB-page target available |
-| LC-2 | Tier A/B/C, 30 min background | pending | Updated harness provides one 30-minute foreground-service soak measurement; no result from that test build yet. | running agent task, 19/20 repeated runs, and device-tier coverage |
+| LC-2 | Tier A/B/C, 30 min background | pending | Two exploratory harness runs did not reach the 30-minute duration: ~13 min on Device 1 and ~25 sec on Device 2. Neither measures a production agent task or verified screen-off interval. | diagnose service/process interruptions; agent-task survival; 19/20 repeated runs and device-tier coverage |
 | LC-5 | Tier A/B, 4 h soak | pending | none | runtime implementation and device access |
 | LC-6 | Tier A/B thermal | pending | none | runtime implementation and device access |
 | TERM-5 | Gboard + Samsung Keyboard | pending | none | native PTY implementation and device access |
@@ -153,13 +153,27 @@ linked or appended; host spikes cannot promote device rows.
   mock-provider request. This single harness path is useful evidence but
   does not close the full device matrix or G0.
 - The corrected physical report
-  (`spike-20261025-003215.json`) verifies S3 on one Infinix X6870 / Android
-  16 / arm64 / 4 KB-page device: both guest-shell runs report `N=v20.15.1`
-  and `GUEST-OK`, and the native PTY comparison reports `environmentMatch=true`
-  with the same D/P/N values. It also records the S1 authenticated health
-  check and mock-provider prompt round trip. Its S7 result covers only
-  service start/stop, not a 30-minute soak; S8 observed 8 text changes and
-  2 key-down events but does not assess keyboard acceptance. These results
-  support single-device feasibility only; the two-device run, remaining
-  tiers, 16 KB-page device, and full G0 criteria remain open.
+  (`spike-20261025-003215.json`) first verified S3 on an Infinix X6870 /
+  Android 16 / arm64 / 4 KB-page device: the guest reported `N=v20.15.1`
+  and `GUEST-OK`, and native PTY comparison reported `environmentMatch=true`
+  with the same D/P/N values. It also recorded S1 health and a mock prompt.
+  Subsequent two-device runs are summarized below; they preserve the same
+  S1/S3 feasibility result but add failed exploratory S7 durations and
+  incomplete S8 evidence.
+- Two subsequent device summaries are available:
+  [Device 1](Device%201) is an Infinix X6870 (Android 16, arm64, 4 KB
+  pages); [Device 2](Test%202) is a Nothing A001T / Galaxian (Android 16,
+  arm64, 4 KB pages). Both identify the same debug APK SHA-256
+  (`a5e0deb3ab7e6bf61983803a3a8ea3908d3aa064186d449f286d26e7105980b6`),
+  report successful pinned runtime installation, S1 loader/health/mock
+  prompt, and S3 guest Node/PTY checks. Each has two complete S1 mock
+  round trips in the supplied diagnostics; Device 2 also has one truncated
+  probe. Device 1's latest S7 soak ended at 782,647 ms (~13 minutes) and
+  Device 2's at 25,237 ms (~25 seconds), both below 1,800,000 ms. They
+  therefore fail the harness's 30-minute exploratory criterion. The
+  reports state `screenOff=not-measured`; this is not LC-2 acceptance.
+  Both S8 records identify Gboard, show text changes but zero key-down
+  events, and mark keyboard acceptance not assessed. These results add
+  two-device feasibility data only; neither device is a 16 KB-page target,
+  and the runs do not establish the required tier matrix or G0.
 - G0 remains open; no acceptance value here freezes D4 or D5.

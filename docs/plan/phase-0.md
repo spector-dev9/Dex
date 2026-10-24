@@ -12,22 +12,22 @@ set; G0 is governed by `docs/spec.md` and this phase plan.
 | Decision | Current resolution | Status at G0 | Evidence / remaining work |
 | --- | --- | --- | --- |
 | D1 — distribution | GitHub Releases + Obtainium first; self-hosted F-Droid after reproducible builds; Play deferred; Apache-2.0 app code. | Accepted by owner; release work remains. | `docs/adr/0001-distribution.md`. Complete the S9 legal, source-offer, signing and reproducible-build blockers before release. |
-| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | The corrected physical harness report verifies S3 (Node, guest markers, and native PTY comparison) plus one S1 mock-provider round trip on one Infinix Android 16 device with 4 KB pages. Profile A/B comparison, required device tiers, production shell wiring, and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
+| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | Two corrected physical harness summaries verify Node guest-shell/native-PTY feasibility and S1 mock-provider round trips on Android 16/arm64 devices with 4 KB pages. Profile A/B comparison, representative device tiers, production agent-shell wiring, and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
 | D5 — version pin | Keep OpenCode **1.19.3** as the exact current baseline; verify its manifest hash; reject unknown major versions. Re-evaluate only when a distributable 2.x artifact is available. | Resolved for the current baseline; 2.x compatibility is unverified. | `runtime/manifest.json`, `tests/spikes/results/S6-2.x.md`. The 2.x release-artifact check is blocked, not a reason to silently change the pin. |
 
 **G0 is not complete.** The specification requires S1–S9, Tier A/B/C
-baselines, ratified thresholds, and frozen D1/D4/D5. The corrected
-physical report `docs/evidence/spike-20261025-003215.json` verifies S3
-guest-shell and native-PTY behavior with Node.js 20.15.1, plus S1 health
-and mock-provider behavior, on one Infinix Android 16 device with 4 KB
-pages. This is single-device feasibility evidence, not the required
-device matrix or production-app acceptance. The updated harness adds an
-available S1/S3 suite and a single 30-minute foreground-service soak, but
-that new soak has not yet been run and does not substitute for agent-task
-survival. S2, Tier A/B/C coverage, a 16 KB-page device, full S7 and S8,
-S6's 2.x artifact decision, and S9 compliance remain open. Do not start
-G0-dependent production service wiring or claim gate acceptance until
-these blockers clear.
+baselines, ratified thresholds, and frozen D1/D4/D5. Two physical device
+summaries (`docs/evidence/Device 1` and `docs/evidence/Test 2`) report S3
+guest-shell/native-PTY behavior with Node.js 20.15.1 and successful S1
+health/mock-provider flows on the same APK, on Android 16 arm64 devices
+with 4 KB pages. These are feasibility results, not the required device
+matrix or production-app acceptance. The exploratory S7 soak failed the
+30-minute minimum on both devices (about 13 minutes and 25 seconds); the
+reports do not verify that the screen stayed off or that an agent task
+survived. S2, representative Tier A/B/C coverage, a 16 KB-page device,
+full S7 and S8, S6's 2.x artifact decision, and S9 compliance remain open.
+Do not start G0-dependent production service wiring or claim gate
+acceptance until these blockers clear.
 
 ### G0 sequencing constraint
 
@@ -49,11 +49,11 @@ start/stop probes. Its claimed S3 pass is invalid because output contained
 It records S8 text changes but no key-down events. The report does not
 contain an archive hash, and does not cover a 16 KB-page device, the
 remaining tiers, named keyboard coverage or S7 background survival.
-That invalidated report is superseded for S3 by
-`docs/evidence/spike-20261025-003215.json`, which verifies Node and matching
-guest/PTY values on the same single device. Continue gathering the
-remaining tiers, named keyboard coverage, S7 survival and other device
-results before freezing D4 or ratifying device-dependent thresholds.
+That invalidated report is superseded for S3 by later reports summarized in
+`docs/evidence/Device 1` and `docs/evidence/Test 2`, which verify Node and
+matching guest/PTY values on two devices. Continue gathering the remaining
+tiers, named keyboard coverage, S7 survival and other device results before
+freezing D4 or ratifying device-dependent thresholds.
 
 An isolated device harness now exists at `tests/spikes/harness/` and is
 excluded from normal builds (`-PspikeHarness=true`). It records device
@@ -231,11 +231,13 @@ See `docs/architecture/g1-contracts.md`.
 - [x] Capture one user-reported S1 server-health/session/mock-provider
       prompt round trip; see
       `../../tests/spikes/results/S1-session-roundtrip-user-log.txt`.
-- [x] Run the corrected S3 guest-shell/native-PTY probes on one physical
-      device; see `docs/evidence/spike-20261025-003215.json`.
+- [x] Run the corrected S3 guest-shell/native-PTY probes on two physical
+      devices; see `docs/evidence/Device 1` and `docs/evidence/Test 2`.
+- [x] Run the exploratory S7 30-minute foreground-service soak on both
+      devices; both runs ended below 30 minutes and remain failures.
 - [ ] Complete the S1 device matrix, Tier A/B/C and 16 KB-page tests,
-      two-device S3 comparison, keyboard acceptance, and S7 background
-      survival evidence.
+      production agent-shell comparison, keyboard acceptance, and
+      agent-task S7 background-survival evidence.
 
 ## Phase 0 exit criteria
 
@@ -251,14 +253,14 @@ See `docs/architecture/g1-contracts.md`.
 
 | ID | Status | Evidence |
 | --- | --- | --- |
-| S1 | partial (host + one physical device; loader, health, and mock prompt on device) | `tests/spikes/results/S1-host-smoke.md`, `docs/evidence/spike-20261025-003215.json` |
+| S1 | partial (host + two physical devices; loader, health, and mock prompt on both) | `tests/spikes/results/S1-host-smoke.md`, `docs/evidence/Device 1`, `docs/evidence/Test 2` |
 | S2 | partial (host); device + git/npm + thermals pending | `tests/spikes/results/S2-host-profiles.md` |
-| S3 | partial (one corrected physical harness run verifies Node and matching guest/PTY fields; production agent-shell wiring and device matrix pending) | `tests/spikes/results/S3-shell.md`, `docs/evidence/spike-20261025-003215.json`, `docs/evidence/RESULTS.md` |
+| S3 | partial (two physical harness summaries verify Node and matching guest/PTY fields; production agent-shell wiring and device matrix pending) | `tests/spikes/results/S3-shell.md`, `docs/evidence/Device 1`, `docs/evidence/Test 2`, `docs/evidence/RESULTS.md` |
 | S4 | pass (host, mock + real provider); app/UI pending | `tests/spikes/results/S4-sse.md` |
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
-| S7 | partial (one device; start/stop observed, 30-minute survival and tier matrix pending; new harness soak not yet run) | `docs/evidence/RESULTS.md` |
-| S8 | partial (one device report observes text and key events but does not assess keyboard acceptance; required Gboard/Samsung runs pending) | `docs/evidence/RESULTS.md` |
+| S7 | partial (30-minute exploratory soak attempted on two devices; both failed the duration threshold; agent-task and tier matrix pending) | `docs/evidence/Device 1`, `docs/evidence/Test 2`, `docs/evidence/RESULTS.md` |
+| S8 | partial (two devices identify Gboard and record text changes, but zero key-down events; acceptance not assessed; Samsung run pending) | `docs/evidence/Device 1`, `docs/evidence/Test 2`, `docs/evidence/RESULTS.md` |
 | S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes
