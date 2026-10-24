@@ -199,18 +199,25 @@ class MainActivity : Activity() {
     }
 
     private fun writeReport() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 101)
+            statusView.text = "Allow storage access, then tap Write JSON report again"
+            return
+        }
         statusView.text = "Writing report..."
         executor.execute {
-            val file = try {
+            val report = try {
                 SpikeReport.write(this)
-            } catch (t: Throwable) {
-                runOnUiThread { statusView.text = "Report failed: ${t.message}" }
+            } catch (error: Exception) {
+                runOnUiThread { statusView.text = "Report failed: ${error.message ?: error.javaClass.simpleName}" }
                 null
             }
-            if (file != null) {
+            if (report != null) {
                 runOnUiThread {
-                    statusView.text = "Report: $file"
-                    append(ProbeRecord("report", true, "wrote $file"))
+                    statusView.text = "Saved report to ${report.downloadLocation}"
+                    append(ProbeRecord("report", true, "wrote ${report.downloadLocation}"))
                 }
             }
         }

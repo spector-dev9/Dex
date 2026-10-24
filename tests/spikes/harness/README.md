@@ -68,7 +68,11 @@ adb shell run-as io.github.spectordev9.opencode.spike.debug \
 
 Then open **OpenCode Spike Harness**, press **Refresh**, and run the
 probes. The report is written to `files/reports/` and the app-external
-`Android/data/io.github.spectordev9.opencode.spike.debug/files/reports/`.
+`Android/data/io.github.spectordev9.opencode.spike.debug/files/reports/`,
+and exported as `Download/OpenCodeSpike/spike-<timestamp>.json` so it is
+visible in the device's Downloads folder. Android 10 and later use the
+Downloads media collection; Android 9 and earlier request storage permission
+when exporting. Tap **Write JSON report** after running the probes.
 
 ```bash
 adb shell run-as io.github.spectordev9.opencode.spike.debug ls files/reports
