@@ -44,7 +44,7 @@ linked or appended; host spikes cannot promote device rows.
 | S3 | app sandbox + native PTY | pending | Both [Device 1](Device%201) and [Device 2](Test%202) summaries report `N=v20.15.1`, `GUEST-OK`, and matching native-PTY environment values on Android 16 arm64 devices with 4 KB pages. | production agent-shell wiring, comparison against actual agent bash, representative device tiers, and a 16 KB-page device; isolated harness results are feasibility only |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
 | S7 | Tier A/B/C | pending | The exploratory harness soak failed its 30-minute minimum on both devices: [Device 1](Device%201) ran 782,647 ms (~13 min); [Device 2](Test%202) ran 25,237 ms (~25 sec). Both reported a fresh heartbeat at export; screen-off was not measured. | investigate failures; run with screen off and an agent task; 19/20 repeated runs and Tier A/B/C coverage |
-| S8 | Gboard + Samsung Keyboard | pending | Both device summaries identify Gboard, record text changes, and report zero key-down events; keyboard acceptance is not assessed. See [Device 1](Device%201) and [Device 2](Test%202). | Samsung Keyboard and named Gboard acceptance runs, extra-key events, paste/select coverage |
+| S8 | Gboard + Samsung Keyboard | pending | Both device summaries identify Gboard and record text changes. Zero hardware key-down events is expected for a soft IME and is not a failure; keyboard acceptance is not assessed. See [Device 1](Device%201) and [Device 2](Test%202). | Samsung Keyboard and named Gboard acceptance runs, extra-key events, paste/select coverage |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
 | RT-5 | 16 KB-page device | pending | none | no 16 KB-page target available |
@@ -66,10 +66,15 @@ linked or appended; host spikes cannot promote device rows.
   the staged archive SHA-256, so it does not independently prove
   byte-for-byte correspondence with the pinned artifact.
 - The new S8 result confirms text changes were recorded but reports
-  `keyDownEvents=0`; it does not demonstrate hardware-key events,
-  keyboard identity, paste/select behavior, or named Gboard/Samsung
-  coverage. The `16KB-ok` strings describe native ELF load alignment;
-  this device reports 4096-byte pages and is not 16 KB-device evidence.
+  `keyDownEvents=0`. That zero count is expected for a soft keyboard,
+  which normally sends text through `InputConnection` rather than
+  `KeyEvent`; it is not a keyboard failure. The harness now records
+  `commitText`, composing, deletion, IME key, editor-action, content-commit,
+  selection and context-menu events in addition to hardware keys. The
+  historical report still does not demonstrate hardware-key events,
+  paste/select behavior, or named Gboard/Samsung acceptance. The `16KB-ok`
+  strings describe native ELF load alignment; this device reports
+  4096-byte pages and is not 16 KB-device evidence.
 - The `partial-host` value is retained for existing spike records under
   `tests/spikes/results/`; no row above is promoted by those records.
 - S2 remains `pending`: the app has no Profile B implementation and no

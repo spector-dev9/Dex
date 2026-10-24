@@ -10,10 +10,8 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
-import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -26,11 +24,9 @@ class MainActivity : Activity() {
     private lateinit var resultsView: TextView
     private lateinit var statusView: TextView
     private lateinit var imeView: TextView
-    private lateinit var imeField: EditText
+    private lateinit var imeField: ImeProbeEditText
     private lateinit var soakView: TextView
     private var imeTextChanges = 0
-    private var imeKeyDownEvents = 0
-    private var imeLastKey = "none"
     private var imeObservationNumber = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -129,9 +125,9 @@ class MainActivity : Activity() {
 
         root.addView(label("S8 keyboard/IME probe"))
         root.addView(label("Test with Gboard and Samsung Keyboard where available; use the extra-key row, hardware keys, paste and selection."))
-        imeView = monospace().apply { text = "No key events yet." }
+        imeView = monospace().apply { text = "No input captured yet." }
         root.addView(imeView)
-        imeField = EditText(this).apply {
+        imeField = ImeProbeEditText(this).apply {
             hint = "Type, use extra keys, paste and select text here."
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             setSingleLine(false)
@@ -141,13 +137,8 @@ class MainActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 dp(96),
             )
-            setOnKeyListener { _, keyCode, event ->
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    imeKeyDownEvents++
-                    imeLastKey = "${KeyEvent.keyCodeToString(keyCode)} code=$keyCode"
-                    imeView.text = "key=${KeyEvent.keyCodeToString(keyCode)} code=$keyCode"
-                }
-                false
+            eventListener = { event ->
+                imeView.text = "${imeView.text}\n$event"
             }
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -170,11 +161,10 @@ class MainActivity : Activity() {
         root.addView(button("Clear results") {
             SpikeReport.clear()
             imeField.setText("")
+            imeField.resetCounters()
             imeTextChanges = 0
-            imeKeyDownEvents = 0
-            imeLastKey = "none"
             imeObservationNumber = 0
-            imeView.text = "No key events yet."
+            imeView.text = "No input captured yet."
             resultsView.text = ""
             statusView.text = "Cleared"
         })
@@ -347,21 +337,35 @@ class MainActivity : Activity() {
     }
 
     private fun recordImeObservation() {
-        if (imeTextChanges == 0 && imeKeyDownEvents == 0) return
+        val hasInput = imeTextChanges > 0 ||
+            imeField.commitTextEvents > 0 ||
+            imeField.composingTextEvents > 0 ||
+            imeField.imeSendKeyEvents > 0 ||
+            imeField.hardwareKeyDownEvents > 0
+        if (!hasInput) return
         val ime = SpikeProbe.defaultInputMethod(this)
         val record = ProbeRecord(
             id = "S8-ime-observation-${++imeObservationNumber}",
-            pass = imeTextChanges > 0,
+            pass = hasInput,
             detail = "textChanges=$imeTextChanges; finalTextLength=${imeField.text.length}; " +
-                "keyDownEvents=$imeKeyDownEvents; lastKey=$imeLastKey; defaultIme=$ime; " +
+                "hardwareKeyDownEvents=${imeField.hardwareKeyDownEvents}; " +
+                "imeSendKeyEvents=${imeField.imeSendKeyEvents}; " +
+                "commitTextEvents=${imeField.commitTextEvents}; " +
+                "composingTextEvents=${imeField.composingTextEvents}; " +
+                "deleteSurroundingEvents=${imeField.deleteSurroundingEvents}; " +
+                "editorActions=${imeField.editorActions}; " +
+                "contentCommits=${imeField.contentCommits}; " +
+                "selectionChanges=${imeField.selectionChanges}; " +
+                "contextMenuEvents=${imeField.contextMenuEvents}; " +
+                "lastEvent=${imeField.lastEvent}; defaultIme=$ime; " +
+                "captureModel=InputConnection+TextWatcher+hardwareKey; " +
                 "keyboardAcceptance=not-assessed; input text omitted",
         )
         SpikeReport.add(record)
         append(record)
         imeField.setText("")
+        imeField.resetCounters()
         imeTextChanges = 0
-        imeKeyDownEvents = 0
-        imeLastKey = "none"
         imeView.text = "Recorded $ime; start the next keyboard's observation."
     }
 }

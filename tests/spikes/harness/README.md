@@ -23,8 +23,9 @@ The harness currently covers:
 - S7 partial: a single 30-minute `specialUse` foreground-service soak,
   with persisted heartbeats and thermal-status samples; it is not the
   agent-task 19/20 acceptance test;
-- S8 partial: keyboard/IME input observation in a text field; this is
-  not a native terminal and does not replace the PTY comparison;
+- S8 partial: keyboard/IME input observation in a text field using
+  `InputConnection`, `TextWatcher` and hardware-key capture; this is not
+  a native terminal and does not replace the PTY comparison;
 - a JSON report with command lines, exit codes and bounded stdout/stderr.
   The report also includes the installed APK SHA-256, device memory/page
   size, default IME, battery-optimization state, and thermal status.
@@ -87,8 +88,10 @@ On each device:
    Keyboard where available. Try the extra-key row, hardware keys, paste and
    text selection, then tap **Record this keyboard's observation** before
    switching IMEs. The report captures a separate IME identity and observed
-   text/key event record for each run but intentionally does not mark
-   keyboard acceptance as passed.
+   input record for each run but intentionally does not mark keyboard
+   acceptance as passed. Soft keyboards normally deliver text through
+   `InputConnection.commitText`/`setComposingText`, not `KeyEvent`, so a
+   zero hardware `keyDownEvents` count is expected and is not a failure.
 5. Tap **Write JSON report** and provide the JSON from both devices.
 
 This APK can collect only the device-side feasibility probes listed above.
@@ -137,9 +140,13 @@ root, so Alpine's `/bin/sh -> /bin/busybox` link does not need to be
 rewritten on the device.
 
 When writing the JSON report, the harness includes an `S8-ime-observation`
-result with text-change count, final text length, observed key-down
-count/last key, and the default IME package/class. A pass means only that
-text changed; keyboard acceptance is explicitly not assessed. Typed text
+result with text-change count, final text length, hardware-key count,
+`InputConnection` counters (`commitText`, `setComposingText`,
+`deleteSurroundingText`, `sendKeyEvent`, editor actions and content
+commits), selection/context-menu counts, the last observed event and the
+default IME package/class. A pass means input was observed; keyboard
+acceptance is explicitly not assessed. Hardware `keyDownEvents=0` is
+normal for soft keyboards and must not be treated as a failure. Typed text
 itself is not included. S9 is release-compliance evidence and is not an
 on-device probe.
 

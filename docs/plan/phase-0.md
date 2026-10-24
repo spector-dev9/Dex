@@ -46,7 +46,7 @@ A later report for one Infinix X6870 (Android 16, arm64-v8a, 4 KB pages)
 records successful official-version loader and basic foreground-service
 start/stop probes. Its claimed S3 pass is invalid because output contained
 `node: not found` and literal `******` in place of the compared values.
-It records S8 text changes but no key-down events. The report does not
+It records S8 text changes but no key-down events (expected for a soft IME). The report does not
 contain an archive hash, and does not cover a 16 KB-page device, the
 remaining tiers, named keyboard coverage or S7 background survival.
 That invalidated report is superseded for S3 by later reports summarized in
@@ -260,7 +260,7 @@ See `docs/architecture/g1-contracts.md`.
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
 | S7 | partial (30-minute exploratory soak attempted on two devices; both failed the duration threshold; agent-task and tier matrix pending) | `docs/evidence/Device 1`, `docs/evidence/Test 2`, `docs/evidence/RESULTS.md` |
-| S8 | partial (two devices identify Gboard and record text changes, but zero key-down events; acceptance not assessed; Samsung run pending) | `docs/evidence/Device 1`, `docs/evidence/Test 2`, `docs/evidence/RESULTS.md` |
+| S8 | partial (two devices identify Gboard and record text changes; zero hardware key-down events is expected for soft IMEs and is not a failure; acceptance not assessed; Samsung run pending) | `docs/evidence/Device 1`, `docs/evidence/Test 2`, `docs/evidence/RESULTS.md` |
 | S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes
@@ -320,7 +320,7 @@ infer completion of the following tests:
 | S2 runtime profiles | No comparable per-device cold start, idle PSS/RSS, 10k-file Git status, agent `npm test`, or thermal results for Profiles A and B. | Execute the prescribed workloads on Tier A/B and record repeated measurements before deciding D4. |
 | Tier coverage and RT-5 | Only Infinix X6870, Android 16, arm64-v8a, 4096-byte pages is represented. No Tier B/C or 16384-byte-page boot evidence exists. | Acquire and test the specified targets; include page size, ABI, thermal state, run count, packaged artifact hashes, and ELF alignment results. |
 | S7 / LC lifecycle | One-device foreground-service start/stop is present; background task survival, crash recovery, soak and thermal acceptance are absent. | Run the required duration/repetition on Tier A/B/C and classify failures from diagnostics. |
-| S8 / TERM-5 keyboard | Existing run has text changes but zero key-down events; owner attestation does not establish IME identity or test coverage. | Capture named Gboard and Samsung Keyboard runs, including extra keys, paste/select, and observed key events. |
+| S8 / TERM-5 keyboard | Existing run records text changes through a soft IME; zero hardware key-down events is expected and is not a failure. Owner attestation does not establish IME identity or full test coverage. | Capture named Gboard and Samsung Keyboard runs with the harness's `InputConnection` counters, including extra keys, paste/select, and observed input events. |
 | S6 / 2.x | No distributable OpenCode 2.x artifact is available to test. | Keep the 1.19.3 pin and run contract tests only when a distributable candidate exists. |
 
 Device rows in `docs/evidence/RESULTS.md` therefore remain `pending`.
