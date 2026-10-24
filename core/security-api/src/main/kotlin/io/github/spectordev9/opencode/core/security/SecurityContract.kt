@@ -4,8 +4,12 @@ import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.common.SecretRef
 
 interface SecretStore {
+    /**
+     * Implementations must copy the supplied array before returning.
+     */
     suspend fun put(ref: SecretRef, secret: CharArray): ApiResult<Unit>
 
+    /** Returns an array owned by the caller, which may be cleared after use. */
     suspend fun get(ref: SecretRef): ApiResult<CharArray>
 
     suspend fun delete(ref: SecretRef): ApiResult<Unit>

@@ -26,6 +26,7 @@ include(
     ":core:opencode-client",
     ":core:runtime",
     ":core:runtime-api",
+    ":core:security",
     ":core:security-api",
     ":core:supervisor-api",
     ":core:terminal-api",

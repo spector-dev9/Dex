@@ -38,7 +38,7 @@ interfaces. Remote-provider traffic is in scope only for v1.1.
 
 | ID | Threat | Impact | Controls | Residual / verification |
 | --- | --- | --- | --- | --- |
-| T1 | Local app calls loopback routes | Shell/file control | D7: per-install 256-bit secret, Basic auth, Keystore; free port; 127.0.0.1 bind; gateway is the only holder | Verified on 1.19.3: no password → all routes 200; password → 401 without Basic `opencode:<secret>`. SEC-1 must test from a second UID. |
+| T1 | Local app calls loopback routes | Shell/file control | D6: random 256-bit per-launch secret, Basic auth, Keystore; free port; 127.0.0.1 bind; gateway is the only holder | Core credential generation and Basic verification are implemented behind `SecretStore`; production Keystore storage, listener integration, and SEC-1 second-UID testing remain open. On 1.19.3, no password leaves all routes open; setting the password enforces Basic `opencode:<secret>`. |
 | T2 | Hostile repo content (hooks, config, symlinks) | Code execution, data theft | Explicit permission prompts (SEC-4); no auto-approve default; workspace path policy (WS-1); git hooks visible; HTTPS-only git (D9) | Repo-specific hook execution remains user-visible but powerful. Needs a test fixture repo. |
 | T3 | Prompt-injected agent actions | Unwanted writes/shell | Every permission request shown and answerable (SEC-4); transcript shows agent file/shell calls; no silent background approvals | Model-dependent. Add E2E prompt-injection fixtures. |
 | T4 | Credential exfiltration | Account/repo compromise | Keystore-wrapped secrets (D7); GIT_ASKPASS helper, no tokens in URLs (D9); provider credentials mode 600; log scrubber (SEC-2); backups disabled | Verified only by design so far; SEC-2 scan pending. |
