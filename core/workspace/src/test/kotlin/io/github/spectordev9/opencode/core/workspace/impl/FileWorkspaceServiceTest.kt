@@ -127,6 +127,100 @@ class FileWorkspaceServiceTest {
     }
 
     @Test
+    fun `all 60 file and folder operation cases preserve their names and contents`() = runBlocking {
+        val root = createTempDirectory("workspace-operation-matrix")
+        val service = FileWorkspaceService(root)
+        val names = listOf("plain", "with space", "single'quote", "double\"quote", "café", "empty file")
+        val operations = listOf("create", "rename", "move", "trash", "restore")
+        var caseNumber = 0
+
+        suspend fun createItem(path: String, directory: Boolean, name: String) {
+            if (directory) {
+                assertIs<ApiResult.Success<Entry>>(service.mkdir(path))
+                assertIs<ApiResult.Success<WriteReceipt>>(
+                    service.write("$path/child.txt", "nested:$name".toByteArray(), Precondition.None),
+                )
+            } else {
+                val data = if (name == "empty file") byteArrayOf() else "content:$name".toByteArray()
+                assertIs<ApiResult.Success<WriteReceipt>>(service.write(path, data, Precondition.None))
+            }
+        }
+
+        suspend fun assertPresent(path: String, directory: Boolean, name: String) {
+            val entry = assertIs<ApiResult.Success<Entry>>(service.stat(path)).value
+            assertEquals(if (directory) EntryKind.DIRECTORY else EntryKind.FILE, entry.kind)
+            if (directory) {
+                val nested = assertIs<ApiResult.Success<Chunk>>(service.readRange("$path/child.txt", 0, 256)).value
+                assertContentEquals("nested:$name".toByteArray(), nested.bytes)
+            } else {
+                val expected = if (name == "empty file") byteArrayOf() else "content:$name".toByteArray()
+                val contents = assertIs<ApiResult.Success<Chunk>>(service.readRange(path, 0, 256)).value
+                assertContentEquals(expected, contents.bytes)
+            }
+        }
+
+        for (name in names) {
+            for (directory in listOf(false, true)) {
+                for (operation in operations) {
+                    caseNumber += 1
+                    val base = "/case-$caseNumber"
+                    Files.createDirectory(root.resolve("case-$caseNumber"))
+
+                    when (operation) {
+                        "create" -> {
+                            val target = "$base/$name"
+                            createItem(target, directory, name)
+                            assertPresent(target, directory, name)
+                        }
+
+                        "rename" -> {
+                            val source = "$base/$name"
+                            val target = "$base/$name-renamed"
+                            createItem(source, directory, name)
+                            assertIs<ApiResult.Success<Entry>>(service.rename(source, target))
+                            assertPresent(target, directory, name)
+                            assertIs<ApiResult.Failure>(service.stat(source))
+                        }
+
+                        "move" -> {
+                            assertIs<ApiResult.Success<Entry>>(service.mkdir("$base/source"))
+                            assertIs<ApiResult.Success<Entry>>(service.mkdir("$base/destination"))
+                            val source = "$base/source/$name"
+                            val target = "$base/destination/$name"
+                            createItem(source, directory, name)
+                            assertIs<ApiResult.Success<Entry>>(service.move(source, target))
+                            assertPresent(target, directory, name)
+                            assertIs<ApiResult.Failure>(service.stat(source))
+                        }
+
+                        "trash" -> {
+                            val source = "$base/$name"
+                            createItem(source, directory, name)
+                            assertIs<ApiResult.Success<io.github.spectordev9.opencode.core.common.TrashId>>(
+                                service.trash(source),
+                            )
+                            assertIs<ApiResult.Failure>(service.stat(source))
+                        }
+
+                        "restore" -> {
+                            val source = "$base/$name"
+                            createItem(source, directory, name)
+                            val id =
+                                assertIs<ApiResult.Success<io.github.spectordev9.opencode.core.common.TrashId>>(
+                                    service.trash(source),
+                                ).value
+                            assertIs<ApiResult.Success<Entry>>(service.restore(id))
+                            assertPresent(source, directory, name)
+                        }
+                    }
+                }
+            }
+        }
+
+        assertEquals(60, caseNumber)
+    }
+
+    @Test
     fun `restore conflicts rather than overwriting a recreated path`() = runBlocking {
         val root = createTempDirectory("workspace-restore-conflict")
         Files.writeString(root.resolve("item.txt"), "original")
