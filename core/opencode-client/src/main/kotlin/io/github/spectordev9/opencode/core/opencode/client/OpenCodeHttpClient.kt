@@ -89,6 +89,13 @@ class OpenCodeHttpClient(
             ApiResult.Success(operation.decoder.decode(response.code, response.body))
         } catch (cancelled: CancellationException) {
             throw cancelled
+        } catch (tooLarge: ResponseBodyTooLargeException) {
+            ApiResult.Failure(
+                ApiError(
+                    ErrorCode.E_TOO_LARGE,
+                    "OpenCode response exceeds the ${tooLarge.limitBytes / ResponseBodySizeGuard.MEBIBYTE} MiB limit",
+                ),
+            )
         } catch (timeout: SocketTimeoutException) {
             ApiResult.Failure(ApiError(ErrorCode.E_TIMEOUT, "OpenCode request timed out"))
         } catch (io: IOException) {
@@ -327,12 +334,26 @@ class OpenCodeHttpClient(
                     }
 
                     override fun onResponse(call: Call, response: Response) {
-                        response.use {
-                            val result = HttpResponse(
-                                code = it.code,
-                                body = it.body?.bytes() ?: ByteArray(0),
-                            )
+                        try {
+                            val result = response.use {
+                                HttpResponse(
+                                    code = it.code,
+                                    body = if (it.code in 200..299) {
+                                        it.body?.let { body ->
+                                            ResponseBodySizeGuard.read(
+                                                body.byteStream(),
+                                                body.contentLength(),
+                                                ResponseBodySizeGuard.limitForPath(request.url.encodedPath),
+                                            )
+                                        } ?: ByteArray(0)
+                                    } else {
+                                        ByteArray(0)
+                                    },
+                                )
+                            }
                             if (continuation.isActive) continuation.resume(result)
+                        } catch (failure: IOException) {
+                            if (continuation.isActive) continuation.resumeWithException(failure)
                         }
                     }
                 },

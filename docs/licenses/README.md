@@ -48,6 +48,9 @@ offer is a release blocker until reviewed.
 - [SOURCE-OFFER.md](SOURCE-OFFER.md) — draft GPL/LGPL/MPL source offer.
 - [bun-lgpl-review.md](bun-lgpl-review.md) — Bun LGPL legal-review packet.
 - [texts/](texts/) — license texts and `SHA256SUMS`.
+- `texts/hjinlabs-netizen-opencode-android-MIT.txt` preserves the MIT notice
+  for the response-size guard adaptation documented in `docs/UPSTREAM.md`;
+  app license assets include project-specific text files from `texts/`.
 
 Regenerate after any runtime, rootfs or dependency change:
 
@@ -81,11 +84,14 @@ python3 scripts/build-licenses.py
       APKBUILDs and upstream sources.
 - [x] Copy MIT, Apache-2.0, GPL-2.0 and other required texts into
       `docs/licenses/texts/`.
+- [x] Preserve the MIT copyright and permission notice for the adapted
+      response-size guard and package it with the app license assets.
 - [x] Include CC-BY attribution and license texts for `caniuse-lite`
       and `spdx-exceptions`.
 - [x] Add the license texts to an in-app "Open source licenses" screen.
       Verified `:app:syncLicenses` and `:app:mergeDebugAssets`
-      package `NOTICES.md`, `SOURCE-OFFER.md` and all 16 texts;
+      package `NOTICES.md`, `SOURCE-OFFER.md`, the generic license texts, and
+      project-specific license notices;
       merged assets are byte-identical to `docs/licenses` (2026-10-23).
 - [ ] Publish the PRoot corresponding source (or a written offer) with
       each release.

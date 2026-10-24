@@ -5,6 +5,7 @@ import io.github.spectordev9.opencode.core.common.ErrorCode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -103,6 +104,21 @@ class OpenCodeHttpClientTest {
     }
 
     @Test
+    fun `maps an oversized chunked response to a typed size error`() = runBlocking {
+        val body = " ".repeat((ResponseBodySizeGuard.DEFAULT_MAX_BYTES + 1).toInt())
+        server.enqueue(MockResponse().setChunkedBody(body, 8 * 1024))
+
+        val result = client.listSessions("/workspace")
+        server.takeRequest()
+        val error = when (result) {
+            is ApiResult.Failure -> result.error
+            is ApiResult.Success -> throw AssertionError("expected oversized-response failure")
+        }
+
+        assertEquals(ErrorCode.E_TOO_LARGE, error.code)
+    }
+
+    @Test
     fun `event flow authenticates and decodes server connected event`() = runBlocking {
         server.enqueue(
             MockResponse()
@@ -122,5 +138,23 @@ class OpenCodeHttpClientTest {
         assertEquals("/workspace", request.requestUrl?.queryParameter("directory"))
         assertEquals(Credentials.basic("opencode", "test-password"), request.getHeader("Authorization"))
         assertEquals("text/event-stream", request.getHeader("Accept"))
+    }
+
+    @Test
+    fun `event stream accepts an event larger than the JSON response limit`() = runBlocking {
+        val payload = "x".repeat((ResponseBodySizeGuard.DEFAULT_MAX_BYTES + 1).toInt())
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "text/event-stream")
+                .setChunkedBody(
+                    """data: {"id":"evt_large","type":"test.large","properties":{"content":"$payload"}}""" +
+                        "\n\n",
+                    8 * 1024,
+                ),
+        )
+
+        val event = client.events().first()
+
+        assertEquals(payload, (event.payload["content"] as? JsonPrimitive)?.content)
     }
 }
