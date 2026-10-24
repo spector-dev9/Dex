@@ -1,0 +1,174 @@
+test results device 2.log
+Generated from: spike-20261025-005523.json + s1-server-diagnostics.log*.txt
+Report generatedAt: 2026-10-25T00:55:23+05:30
+Scope: Isolated pre-G0 device feasibility evidence; not production-app acceptance.
+Device label: Device 2 (per request; supplied evidence identifies Nothing A001T / Galaxian)
+
+DEVICE
+manufacturer=Nothing
+model=A001T
+device=Galaxian
+buildFingerprint=Nothing/GalaxianIND/Galaxian:16/BP2A.250605.031.A3/2608191839:user/release-keys
+androidRelease=16
+sdkInt=36
+supportedAbis=arm64-v8a
+supported64BitAbis=arm64-v8a
+buildTags=release-keys
+buildType=user
+pageSize=4096
+totalMemoryBytes=7763558400
+memoryClassMiB=256
+lowRamDevice=false
+ignoringBatteryOptimizations=false
+thermalStatusAtReport=0
+defaultInputMethod=com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME
+applicationId=io.github.spectordev9.opencode.spike.debug
+appVersionName=0.1.0-spike
+appVersionCode=1
+apkSha256=a5e0deb3ab7e6bf61983803a3a8ea3908d3aa064186d449f286d26e7105980b6
+runtimeDir=/data/user/0/io.github.spectordev9.opencode.spike.debug/files/spike
+
+SUMMARY
+TOTAL_RESULT_ENTRIES=21
+PASS=20
+FAIL=1
+OVERALL=FAIL
+Note: Source report contains duplicate S1/S3 native/layout entries; these are recorded as supplied.
+
+DETAILED RESULTS
+
+[PASS] runtime-download
+  detail=OpenCode 1.19.3 archive and executable hashes present; Alpine 3.20.3; Node 20.15.1 installed
+  durationMs=3127
+
+[PASS] S1-native-loader
+  detail=libldmusl.so size=723408 executable=true minLoadAlign=65536 16KB-ok
+
+[PASS] S3-native-proot
+  detail=libproot.so size=258576 executable=true minLoadAlign=16384 16KB-ok
+
+[PASS] S3-native-proot-loader
+  detail=libproot_loader.so size=18136 executable=true minLoadAlign=16384 16KB-ok
+
+[PASS] runtime-layout
+  detail=runtime layout complete at /data/user/0/io.github.spectordev9.opencode.spike.debug/files/spike
+
+[PASS] S1-native-loader (duplicate entry in source)
+  detail=libldmusl.so size=723408 executable=true minLoadAlign=65536 16KB-ok
+
+[PASS] S3-native-proot (duplicate entry in source)
+  detail=libproot.so size=258576 executable=true minLoadAlign=16384 16KB-ok
+
+[PASS] S3-native-proot-loader (duplicate entry in source)
+  detail=libproot_loader.so size=18136 executable=true minLoadAlign=16384 16KB-ok
+
+[PASS] runtime-layout (duplicate entry in source)
+  detail=runtime layout complete at /data/user/0/io.github.spectordev9.opencode.spike.debug/files/spike
+
+[PASS] S1-loader
+  detail=exit=0; stdout=1.19.3
+  durationMs=1107
+
+[PASS] S3-guest-shell
+  detail=exit=0; D=/root; P=/system/bin:/system/xbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; N=v20.15.1; Alpine=3.20.3; GUEST-OK
+  durationMs=155
+
+[PASS] S3-guest-shell (duplicate entry in source)
+  detail=exit=0; D=/root; P=/system/bin:/system/xbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; N=v20.15.1; Alpine=3.20.3; GUEST-OK
+  durationMs=154
+
+[PASS] S3-native-pty
+  detail=exit=0 terminalSize=80x24 environmentMatch=true; GUEST-PTY-OK
+  durationMs=293
+
+[PASS] S8-ime-observation-1
+  detail=textChanges=3; finalTextLength=3; keyDownEvents=0; lastKey=none; defaultIme=com.google.android.inputmethod.latin/com.android.inputmethod.latin.LatinIME; keyboardAcceptance=not-assessed; input text omitted
+
+[PASS] S7-soak-finish-requested
+  detail=Foreground service stop requested
+
+[PASS] S7-soak-start-requested
+  detail=Start requested; background the app, turn the screen off, and return after at least 30 minutes to finish the run
+
+[PASS] S7-service
+  detail=onCreate
+
+[PASS] S7-service
+  detail=startForeground onStartCommand startId=1
+
+[FAIL] S7-background-survival
+  detail=elapsedMs=25237; minimumRequiredMs=1800000; heartbeats=1; serviceRestarts=0; serviceHeartbeatFresh=true; thermalSamples=1; thermalBelowModerate=1; maximumThermalStatus=0; screenOff=not-measured; this is one harness-service run, not the agent-task 19/20 device-matrix acceptance test
+  durationMs=25237
+
+[PASS] S7-soak-finish-requested
+  detail=Foreground service stop requested
+
+[PASS] S7-service
+  detail=onDestroy
+
+S1 SERVER DIAGNOSTICS SUMMARY
+Probe starts observed=3
+Complete mock prompt round trips=2
+Incomplete/truncated probe=1
+All observed authenticated health checks returned status=200.
+All observed mock prompt round trips observed providerRequests=1 and mock-prompt-passed.
+
+S1 PROBE SESSION 1
+1792869776785 probe-start
+1792869777002 runtime-ready
+1792869777042 probe-directories-ready
+1792869777067 probe-config-ready serverPort=33685 mockPort=37599
+1792869777107 mock-provider-listening port=37599
+1792869777129 opencode-process-started alive=true
+1792869781463 authenticated-health-passed status=200 elapsedMs=4319 processExit=null
+1792869781505 session-create-request
+1792869782347 prompt-async-request sessionID=ses_e90a22cc5ffeMGre6YcCo9fI9n
+1792869782463 prompt-accepted
+1792869785727 mock-response-observed providerRequests=1
+1792869785760 mock-prompt-passed mock prompt round trip passed; provider requests=1
+1792869785805 probe-shutdown
+RESULT=S1 mock prompt round trip passed
+
+S1 PROBE SESSION 2
+1792869927556 probe-start
+1792869927581 runtime-ready
+1792869927605 probe-directories-ready
+1792869927631 probe-config-ready serverPort=46405 mockPort=38427
+1792869927655 mock-provider-listening port=38427
+1792869927673 opencode-process-started alive=true
+1792869932037 authenticated-health-passed status=200 elapsedMs=4347 processExit=null
+1792869932071 session-create-request
+1792869932570 prompt-async-request sessionID=ses_e909fe200ffekGPWKsof3eZ0Gf
+1792869932635 prompt-accepted
+1792869936501 mock-response-observed providerRequests=1
+1792869936536 mock-prompt-passed mock prompt round trip passed; provider requests=1
+1792869936563 probe-shutdown
+RESULT=S1 mock prompt round trip passed
+
+S1 PROBE SESSION 3
+1792869955271 probe-start
+1792869955347 runtime-ready
+1792869955372 probe-directories-ready
+1792869955404 probe-config-ready serverPort=42695 mockPort=41997
+1792869955423 mock-provider-listening port=41997
+1792869955438 opencode-process-started alive=true
+RESULT=INCOMPLETE/TRUNCATED — no authenticated-health, session-create, prompt, mock-response, or shutdown events supplied for this probe in the provided logs
+
+KNOWN NOT COVERED
+- S1 Profile A/B comparison and the complete Tier A/B/C device matrix
+- S2 Profile A/B performance comparison; Profile B is not implemented
+- S4/S5 host-side SSE and endpoint contract checks
+- S6 OpenCode 2.x contract test; no distributable 2.x artifact is available
+- S7 agent-task 19/20 background-survival acceptance; this APK measures one harness-service soak
+- S8/TERM-5 terminal input acceptance on both Gboard and Samsung Keyboard
+- RT/STR/WS/TERM production-app and UI acceptance tests
+- SEC production security, second-UID, and release-manifest acceptance tests
+- S9 release, licensing, and distribution compliance
+- 16 KB-page-device boot, four-hour memory soak, and production thermal acceptance
+
+FINAL
+- Pre-G0 device feasibility evidence: PARTIAL PASS
+- Production-app acceptance: NOT PASSED / NOT COVERED
+- Blocking failure in supplied results: S7-background-survival
+  observed elapsedMs=25237, required minimumRequiredMs=1800000
+- Additional acceptance coverage remains missing per KNOWN NOT COVERED.
