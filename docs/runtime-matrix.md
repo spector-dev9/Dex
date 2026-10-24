@@ -20,9 +20,10 @@ The extracted `opencode` executable SHA-256 is pinned separately as
 and checked by runtime readiness and spike staging.
 The official archive contains only the `opencode` executable. Alpine provides
 the musl loader; pinned Alpine `libgcc` and `libstdc++` packages provide the
-other ELF dependencies. Host/device evidence recorded against the former
-community archive must be rerun against this official package before it is
-used to evaluate D4.
+other ELF dependencies. Earlier host/device evidence recorded against the
+former community archive remains historical; the first official-package
+device harness rerun is recorded in `docs/evidence/RESULTS.md`, while full
+S1/S2 and tier coverage remain pending.
 
 PRoot was moved from 5.1.107.98 to 5.1.107.100 on 2026-10-24 because the
 Termux pool no longer serves the .98 deb (HTTP 404). The .100 deb and
