@@ -34,8 +34,8 @@ linked or appended; host spikes cannot promote device rows.
 
 | Requirement | Scope | Status | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
-| S1 | Tier A | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), [runtime-download rerun](spike-20261024-153116.json), and separate user-shared diagnostics: health HTTP 200, session creation, async prompt accepted, and one mock-provider request on one Infinix device | production app/runtime implementation and remaining tiers |
-| S1 | Tier B | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md) covers Tier A device only | production app/runtime implementation and remaining tiers |
+| S1 | Tier A | pending | [staged harness run](../../tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](../../tests/spikes/results/raw/spike-20261024-080149.json), [runtime-download rerun](spike-20261024-153116.json), and [user-supplied session/mock trace](../../tests/spikes/results/S1-session-roundtrip-user-log.txt): health HTTP 200, session creation, async prompt accepted, and one mock-provider request | production app/runtime implementation and remaining tiers |
+| S1 | Tier B | pending | [staged harness run](../../tests/spikes/results/S3-device-harness-20261024-staged.md) covers Tier A device only | production app/runtime implementation and remaining tiers |
 | S1 | Tier C | pending | none | production app/runtime implementation and remaining tiers |
 | S2 cold start | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
@@ -43,7 +43,7 @@ linked or appended; host spikes cannot promote device rows.
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S3 | app sandbox + native PTY | pending | Earlier harness reports claim guest-shell/PTY passes, but the latest user-shared report shows `node: not found`, literal `******` output, and an unsubstantiated `environmentMatch=true`; do not count those S3 results | corrected harness rebuild and device rerun; production shell wiring and G0 acceptance are also required |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
-| S7 | Tier A/B/C | pending | [first device run](tests/spikes/results/S3-device-harness-20261024.md), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
+| S7 | Tier A/B/C | pending | [first device run](../../tests/spikes/results/S3-device-harness-20261024.md), [staged rerun](../../tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](../../tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
 | S8 | Gboard + Samsung Keyboard | pending | [runtime-download rerun](spike-20261024-153116.json) records 7 text changes, final length 6, and zero key-down events. Owner-approved earlier “emojikeyboard” result remains unverified for IME identity. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
@@ -143,7 +143,8 @@ linked or appended; host spikes cannot promote device rows.
   text changes but `keyDownEvents=0`; this does not satisfy keyboard
   acceptance. The harness now labels future records `S8-ime-observation`
   and states that keyboard acceptance is not assessed. Separately supplied
-  S1 diagnostics recorded health HTTP 200,
+  [S1 diagnostics](../../tests/spikes/results/S1-session-roundtrip-user-log.txt)
+  recorded health HTTP 200,
   successful session creation, accepted async prompt submission, and one
   mock-provider request. This single harness path is useful evidence but
   does not close the full device matrix or G0.

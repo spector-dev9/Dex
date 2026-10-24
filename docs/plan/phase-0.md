@@ -224,7 +224,8 @@ See `docs/architecture/g1-contracts.md`.
       and a deterministic local mock-provider prompt round trip; device
       execution of this action remains pending.
 - [x] Capture one user-reported S1 server-health/session/mock-provider
-      prompt round trip; it is recorded in `docs/evidence/RESULTS.md`.
+      prompt round trip; see
+      `../../tests/spikes/results/S1-session-roundtrip-user-log.txt`.
 - [ ] Complete the S1 device matrix, Tier A/B/C and 16 KB-page tests,
       corrected S3 device rerun, keyboard acceptance, and S7
       background-survival evidence.

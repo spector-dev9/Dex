@@ -1,0 +1,17 @@
+User-supplied S1 diagnostic trace. The device/APK metadata was not included
+in this log; treat it as one reported round trip, not device-matrix
+acceptance.
+
+1792852131713 probe-start
+1792852131760 runtime-ready
+1792852131797 probe-directories-ready
+1792852131838 probe-config-ready serverPort=39587 mockPort=46649
+1792852131859 mock-provider-listening port=46649
+1792852131893 opencode-process-started alive=true
+1792852136261 authenticated-health-passed status=200 elapsedMs=4341 processExit=null
+1792852136287 session-create-request
+1792852137361 prompt-async-request sessionID=ses_e91af6a80ffeBwrGe3WBSpW7gX
+1792852137432 prompt-accepted
+1792852141556 mock-response-observed providerRequests=1
+1792852141582 mock-prompt-passed mock prompt round trip passed; provider requests=1
+1792852141606 probe-shutdown
