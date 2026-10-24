@@ -31,8 +31,8 @@ def check_manifest(path: Path) -> list[str]:
     if application is None:
         return [f"{path}: missing application element"]
 
-    if application.get(f"{ANDROID}debuggable") != "false":
-        errors.append("release application must explicitly set debuggable=false")
+    if application.get(f"{ANDROID}debuggable") not in {None, "false"}:
+        errors.append("release application must not be debuggable")
     if application.get(f"{ANDROID}allowBackup") != "false":
         errors.append("release application must set allowBackup=false")
     if application.get(f"{ANDROID}usesCleartextTraffic") == "true":

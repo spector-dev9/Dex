@@ -8,6 +8,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.nio.file.StandardOpenOption.CREATE_NEW
 import java.nio.file.StandardOpenOption.WRITE
 import java.util.Comparator
@@ -30,6 +31,7 @@ class AlpineRootfsInstaller(
             is ApiResult.Failure -> return result
             is ApiResult.Success -> result.value
         }
+
         val target = targetDirectory.toAbsolutePath().normalize()
         val parent = target.parent
             ?: return ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "rootfs target has no parent"))
@@ -57,6 +59,7 @@ class AlpineRootfsInstaller(
                 failure("existing rootfs archive marker could not be read", ioFailure)
             }
         }
+
         val staging = try {
             Files.createDirectories(parent)
             Files.createTempDirectory(parent, ".${target.fileName}.staging-")
@@ -126,5 +129,130 @@ class AlpineRootfsInstaller(
 
     private companion object {
         const val ARCHIVE_DIGEST_FILE = ".runtime-archive-sha256"
+    }
+}
+
+class AlpineRuntimeLibraryInstaller(
+    private val verifier: RuntimeArtifactVerifier = RuntimeArtifactVerifier(),
+    private val extractor: RuntimeArchiveExtractor = AlpineRootfsTarGzExtractor(),
+) {
+    fun install(
+        archive: Path,
+        expectedArchiveSha256: String,
+        packageName: String,
+        libraryName: String,
+        rootfsDirectory: Path,
+    ): ApiResult<Path> {
+        if (PACKAGE_LIBRARIES[packageName] != libraryName) {
+            return ApiResult.Failure(
+                ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "unsupported pinned Alpine runtime package"),
+            )
+        }
+        val verifiedArchive = when (val result = verifier.verify(archive, expectedArchiveSha256)) {
+            is ApiResult.Failure -> return result
+            is ApiResult.Success -> result.value
+        }
+        val rootfsPath = rootfsDirectory.toAbsolutePath().normalize()
+        val root = try {
+            if (Files.isSymbolicLink(rootfsPath) || !Files.isDirectory(rootfsPath, NOFOLLOW_LINKS)) {
+                return ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "Alpine rootfs is not a real directory"))
+            }
+            rootfsPath.toRealPath()
+        } catch (failure: IOException) {
+            return failure("Alpine rootfs could not be resolved", failure)
+        }
+
+        val libraryDirectory = try {
+            val usr = root.resolve("usr")
+            ensureRealDirectory(root, usr)
+            val lib = usr.resolve("lib")
+            ensureRealDirectory(root, lib)
+            lib
+        } catch (failure: IOException) {
+            return failure("Alpine library directory is invalid", failure)
+        }
+        val stagingParent = root.parent
+            ?: return ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "Alpine rootfs has no parent"))
+        val extraction = try {
+            Files.createTempDirectory(stagingParent, ".${root.fileName}-$packageName-")
+        } catch (failure: IOException) {
+            return failure("Alpine package staging directory could not be created", failure)
+        }
+
+        var result: ApiResult<Path> = try {
+            extractor.extract(verifiedArchive.path, extraction)
+            val source = extraction.resolve("usr/lib").resolve(libraryName)
+            val resolvedSource = source.toRealPath()
+            if (!Files.isRegularFile(resolvedSource) || !resolvedSource.startsWith(extraction.toRealPath())) {
+                throw IOException("$packageName package does not contain a safe usr/lib/$libraryName")
+            }
+            val destination = libraryDirectory.resolve(libraryName)
+            if (Files.isSymbolicLink(destination) ||
+                (Files.exists(destination, NOFOLLOW_LINKS) && !Files.isRegularFile(destination, NOFOLLOW_LINKS))
+            ) {
+                throw IOException("Alpine runtime library destination is not a regular file")
+            }
+            val temporary = Files.createTempFile(libraryDirectory, ".$libraryName-", ".part")
+            try {
+                Files.copy(resolvedSource, temporary, REPLACE_EXISTING)
+                Files.move(temporary, destination, ATOMIC_MOVE, REPLACE_EXISTING)
+            } finally {
+                Files.deleteIfExists(temporary)
+            }
+            ApiResult.Success(destination)
+        } catch (failure: IOException) {
+            failure("pinned Alpine runtime package could not be installed", failure)
+        } catch (unsupported: UnsupportedOperationException) {
+            failure(
+                "Alpine runtime package storage does not support atomic install",
+                IOException(unsupported.message, unsupported),
+            )
+        }
+
+        try {
+            deleteTree(extraction)
+        } catch (cleanupFailure: IOException) {
+            result = when (result) {
+                is ApiResult.Failure -> failure(
+                    "${result.error.message ?: "Alpine package installation failed"}; staging cleanup failed",
+                    cleanupFailure,
+                )
+                is ApiResult.Success -> failure(
+                    "Alpine package installed but staging cleanup failed",
+                    cleanupFailure,
+                )
+            }
+        }
+        return result
+    }
+
+    private fun ensureRealDirectory(root: Path, directory: Path) {
+        if (Files.exists(directory, NOFOLLOW_LINKS)) {
+            if (Files.isSymbolicLink(directory) || !Files.isDirectory(directory, NOFOLLOW_LINKS)) {
+                throw IOException("Alpine runtime path is not a real directory: $directory")
+            }
+        } else {
+            Files.createDirectory(directory)
+        }
+        if (!directory.toRealPath().startsWith(root)) {
+            throw IOException("Alpine runtime path resolves outside the rootfs")
+        }
+    }
+
+    private fun failure(message: String, cause: IOException): ApiResult.Failure =
+        ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "$message: ${cause.message}"))
+
+    private fun deleteTree(path: Path) {
+        if (!Files.exists(path, NOFOLLOW_LINKS)) return
+        Files.walk(path).use { paths ->
+            paths.sorted(Comparator.reverseOrder()).forEach { Files.delete(it) }
+        }
+    }
+
+    private companion object {
+        val PACKAGE_LIBRARIES = mapOf(
+            "libgcc" to "libgcc_s.so.1",
+            "libstdc++" to "libstdc++.so.6",
+        )
     }
 }

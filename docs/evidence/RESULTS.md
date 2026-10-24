@@ -22,8 +22,10 @@ linked or appended; host spikes cannot promote device rows.
   result on Android.
 - `:core:runtime:test` covers HTTPS-only downloads, redirect constraints,
   bounded transfer size, SHA-256 verification, cleanup on failures, and a
-  pinned-download-to-installer path. These host tests do not establish
-  device networking or production runtime launch.
+  manifest-driven pinned OpenCode, Alpine rootfs, and Alpine runtime-library
+  installation path. Package tests cover digest rejection and rootfs/package
+  path containment. These host tests do not establish device networking,
+  PRoot native packaging, production runtime launch, or supervision.
 - App unit tests exercise encrypted-file storage mechanics through a test
   cipher. They do not exercise Android Keystore hardware/software providers,
   device lifecycle, or production listener wiring.

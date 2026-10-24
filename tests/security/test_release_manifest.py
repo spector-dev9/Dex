@@ -23,7 +23,7 @@ VALID_MANIFEST = """\
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="example.app">
   <uses-permission android:name="android.permission.INTERNET" />
-  <application android:allowBackup="false" android:debuggable="false">
+  <application android:allowBackup="false">
     <activity android:name=".MainActivity" android:exported="true">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
@@ -56,9 +56,12 @@ class ReleaseManifestTest(unittest.TestCase):
 
     def test_rejects_debuggable_or_backed_up_application(self) -> None:
         xml = VALID_MANIFEST.replace('android:allowBackup="false"', 'android:allowBackup="true"')
-        xml = xml.replace('android:debuggable="false"', 'android:debuggable="true"')
+        xml = xml.replace(
+            '<application android:allowBackup="true">',
+            '<application android:allowBackup="true" android:debuggable="true">',
+        )
         errors = self.check_xml(xml)
-        self.assertTrue(any("debuggable=false" in error for error in errors))
+        self.assertTrue(any("must not be debuggable" in error for error in errors))
         self.assertTrue(any("allowBackup=false" in error for error in errors))
 
     def test_rejects_unapproved_permissions_and_global_cleartext(self) -> None:

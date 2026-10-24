@@ -290,6 +290,88 @@ class RuntimeManagerImplTest {
         assertEquals("sh", Files.readString(installed.resolve("bin/sh")))
     }
 
+    @Test
+    fun `installPinnedRuntime downloads and installs OpenCode Alpine and pinned runtime libraries`() = runBlocking {
+        val root = createTempDirectory("runtime-pinned-full-install")
+        val artifactUrl = "https://runtime.test/opencode.tar.gz"
+        val alpineUrl = "https://runtime.test/alpine.tar.gz"
+        val packageUrl = "https://runtime.test/libgcc.apk"
+        val artifactBytes = "OpenCode archive".toByteArray()
+        val alpineBytes = "Alpine archive".toByteArray()
+        val packageBytes = "libgcc archive".toByteArray()
+        val executable = "verified OpenCode executable".toByteArray()
+        val library = "verified libgcc library".toByteArray()
+        val urlsToBytes = mapOf(
+            artifactUrl to artifactBytes,
+            alpineUrl to alpineBytes,
+            packageUrl to packageBytes,
+        )
+        writeManifest(
+            root,
+            artifactHash = sha256(artifactBytes),
+            binaryHash = sha256(executable),
+            artifactUrl = artifactUrl,
+            alpineJson = """
+              ,
+              "alpine": {
+                "version": "3.20.3",
+                "url": "$alpineUrl",
+                "sha256": "${sha256(alpineBytes)}"
+              },
+              "runtimeLibraries": ["libgcc_s.so.1"],
+              "alpineRuntimePackages": [{
+                "name": "libgcc",
+                "version": "13.2.1_git20240309-r1",
+                "url": "$packageUrl",
+                "sha256": "${sha256(packageBytes)}"
+              }]
+            """,
+        )
+        val installer = RuntimeArtifactInstaller(
+            extractor = RuntimeArchiveExtractor { _, destination ->
+                (destination / "opencode").writeBytes(executable)
+            },
+        )
+        val alpineInstaller = AlpineRootfsInstaller(
+            extractor = RuntimeArchiveExtractor { _, destination ->
+                Files.createDirectories(destination.resolve("bin"))
+                listOf("sh", "busybox").forEach { name ->
+                    val executablePath = destination.resolve("bin").resolve(name)
+                    Files.writeString(executablePath, name)
+                    executablePath.toFile().setExecutable(true)
+                }
+            },
+        )
+        val libraryInstaller = AlpineRuntimeLibraryInstaller(
+            extractor = RuntimeArchiveExtractor { _, destination ->
+                Files.createDirectories(destination.resolve("usr/lib"))
+                destination.resolve("usr/lib/libgcc_s.so.1").writeBytes(library)
+            },
+        )
+        val downloader = RuntimeArtifactDownloader(
+            connectionFactory = HttpsConnectionFactory { url ->
+                FakeHttpsConnection(url) { bytes = urlsToBytes.getValue(url.toString()) }
+            },
+        )
+        val manager = ManifestRuntimeManager(
+            rootDirectory = root,
+            processLauncher = FakeRuntimeProcessLauncher(),
+            installer = installer,
+            alpineInstaller = alpineInstaller,
+            alpineLibraryInstaller = libraryInstaller,
+            artifactDownloader = downloader,
+        )
+
+        val result = manager.installPinnedRuntime()
+
+        val runtime = assertIs<ApiResult.Success<RuntimeInfo>>(result).value
+        assertEquals(RuntimeStateStatus.READY, manager.state.value.status)
+        assertEquals("1.19.3", runtime.version)
+        val rootfs = root.resolve("rootfs-versions").resolve(sha256(alpineBytes))
+        assertEquals(library.toList(), Files.readAllBytes(rootfs.resolve("usr/lib/libgcc_s.so.1")).toList())
+        assertTrue(Files.isRegularFile(root.resolve("versions").resolve(sha256(executable)).resolve("opencode")))
+    }
+
     private fun writeManifest(
         root: java.nio.file.Path,
         required: String = """["opencode"]""",
