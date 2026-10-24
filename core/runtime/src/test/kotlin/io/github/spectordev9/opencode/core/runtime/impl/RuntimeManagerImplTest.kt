@@ -65,6 +65,21 @@ class RuntimeManagerImplTest {
     }
 
     @Test
+    fun `ensureReady rejects an extracted binary that does not match its pinned digest`() = runBlocking {
+        val root = createTempDirectory("runtime-binary-mismatch")
+        (root / "opencode").writeBytes("tampered binary".toByteArray())
+        (root / "ld-musl-aarch64.so.1").writeBytes("loader".toByteArray())
+        writeManifest(root)
+
+        val manager = ManifestRuntimeManager(root, FakeRuntimeProcessLauncher())
+        val result = manager.ensureReady()
+
+        assertIs<ApiResult.Failure>(result)
+        assertEquals(RuntimeStateStatus.FAILED, manager.state.value.status)
+        assertEquals("OpenCode binary sha-256 mismatch", manager.state.value.reason)
+    }
+
+    @Test
     fun `manifest rejects absolute required file paths`() = runBlocking {
         val root = createTempDirectory("runtime-unsafe-manifest")
         (root / "opencode").writeBytes("binary".toByteArray())
@@ -120,13 +135,20 @@ class RuntimeManagerImplTest {
         assertEquals(spec, launcher.requestedSpec)
     }
 
-    private fun writeManifest(root: java.nio.file.Path, required: String = """["opencode", "ld-musl-aarch64.so.1"]""") {
+    private fun writeManifest(
+        root: java.nio.file.Path,
+        required: String = """["opencode", "ld-musl-aarch64.so.1"]""",
+    ) {
+        val binaryHash = java.security.MessageDigest.getInstance("SHA-256")
+            .digest("binary".toByteArray())
+            .joinToString("") { "%02x".format(it) }
         (root / "manifest.json").writeBytes(
             """
             {
               "version": "1.19.3",
               "profile": "A_DIRECT",
               "binary": "opencode",
+              "binarySha256": "$binaryHash",
               "required": $required,
               "artifact": {"sha256": "${"a".repeat(64)}"}
             }

@@ -15,6 +15,9 @@ Acceptance uses the pinned official OpenCode 1.19.3 ARM64 musl runtime,
 Alpine 3.20.3, PRoot 5.1.107.100 and the D3 packaging rules. The official
 runtime archive SHA-256 is
 `39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3`.
+The extracted `opencode` executable SHA-256 is pinned separately as
+`37c7de554c2ba7bf456e4fe6faf7705141b0ccb3a7b1dd6e1046d52cd8269ecd`
+and checked by runtime readiness and spike staging.
 The official archive contains only the `opencode` executable. Alpine provides
 the musl loader; pinned Alpine `libgcc` and `libstdc++` packages provide the
 other ELF dependencies. Host/device evidence recorded against the former

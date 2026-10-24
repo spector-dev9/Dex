@@ -8,6 +8,7 @@ available, otherwise readelf.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -60,6 +61,18 @@ def main() -> int:
         fail("no readelf or llvm-readelf available")
 
     report = {"runtimeDir": runtime, "files": [], "minimumAlignment": None, "pass": True}
+    binary_path = os.path.join(runtime, manifest["binary"])
+    binary_sha256 = None
+    if os.path.isfile(binary_path):
+        digest = hashlib.sha256()
+        with open(binary_path, "rb") as binary:
+            for chunk in iter(lambda: binary.read(64 * 1024), b""):
+                digest.update(chunk)
+        binary_sha256 = digest.hexdigest()
+    report["binarySha256"] = binary_sha256
+    report["expectedBinarySha256"] = manifest["binarySha256"]
+    if binary_sha256 != manifest["binarySha256"].lower():
+        report["pass"] = False
 
     for name in manifest["required"]:
         path = os.path.join(runtime, name)

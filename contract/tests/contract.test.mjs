@@ -129,6 +129,10 @@ test("runtime manifest pins 1.19.3 and refuses unknown majors", () => {
     manifest.artifact.sha256,
     "39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3",
   );
+  assert.equal(
+    manifest.binarySha256,
+    "37c7de554c2ba7bf456e4fe6faf7705141b0ccb3a7b1dd6e1046d52cd8269ecd",
+  );
   assert.equal(manifest.unknownMajorVersions, "refused");
   assert.ok(manifest.required.includes("opencode"));
   assert.ok(manifest.runtimeLibraries.includes("libstdc++.so.6"));

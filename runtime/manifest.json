@@ -9,6 +9,7 @@
   },
   "loader": "lib/ld-musl-aarch64.so.1",
   "binary": "opencode",
+  "binarySha256": "37c7de554c2ba7bf456e4fe6faf7705141b0ccb3a7b1dd6e1046d52cd8269ecd",
   "required": [
     "opencode"
   ],

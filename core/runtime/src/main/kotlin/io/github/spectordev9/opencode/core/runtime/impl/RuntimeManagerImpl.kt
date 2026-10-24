@@ -38,6 +38,7 @@ private data class RuntimeManifestFile(
     val version: String = "",
     val profile: String = RuntimeProfile.A_DIRECT.name,
     val binary: String = "",
+    val binarySha256: String = "",
     val loader: String? = null,
     val required: List<String> = emptyList(),
     val artifact: RuntimeManifestArtifact = RuntimeManifestArtifact(),
@@ -123,16 +124,22 @@ class ManifestRuntimeManager(
                     }
                     val binary = runtimeDir.resolve(manifest.binary)
                     val binarySha = fileSha256(binary)
-                    val info = RuntimeInfo(
-                        id = RuntimeId("runtime-${manifest.version}"),
-                        version = manifest.version,
-                        profile = profile,
-                        rootPath = runtimeDir.absolutePathString(),
-                        manifestSha256 = sha256Hex(manifestFile.readBytes()),
-                        openCodeSha256 = binarySha,
-                    )
-                    stateFlow.value = RuntimeState(status = RuntimeStateStatus.READY, version = manifest.version)
-                    ApiResult.Success(info)
+                    if (!binarySha.equals(manifest.binarySha256, ignoreCase = true)) {
+                        val reason = "OpenCode binary sha-256 mismatch"
+                        stateFlow.value = RuntimeState(status = RuntimeStateStatus.FAILED, reason = reason)
+                        ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, reason))
+                    } else {
+                        val info = RuntimeInfo(
+                            id = RuntimeId("runtime-${manifest.version}"),
+                            version = manifest.version,
+                            profile = profile,
+                            rootPath = runtimeDir.absolutePathString(),
+                            manifestSha256 = sha256Hex(manifestFile.readBytes()),
+                            openCodeSha256 = binarySha,
+                        )
+                        stateFlow.value = RuntimeState(status = RuntimeStateStatus.READY, version = manifest.version)
+                        ApiResult.Success(info)
+                    }
                 }
             }
         } catch (cancelled: CancellationException) {
@@ -168,6 +175,9 @@ class ManifestRuntimeManager(
         require(manifest.version.isNotBlank()) { "manifest version is blank" }
         require(manifest.binary.isNotBlank()) { "manifest binary is blank" }
         require(manifest.required.isNotEmpty()) { "manifest requires at least one runtime file" }
+        require(manifest.binarySha256.matches(Regex("[a-fA-F0-9]{64}"))) {
+            "manifest binary sha-256 is invalid"
+        }
         require(manifest.artifact.sha256.matches(Regex("[a-fA-F0-9]{64}"))) {
             "manifest artifact sha-256 is invalid"
         }

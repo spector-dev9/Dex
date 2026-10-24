@@ -181,6 +181,8 @@ def stage(manifest_path: str, artifacts: str, stage_dir: str, jni_dir: str) -> s
         source = os.path.join(runtime_source, name)
         if not os.path.isfile(source) or os.path.getsize(source) == 0:
             fail(f"required runtime file missing or empty: {source}")
+        if name == manifest["binary"]:
+            verify_pin(source, manifest["binarySha256"], "OpenCode executable")
         shutil.copy2(source, os.path.join(runtime_destination, name))
 
     deb_files = {
