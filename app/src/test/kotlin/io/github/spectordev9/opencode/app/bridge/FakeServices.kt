@@ -161,6 +161,7 @@ class FakeServerSupervisor : ServerSupervisor {
 class FakeWorkspaceService : WorkspaceService {
     private val files = linkedMapOf<String, ByteArray>()
     private val trash = linkedMapOf<String, ByteArray>()
+    private val modifiedAt = linkedMapOf<String, Long>()
 
     override suspend fun list(path: String): ApiResult<List<Entry>> {
         val prefix = path.removeSuffix("/")
@@ -173,7 +174,7 @@ class FakeWorkspaceService : WorkspaceService {
                     name = fullPath.substringAfterLast('/'),
                     kind = EntryKind.FILE,
                     sizeBytes = bytes.size.toLong(),
-                    modifiedAtEpochMillis = System.currentTimeMillis(),
+                    modifiedAtEpochMillis = timestamp(fullPath),
                 )
             }
         return ApiResult.Success(entries)
@@ -187,7 +188,7 @@ class FakeWorkspaceService : WorkspaceService {
                 name = path.substringAfterLast('/'),
                 kind = EntryKind.FILE,
                 sizeBytes = bytes.size.toLong(),
-                modifiedAtEpochMillis = System.currentTimeMillis(),
+                modifiedAtEpochMillis = timestamp(path),
             ),
         )
     }
@@ -207,17 +208,20 @@ class FakeWorkspaceService : WorkspaceService {
         if (expect is Precondition.Match) {
             val matches = previous != null &&
                 previous.size.toLong() == expect.sizeBytes &&
-                (expect.sha256 == null || previous.sha256() == expect.sha256)
+                timestamp(path) == expect.modifiedAtEpochMillis &&
+                previous.sha256().equals(expect.sha256, ignoreCase = true)
             if (!matches) {
                 return ApiResult.Failure(ApiError(ErrorCode.E_CONFLICT, "write precondition failed for $path"))
             }
         }
         files[path] = data.copyOf()
+        modifiedAt[path] = System.currentTimeMillis()
+        val updatedAt = timestamp(path)
         return ApiResult.Success(
             WriteReceipt(
                 path = path,
                 sizeBytes = data.size.toLong(),
-                modifiedAtEpochMillis = System.currentTimeMillis(),
+                modifiedAtEpochMillis = updatedAt,
                 sha256 = data.sha256(),
             ),
         )
@@ -238,14 +242,16 @@ class FakeWorkspaceService : WorkspaceService {
 
     override suspend fun rename(from: String, to: String): ApiResult<Entry> {
         val data = files.remove(from) ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing path $from"))
+        val previousModifiedAt = modifiedAt.remove(from) ?: System.currentTimeMillis()
         files[to] = data
+        modifiedAt[to] = previousModifiedAt
         return ApiResult.Success(
             Entry(
                 path = to,
                 name = to.substringAfterLast('/'),
                 kind = EntryKind.FILE,
                 sizeBytes = data.size.toLong(),
-                modifiedAtEpochMillis = System.currentTimeMillis(),
+                modifiedAtEpochMillis = previousModifiedAt,
             ),
         )
     }
@@ -254,6 +260,7 @@ class FakeWorkspaceService : WorkspaceService {
 
     override suspend fun trash(path: String): ApiResult<TrashId> {
         val data = files.remove(path) ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing path $path"))
+        modifiedAt.remove(path)
         val id = TrashId(UUID.randomUUID().toString())
         trash[id.value] = data
         return ApiResult.Success(id)
@@ -263,8 +270,9 @@ class FakeWorkspaceService : WorkspaceService {
         val data = trash.remove(id.value) ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing trash id $id"))
         val path = "/restored/${UUID.randomUUID()}"
         files[path] = data
+        modifiedAt[path] = System.currentTimeMillis()
         return ApiResult.Success(
-            Entry(path, path.substringAfterLast('/'), EntryKind.FILE, data.size.toLong(), System.currentTimeMillis()),
+            Entry(path, path.substringAfterLast('/'), EntryKind.FILE, data.size.toLong(), timestamp(path)),
         )
     }
 
@@ -278,6 +286,9 @@ class FakeWorkspaceService : WorkspaceService {
             }
         return ApiResult.Success(results)
     }
+
+    private fun timestamp(path: String): Long =
+        modifiedAt.getOrPut(path, System::currentTimeMillis)
 }
 
 class FakeGitService : GitService {

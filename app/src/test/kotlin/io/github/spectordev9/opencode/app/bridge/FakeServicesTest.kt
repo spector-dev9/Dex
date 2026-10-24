@@ -42,11 +42,18 @@ class FakeServicesTest {
     fun `workspace enforces content hash preconditions`() = runBlocking {
         val workspace = FakeWorkspaceService()
         workspace.write("/notes.txt", "original".toByteArray(), Precondition.None)
+        val original = assertIs<ApiResult.Success<io.github.spectordev9.opencode.core.workspace.Entry>>(
+            workspace.stat("/notes.txt"),
+        ).value
 
         val result = workspace.write(
             "/notes.txt",
             "replacement".toByteArray(),
-            Precondition.Match(sizeBytes = 8, sha256 = "not-the-current-hash"),
+            Precondition.Match(
+                sizeBytes = 8,
+                modifiedAtEpochMillis = original.modifiedAtEpochMillis,
+                sha256 = "not-the-current-hash",
+            ),
         )
 
         val failure = assertIs<ApiResult.Failure>(result)

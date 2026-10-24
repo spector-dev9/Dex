@@ -28,10 +28,11 @@ data class Chunk(
 sealed interface Precondition {
     data object None : Precondition
 
+    /** Every observed file attribute is required to avoid overwriting intervening edits. */
     data class Match(
         val sizeBytes: Long,
-        val modifiedAtEpochMillis: Long? = null,
-        val sha256: String? = null,
+        val modifiedAtEpochMillis: Long,
+        val sha256: String,
     ) : Precondition
 }
 

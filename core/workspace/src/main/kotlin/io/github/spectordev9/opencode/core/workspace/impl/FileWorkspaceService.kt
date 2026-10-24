@@ -345,18 +345,14 @@ class FileWorkspaceService(rootDirectory: Path) : WorkspaceService {
                 }
                 val attributes = Files.readAttributes(path, BasicFileAttributes::class.java, NOFOLLOW_LINKS)
                 if (attributes.size() != expect.sizeBytes ||
-                    (expect.modifiedAtEpochMillis != null &&
-                        attributes.lastModifiedTime().toMillis() != expect.modifiedAtEpochMillis)
+                    attributes.lastModifiedTime().toMillis() != expect.modifiedAtEpochMillis
                 ) {
                     fail(ErrorCode.E_CONFLICT, "workspace file changed since it was read")
                 }
-                val expectedSha256 = expect.sha256
-                if (expectedSha256 != null) {
-                    if (!expectedSha256.matches(SHA256_PATTERN) ||
-                        !sha256(path).equals(expectedSha256, ignoreCase = true)
-                    ) {
-                        fail(ErrorCode.E_CONFLICT, "workspace file content changed since it was read")
-                    }
+                if (!expect.sha256.matches(SHA256_PATTERN) ||
+                    !sha256(path).equals(expect.sha256, ignoreCase = true)
+                ) {
+                    fail(ErrorCode.E_CONFLICT, "workspace file content changed since it was read")
                 }
             }
         }

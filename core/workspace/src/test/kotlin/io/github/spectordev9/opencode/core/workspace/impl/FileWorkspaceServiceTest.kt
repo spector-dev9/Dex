@@ -57,15 +57,22 @@ class FileWorkspaceServiceTest {
         val file = root / "source.txt"
         file.writeBytes("original".toByteArray())
         val service = FileWorkspaceService(root)
+        val originalModifiedAt = Files.getLastModifiedTime(file)
+        file.writeBytes("changed!".toByteArray())
+        Files.setLastModifiedTime(file, originalModifiedAt)
 
         val stale = service.write(
             "/source.txt",
             "replacement".toByteArray(),
-            Precondition.Match(sizeBytes = 8, sha256 = sha256("stale".toByteArray())),
+            Precondition.Match(
+                sizeBytes = 8,
+                modifiedAtEpochMillis = originalModifiedAt.toMillis(),
+                sha256 = sha256("original".toByteArray()),
+            ),
         )
 
         assertEquals(ErrorCode.E_CONFLICT, assertIs<ApiResult.Failure>(stale).error.code)
-        assertEquals("original", file.readText())
+        assertEquals("changed!", file.readText())
     }
 
     @Test
