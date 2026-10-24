@@ -58,6 +58,27 @@ object SpikeReport {
         val root = JSONObject()
         root.put("spikeVersion", "0.1")
         root.put("generatedAt", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date()))
+        root.put(
+            "scope",
+            "Isolated pre-G0 device feasibility evidence; not production-app acceptance.",
+        )
+        root.put(
+            "knownNotCovered",
+            JSONArray(
+                listOf(
+                    "S1 Profile A/B comparison and the complete Tier A/B/C device matrix",
+                    "S2 Profile A/B performance comparison; Profile B is not implemented",
+                    "S4/S5 host-side SSE and endpoint contract checks",
+                    "S6 OpenCode 2.x contract test; no distributable 2.x artifact is available",
+                    "S7 agent-task 19/20 background-survival acceptance; this APK measures one harness-service soak",
+                    "S8/TERM-5 terminal input acceptance on both Gboard and Samsung Keyboard",
+                    "RT/STR/WS/TERM production-app and UI acceptance tests",
+                    "SEC production security, second-UID, and release-manifest acceptance tests",
+                    "S9 release, licensing, and distribution compliance",
+                    "16 KB-page-device boot, four-hour memory soak, and production thermal acceptance",
+                ),
+            ),
+        )
         root.put("device", JSONObject(SpikeProbe.deviceInfo(context)))
         val results = JSONArray()
         records.forEach { record ->

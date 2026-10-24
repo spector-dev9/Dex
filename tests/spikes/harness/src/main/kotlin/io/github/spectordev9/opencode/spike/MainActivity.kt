@@ -27,9 +27,11 @@ class MainActivity : Activity() {
     private lateinit var statusView: TextView
     private lateinit var imeView: TextView
     private lateinit var imeField: EditText
+    private lateinit var soakView: TextView
     private var imeTextChanges = 0
     private var imeKeyDownEvents = 0
     private var imeLastKey = "none"
+    private var imeObservationNumber = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,6 +111,9 @@ class MainActivity : Activity() {
         root.addView(button("Start authenticated server + mock prompt (S1)") {
             runProbes("S1-server-mock") { SpikeServerProbe.run(this) }
         })
+        root.addView(button("Run all available device probes (S1/S3)") {
+            runProbes("device-suite") { runAvailableDeviceSuite() }
+        })
         root.addView(button("Run PRoot guest shell (S3 partial)") {
             runProbes("guest-shell") { listOf(SpikeProbe.runGuestShell(this)) }
         })
@@ -116,11 +121,14 @@ class MainActivity : Activity() {
             runProbes("guest-forkpty") { SpikeProbe.runGuestPtyComparison(this) }
         })
 
-        root.addView(label("S7 foreground service"))
-        root.addView(button("Start specialUse foreground service") { startSpikeService() })
-        root.addView(button("Stop foreground service") { stopSpikeService() })
+        root.addView(label("S7 foreground-service soak (single 30-minute exploratory run)"))
+        soakView = monospace()
+        root.addView(soakView)
+        root.addView(button("Start S7 30-minute background survival run") { startSpikeService() })
+        root.addView(button("Finish S7 run and record survival") { stopSpikeService() })
 
         root.addView(label("S8 keyboard/IME probe"))
+        root.addView(label("Test with Gboard and Samsung Keyboard where available; use the extra-key row, hardware keys, paste and selection."))
         imeView = monospace().apply { text = "No key events yet." }
         root.addView(imeView)
         imeField = EditText(this).apply {
@@ -152,6 +160,7 @@ class MainActivity : Activity() {
             })
         }
         root.addView(imeField)
+        root.addView(button("Record this keyboard's observation") { recordImeObservation() })
 
         root.addView(label("Results"))
         resultsView = monospace().apply { setTextIsSelectable(true) }
@@ -164,6 +173,7 @@ class MainActivity : Activity() {
             imeTextChanges = 0
             imeKeyDownEvents = 0
             imeLastKey = "none"
+            imeObservationNumber = 0
             imeView.text = "No key events yet."
             resultsView.text = ""
             statusView.text = "Cleared"
@@ -211,6 +221,39 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun runAvailableDeviceSuite(): List<ProbeRecord> {
+        val records = mutableListOf<ProbeRecord>()
+        fun capture(id: String, probe: () -> List<ProbeRecord>) {
+            try {
+                records += probe()
+            } catch (failure: Exception) {
+                records += ProbeRecord(
+                    id = "device-suite-$id",
+                    pass = false,
+                    detail = "${failure.javaClass.simpleName}: ${failure.message}",
+                )
+            }
+        }
+
+        val startedAt = System.currentTimeMillis()
+        capture("entrypoints") { SpikeProbe.probeEntrypoints(this) }
+        capture("loader") { listOf(SpikeProbe.runLoader(this)) }
+        capture("server-mock") { SpikeServerProbe.run(this) }
+        capture("guest-shell") { listOf(SpikeProbe.runGuestShell(this)) }
+        capture("native-pty") { SpikeProbe.runGuestPtyComparison(this) }
+
+        val passed = records.count { it.pass }
+        records += ProbeRecord(
+            id = "device-suite-summary",
+            pass = records.isNotEmpty() && passed == records.size,
+            detail = "available S1/S3 probes: $passed/${records.size} passed; " +
+                "S7 30-minute soak and S8 keyboard observations are separate manual tests; " +
+                "this isolated harness run is not G0 acceptance",
+            durationMs = System.currentTimeMillis() - startedAt,
+        )
+        return records
+    }
+
     private fun append(record: ProbeRecord) {
         val verdict = if (record.pass) "PASS" else "FAIL"
         resultsView.append("[$verdict] ${record.id} (${record.durationMs} ms)\n${record.detail}\n")
@@ -228,35 +271,39 @@ class MainActivity : Activity() {
 
     private fun startSpikeService() {
         val intent = Intent(this, SpikeForegroundService::class.java)
+            .setAction(SpikeForegroundService.ACTION_START_SOAK)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
             startService(intent)
         }
-        val record = ProbeRecord("S7-fgs-start", true, "startForegroundService requested")
+        val record = ProbeRecord(
+            "S7-soak-start-requested",
+            true,
+            "Start requested; background the app, turn the screen off, and return after at least 30 minutes to finish the run",
+        )
         SpikeReport.add(record)
         append(record)
-        statusView.text = "Foreground service start requested"
+        statusView.text = "S7 30-minute run started"
+        refreshSoakStatus()
     }
 
     private fun stopSpikeService() {
+        SpikeForegroundService.completeSoak(this)?.let { record ->
+            SpikeReport.upsert(record)
+            append(record)
+        }
         stopService(Intent(this, SpikeForegroundService::class.java))
-        val record = ProbeRecord("S7-fgs-stop", true, "stopService requested")
+        val record = ProbeRecord("S7-soak-finish-requested", true, "Foreground service stop requested")
         SpikeReport.add(record)
         append(record)
-        statusView.text = "Foreground service stop requested"
+        statusView.text = "S7 run recorded and service stop requested"
+        refreshSoakStatus()
     }
 
     private fun writeReport() {
-        SpikeReport.upsert(
-            ProbeRecord(
-                id = "S8-ime-observation",
-                pass = imeTextChanges > 0,
-                detail = "textChanges=$imeTextChanges; finalTextLength=${imeField.text.length}; " +
-                    "keyDownEvents=$imeKeyDownEvents; lastKey=$imeLastKey; " +
-                    "keyboardAcceptance=not-assessed; input text omitted",
-            ),
-        )
+        recordImeObservation()
+        SpikeForegroundService.soakResult(this)?.let(SpikeReport::upsert)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
             checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -287,5 +334,34 @@ class MainActivity : Activity() {
         ) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::soakView.isInitialized) refreshSoakStatus()
+    }
+
+    private fun refreshSoakStatus() {
+        if (!::soakView.isInitialized) return
+        soakView.text = SpikeForegroundService.soakStatus(this)
+    }
+
+    private fun recordImeObservation() {
+        if (imeTextChanges == 0 && imeKeyDownEvents == 0) return
+        val ime = SpikeProbe.defaultInputMethod(this)
+        val record = ProbeRecord(
+            id = "S8-ime-observation-${++imeObservationNumber}",
+            pass = imeTextChanges > 0,
+            detail = "textChanges=$imeTextChanges; finalTextLength=${imeField.text.length}; " +
+                "keyDownEvents=$imeKeyDownEvents; lastKey=$imeLastKey; defaultIme=$ime; " +
+                "keyboardAcceptance=not-assessed; input text omitted",
+        )
+        SpikeReport.add(record)
+        append(record)
+        imeField.setText("")
+        imeTextChanges = 0
+        imeKeyDownEvents = 0
+        imeLastKey = "none"
+        imeView.text = "Recorded $ime; start the next keyboard's observation."
     }
 }

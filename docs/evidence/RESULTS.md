@@ -34,21 +34,21 @@ linked or appended; host spikes cannot promote device rows.
 
 | Requirement | Scope | Status | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
-| S1 | Tier A | pending | [staged harness run](../../tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](../../tests/spikes/results/raw/spike-20261024-080149.json), [runtime-download rerun](spike-20261024-153116.json), and [user-supplied session/mock trace](../../tests/spikes/results/S1-session-roundtrip-user-log.txt): health HTTP 200, session creation, async prompt accepted, and one mock-provider request | production app/runtime implementation and remaining tiers |
+| S1 | Tier A | pending | Earlier harness runs and [physical report](spike-20261025-003215.json): on an Infinix X6870 / Android 16 / arm64 / 4 KB pages, loader, authenticated health, and one mock-provider prompt round trip passed. Separate [session/mock trace](../../tests/spikes/results/S1-session-roundtrip-user-log.txt) records session creation and async prompt acceptance. | production app/runtime implementation and remaining tiers |
 | S1 | Tier B | pending | [staged harness run](../../tests/spikes/results/S3-device-harness-20261024-staged.md) covers Tier A device only | production app/runtime implementation and remaining tiers |
 | S1 | Tier C | pending | none | production app/runtime implementation and remaining tiers |
 | S2 cold start | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | Earlier harness reports claim guest-shell/PTY passes, but the latest user-shared report shows `node: not found`, literal `******` output, and an unsubstantiated `environmentMatch=true`; do not count those results. Pinned Alpine Node.js 20.15.1 arm64/musl package and dependencies are now staged/downloaded by the harness. | rebuild/install and rerun on device; verify `node -v`, matching environment markers and production shell wiring before G0 acceptance |
+| S3 | app sandbox + native PTY | pending | The corrected [physical report](spike-20261025-003215.json) now verifies guest `N=v20.15.1`, `GUEST-OK`, and matching `D/P/N` values in native PTY on one Infinix X6870 device. | production shell wiring, additional device tiers, and any 16 KB-page device; this isolated harness run is not full G0 acceptance |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
-| S7 | Tier A/B/C | pending | [first device run](../../tests/spikes/results/S3-device-harness-20261024.md), [staged rerun](../../tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](../../tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
-| S8 | Gboard + Samsung Keyboard | pending | [runtime-download rerun](spike-20261024-153116.json) records 7 text changes, final length 6, and zero key-down events. Owner-approved earlier “emojikeyboard” result remains unverified for IME identity. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
+| S7 | Tier A/B/C | pending | Earlier reports show start/stop lifecycle. The [physical report](spike-20261025-003215.json) contains no 30-minute soak. The updated harness can measure a single exploratory foreground-service soak and thermal samples. | agent-task survival, 19/20 repeated runs, and Tier A/B/C coverage |
+| S8 | Gboard + Samsung Keyboard | pending | The [physical report](spike-20261025-003215.json) records 8 text changes and 2 key-down events; keyboard acceptance is explicitly not assessed. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
 | RT-5 | 16 KB-page device | pending | none | no 16 KB-page target available |
-| LC-2 | Tier A/B/C, 30 min background | pending | none | app lifecycle implementation and device access |
+| LC-2 | Tier A/B/C, 30 min background | pending | Updated harness provides one 30-minute foreground-service soak measurement; no result from that test build yet. | running agent task, 19/20 repeated runs, and device-tier coverage |
 | LC-5 | Tier A/B, 4 h soak | pending | none | runtime implementation and device access |
 | LC-6 | Tier A/B thermal | pending | none | runtime implementation and device access |
 | TERM-5 | Gboard + Samsung Keyboard | pending | none | native PTY implementation and device access |
@@ -141,8 +141,8 @@ linked or appended; host spikes cannot promote device rows.
   Alpine Node.js 20.15.1 arm64/musl and its shared-library dependency
   packages; the host stage and on-device installers place the executable at
   `rootfs/usr/bin/node`. All package hashes are verified, and host ELF
-  inspection confirms the required shared objects are staged. Device
-  execution (`node -v`) still needs confirmation; S3 remains pending.
+  inspection confirms the required shared objects are staged. That report
+  is superseded for S3 by the corrected physical report below.
 - In the same later report S7 start/stop was observed, and S8 recorded
   text changes but `keyDownEvents=0`; this does not satisfy keyboard
   acceptance. The harness now labels future records `S8-ime-observation`
@@ -152,4 +152,14 @@ linked or appended; host spikes cannot promote device rows.
   successful session creation, accepted async prompt submission, and one
   mock-provider request. This single harness path is useful evidence but
   does not close the full device matrix or G0.
+- The corrected physical report
+  (`spike-20261025-003215.json`) verifies S3 on one Infinix X6870 / Android
+  16 / arm64 / 4 KB-page device: both guest-shell runs report `N=v20.15.1`
+  and `GUEST-OK`, and the native PTY comparison reports `environmentMatch=true`
+  with the same D/P/N values. It also records the S1 authenticated health
+  check and mock-provider prompt round trip. Its S7 result covers only
+  service start/stop, not a 30-minute soak; S8 observed 8 text changes and
+  2 key-down events but does not assess keyboard acceptance. These results
+  support single-device feasibility only; the two-device run, remaining
+  tiers, 16 KB-page device, and full G0 criteria remain open.
 - G0 remains open; no acceptance value here freezes D4 or D5.

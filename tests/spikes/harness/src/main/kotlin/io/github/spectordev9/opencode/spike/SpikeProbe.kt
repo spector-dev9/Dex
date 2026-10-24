@@ -2,12 +2,16 @@ package io.github.spectordev9.opencode.spike
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.app.ActivityManager
 import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import android.system.Os
 import android.system.OsConstants
 import java.io.File
 import java.io.InputStream
 import java.io.RandomAccessFile
+import java.security.MessageDigest
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.file.Files
@@ -36,6 +40,7 @@ object SpikeProbe {
         result["manufacturer"] = Build.MANUFACTURER
         result["model"] = Build.MODEL
         result["device"] = Build.DEVICE
+        result["buildFingerprint"] = Build.FINGERPRINT
         result["androidRelease"] = Build.VERSION.RELEASE
         result["sdkInt"] = Build.VERSION.SDK_INT.toString()
         result["supportedAbis"] = Build.SUPPORTED_ABIS.joinToString()
@@ -43,7 +48,31 @@ object SpikeProbe {
         result["buildTags"] = Build.TAGS.orEmpty()
         result["buildType"] = Build.TYPE.orEmpty()
         result["pageSize"] = pageSize()
+        val activityManager = context.getSystemService(ActivityManager::class.java)
+        val memoryInfo = ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memoryInfo)
+        result["totalMemoryBytes"] = memoryInfo.totalMem.toString()
+        result["memoryClassMiB"] = activityManager.memoryClass.toString()
+        result["lowRamDevice"] = activityManager.isLowRamDevice.toString()
+        val powerManager = context.getSystemService(PowerManager::class.java)
+        result["ignoringBatteryOptimizations"] =
+            powerManager.isIgnoringBatteryOptimizations(context.packageName).toString()
+        result["thermalStatusAtReport"] = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            powerManager.currentThermalStatus.toString()
+        } else {
+            "unavailable"
+        }
+        result["defaultInputMethod"] = defaultInputMethod(context)
         result["applicationId"] = context.packageName
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        result["appVersionName"] = packageInfo.versionName.orEmpty()
+        result["appVersionCode"] = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo.longVersionCode.toString()
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo.versionCode.toString()
+        }
+        result["apkSha256"] = sha256(File(info.sourceDir))
         result["dataDir"] = info.dataDir
         result["nativeLibraryDir"] = info.nativeLibraryDir
         result["extractNativeLibs"] =
@@ -51,6 +80,23 @@ object SpikeProbe {
         result["externalFilesDir"] = context.getExternalFilesDir(null)?.absolutePath ?: "unavailable"
         result["runtimeDir"] = runtimeDir(context).absolutePath
         return result
+    }
+
+    fun defaultInputMethod(context: Context): String =
+        Settings.Secure.getString(context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
+            ?: "unavailable"
+
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().buffered().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 
     fun pageSize(): String = try {

@@ -12,22 +12,22 @@ set; G0 is governed by `docs/spec.md` and this phase plan.
 | Decision | Current resolution | Status at G0 | Evidence / remaining work |
 | --- | --- | --- | --- |
 | D1 — distribution | GitHub Releases + Obtainium first; self-hosted F-Droid after reproducible builds; Play deferred; Apache-2.0 app code. | Accepted by owner; release work remains. | `docs/adr/0001-distribution.md`. Complete the S9 legal, source-offer, signing and reproducible-build blockers before release. |
-| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | The official-package harness proves loader launch on one Infinix Android 16 device (4 KB pages). Its S3 guest-shell/native-PTY pass is invalidated: `node` was missing and the old probe accepted output without parsed environment values. Node.js 20.15.1 arm64/musl is now pinned and installed by the harness; a corrected S3 device rerun, full S1 evidence, S2 comparison, required device tiers and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
+| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | The corrected physical harness report verifies S3 (Node, guest markers, and native PTY comparison) plus one S1 mock-provider round trip on one Infinix Android 16 device with 4 KB pages. Profile A/B comparison, required device tiers, production shell wiring, and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
 | D5 — version pin | Keep OpenCode **1.19.3** as the exact current baseline; verify its manifest hash; reject unknown major versions. Re-evaluate only when a distributable 2.x artifact is available. | Resolved for the current baseline; 2.x compatibility is unverified. | `runtime/manifest.json`, `tests/spikes/results/S6-2.x.md`. The 2.x release-artifact check is blocked, not a reason to silently change the pin. |
 
 **G0 is not complete.** The specification requires S1–S9, Tier A/B/C
-baselines, ratified thresholds, and frozen D1/D4/D5. One physical device
-passed the staged harness's S1 loader-version check against the current
-official package, as recorded in
-`tests/spikes/results/raw/spike-20261024-080149.json`. The same report's
-S3 pass is invalidated: the guest did not have Node, and the probe could
-pass without verifying its environment markers. The corrected probe needs
-a device rerun; the harness now installs the pinned Alpine Node.js
-20.15.1 arm64/musl package and dependencies before probing. This does not
-satisfy the required device matrix. S2, longer-duration
-and cross-tier S7, keyboard S8, S6's 2.x artifact decision and S9
-compliance items remain open. Do not start G0-dependent production
-service wiring or claim gate acceptance until these blockers clear.
+baselines, ratified thresholds, and frozen D1/D4/D5. The corrected
+physical report `docs/evidence/spike-20261025-003215.json` verifies S3
+guest-shell and native-PTY behavior with Node.js 20.15.1, plus S1 health
+and mock-provider behavior, on one Infinix Android 16 device with 4 KB
+pages. This is single-device feasibility evidence, not the required
+device matrix or production-app acceptance. The updated harness adds an
+available S1/S3 suite and a single 30-minute foreground-service soak, but
+that new soak has not yet been run and does not substitute for agent-task
+survival. S2, Tier A/B/C coverage, a 16 KB-page device, full S7 and S8,
+S6's 2.x artifact decision, and S9 compliance remain open. Do not start
+G0-dependent production service wiring or claim gate acceptance until
+these blockers clear.
 
 ### G0 sequencing constraint
 
@@ -49,8 +49,11 @@ start/stop probes. Its claimed S3 pass is invalid because output contained
 It records S8 text changes but no key-down events. The report does not
 contain an archive hash, and does not cover a 16 KB-page device, the
 remaining tiers, named keyboard coverage or S7 background survival.
-Continue gathering those results before freezing D4 or ratifying
-device-dependent thresholds.
+That invalidated report is superseded for S3 by
+`docs/evidence/spike-20261025-003215.json`, which verifies Node and matching
+guest/PTY values on the same single device. Continue gathering the
+remaining tiers, named keyboard coverage, S7 survival and other device
+results before freezing D4 or ratifying device-dependent thresholds.
 
 An isolated device harness now exists at `tests/spikes/harness/` and is
 excluded from normal builds (`-PspikeHarness=true`). It records device
@@ -223,14 +226,16 @@ See `docs/architecture/g1-contracts.md`.
       guest-shell/native-PTY passes were later invalidated because Node
       was missing and the probe accepted unverified output.
 - [x] Add an isolated harness action for authenticated S1 server health
-      and a deterministic local mock-provider prompt round trip; device
-      execution of this action remains pending.
+      and a deterministic local mock-provider prompt round trip; the
+      physical report records one successful device run.
 - [x] Capture one user-reported S1 server-health/session/mock-provider
       prompt round trip; see
       `../../tests/spikes/results/S1-session-roundtrip-user-log.txt`.
+- [x] Run the corrected S3 guest-shell/native-PTY probes on one physical
+      device; see `docs/evidence/spike-20261025-003215.json`.
 - [ ] Complete the S1 device matrix, Tier A/B/C and 16 KB-page tests,
-      corrected S3 device rerun, keyboard acceptance, and S7
-      background-survival evidence.
+      two-device S3 comparison, keyboard acceptance, and S7 background
+      survival evidence.
 
 ## Phase 0 exit criteria
 
@@ -246,14 +251,14 @@ See `docs/architecture/g1-contracts.md`.
 
 | ID | Status | Evidence |
 | --- | --- | --- |
-| S1 | partial (host + one physical device; loader version only on device) | `tests/spikes/results/S1-host-smoke.md`, `tests/spikes/results/S3-device-harness-20261024-staged.md` |
+| S1 | partial (host + one physical device; loader, health, and mock prompt on device) | `tests/spikes/results/S1-host-smoke.md`, `docs/evidence/spike-20261025-003215.json` |
 | S2 | partial (host); device + git/npm + thermals pending | `tests/spikes/results/S2-host-profiles.md` |
-| S3 | partial (host only); earlier device guest-shell/PTY passes are invalidated because the probe accepted missing Node and unverified output; full agent-shell comparison and device matrix pending | `tests/spikes/results/S3-shell.md`, `tests/spikes/results/S3-device-harness-20261024-staged.md`, `docs/evidence/RESULTS.md` |
+| S3 | partial (one corrected physical harness run verifies Node and matching guest/PTY fields; production agent-shell wiring and device matrix pending) | `tests/spikes/results/S3-shell.md`, `docs/evidence/spike-20261025-003215.json`, `docs/evidence/RESULTS.md` |
 | S4 | pass (host, mock + real provider); app/UI pending | `tests/spikes/results/S4-sse.md` |
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
-| S7 | partial (one device; start/stop observed, background survival and tier matrix pending) | `docs/evidence/RESULTS.md` |
-| S8 | partial (owner-approved user attestation of keyboard pass on Infinix Note 50s 5G using “emojikeyboard”; app/IME identity and coverage unverified; required Gboard/Samsung runs pending) | `docs/evidence/RESULTS.md` |
+| S7 | partial (one device; start/stop observed, 30-minute survival and tier matrix pending; new harness soak not yet run) | `docs/evidence/RESULTS.md` |
+| S8 | partial (one device report observes text and key events but does not assess keyboard acceptance; required Gboard/Samsung runs pending) | `docs/evidence/RESULTS.md` |
 | S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes

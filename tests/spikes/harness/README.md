@@ -15,14 +15,19 @@ The harness currently covers:
   loader, with the binary and libraries in app-private storage;
 - S1 partial: authenticated loopback server health and a deterministic
   OpenAI-compatible mock-provider prompt round trip;
+- a one-tap runner for the available S1/S3 entrypoint, loader, server,
+  guest-shell, and native-PTY probes;
 - S3 partial: a PRoot/Alpine guest shell (`pwd`, `PATH`,
   `node -v`, `/etc/alpine-release`), plus native `forkpty` comparison
   of guest `pwd`, `PATH` and `node -v`;
-- S7 partial: `specialUse` foreground service start/stop and lifecycle
-  events;
+- S7 partial: a single 30-minute `specialUse` foreground-service soak,
+  with persisted heartbeats and thermal-status samples; it is not the
+  agent-task 19/20 acceptance test;
 - S8 partial: keyboard/IME input observation in a text field; this is
   not a native terminal and does not replace the PTY comparison;
 - a JSON report with command lines, exit codes and bounded stdout/stderr.
+  The report also includes the installed APK SHA-256, device memory/page
+  size, default IME, battery-optimization state, and thermal status.
 
 It does **not** include production OpenCode server/service integration, the
 supervisor, an SSE gateway, Git or workspace services. Those remain deferred
@@ -59,6 +64,38 @@ executable and rootfs are installed using the core runtime installers. The
 first download is large; progress and failures are shown in the harness.
 PRoot entrypoints remain packaged native libraries and are never downloaded
 or executed from writable app storage.
+
+## Two-device test run
+
+Install the same staged APK on both devices and retain the exported report
+from each. Each report records the APK SHA-256 and device metadata so the
+results can be compared without conflating different builds or device tiers.
+
+On each device:
+
+1. Tap **Download and verify pinned runtime** and wait for success.
+2. Tap **Run all available device probes (S1/S3)**. This runs packaging,
+   loader/version, authenticated mock prompt, guest shell and native-PTY
+   checks in sequence. Inspect each result; the summary is not a G0 verdict.
+3. For S7, tap **Start S7 30-minute background survival run**, background
+   the app and turn the screen off for at least 30 minutes, then reopen it
+   and tap **Finish S7 run and record survival**. The exported record
+   includes heartbeat freshness and thermal samples. This tests only the
+   harness foreground service, not an agent task or the required 19/20
+   repeated-run acceptance threshold.
+4. For S8, run the keyboard observation separately with Gboard and Samsung
+   Keyboard where available. Try the extra-key row, hardware keys, paste and
+   text selection, then tap **Record this keyboard's observation** before
+   switching IMEs. The report captures a separate IME identity and observed
+   text/key event record for each run but intentionally does not mark
+   keyboard acceptance as passed.
+5. Tap **Write JSON report** and provide the JSON from both devices.
+
+This APK can collect only the device-side feasibility probes listed above.
+Profile A/B performance comparison, host SSE/contract checks, OpenCode 2.x
+compatibility, full release compliance, and production-app acceptance are
+not implemented by this isolated harness and remain explicit blockers in
+the JSON report.
 
 For the S1 server probe, tap **Start authenticated server + mock prompt**.
 It starts OpenCode directly through the bundled musl loader, binds the
@@ -100,10 +137,11 @@ root, so Alpine's `/bin/sh -> /bin/busybox` link does not need to be
 rewritten on the device.
 
 When writing the JSON report, the harness includes an `S8-ime-observation`
-result with text-change count, final text length, and observed key-down
-count/last key. A pass means only that text changed; the report explicitly
-marks keyboard acceptance as not assessed. Typed text itself is not
-included. S9 is release-compliance evidence and is not an on-device probe.
+result with text-change count, final text length, observed key-down
+count/last key, and the default IME package/class. A pass means only that
+text changed; keyboard acceptance is explicitly not assessed. Typed text
+itself is not included. S9 is release-compliance evidence and is not an
+on-device probe.
 
 Manual staging is only needed when testing an older harness build without
 the runtime download button:
