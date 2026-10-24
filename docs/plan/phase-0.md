@@ -216,9 +216,12 @@ See `docs/architecture/g1-contracts.md`.
 - [x] Run the staged harness on one physical Android 16/arm64 device;
       record passing S1 loader-version, S3 guest-shell/native-PTY and
       basic S7 lifecycle probes in `docs/evidence/RESULTS.md`.
-- [ ] Complete S1 server health and mock-provider prompt round trip;
-      run the required Tier A/B/C, 16 KB-page and keyboard tests, and
-      collect S7 background-survival evidence.
+- [x] Add an isolated harness action for authenticated S1 server health
+      and a deterministic local mock-provider prompt round trip; device
+      execution of this action remains pending.
+- [ ] Run the S1 server-health/mock-provider prompt probe on the required
+      devices; complete Tier A/B/C, 16 KB-page and keyboard tests; collect
+      S7 background-survival evidence.
 
 ## Phase 0 exit criteria
 

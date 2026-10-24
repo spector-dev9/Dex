@@ -377,7 +377,7 @@ object SpikeProbe {
         }
     }
 
-    private fun prepareRuntime(context: Context) {
+    internal fun prepareRuntime(context: Context) {
         val root = runtimeDir(context)
         listOf("home/.config", "home/.local/share", "home/.cache", "tmp").forEach {
             File(root, it).mkdirs()
@@ -401,7 +401,7 @@ object SpikeProbe {
         }
     }
 
-    private fun runtimeEnvironment(context: Context): MutableMap<String, String> {
+    internal fun runtimeEnvironment(context: Context): MutableMap<String, String> {
         val root = runtimeDir(context)
         val home = File(root, "home")
         val runtime = File(root, "runtime")

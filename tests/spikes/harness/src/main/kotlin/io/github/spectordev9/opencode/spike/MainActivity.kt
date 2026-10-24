@@ -106,6 +106,9 @@ class MainActivity : Activity() {
         root.addView(button("Run loader/opencode --version (S1)") {
             runProbes("loader") { listOf(SpikeProbe.runLoader(this)) }
         })
+        root.addView(button("Start authenticated server + mock prompt (S1)") {
+            runProbes("S1-server-mock") { SpikeServerProbe.run(this) }
+        })
         root.addView(button("Run PRoot guest shell (S3 partial)") {
             runProbes("guest-shell") { listOf(SpikeProbe.runGuestShell(this)) }
         })

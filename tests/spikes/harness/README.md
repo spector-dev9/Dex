@@ -13,6 +13,8 @@ The harness currently covers:
   loader, including PT_LOAD alignment against the 16 KB rule;
 - S1 app-sandbox launch of `opencode --version` through the bundled
   loader, with the binary and libraries in app-private storage;
+- S1 partial: authenticated loopback server health and a deterministic
+  OpenAI-compatible mock-provider prompt round trip;
 - S3 partial: a PRoot/Alpine guest shell (`pwd`, `PATH`,
   `node -v`, `/etc/alpine-release`), plus native `forkpty` comparison
   of guest `pwd`, `PATH` and `node -v`;
@@ -22,9 +24,9 @@ The harness currently covers:
   not a native terminal and does not replace the PTY comparison;
 - a JSON report with command lines, exit codes and bounded stdout/stderr.
 
-It does **not** include the OpenCode server, the supervisor, SSE, Git or
-workspace services. Those remain deferred until after G0. Do not treat a
-passing harness run as device acceptance:
+It does **not** include production OpenCode server/service integration, the
+supervisor, an SSE gateway, Git or workspace services. Those remain deferred
+until after G0. Do not treat a passing harness run as device acceptance:
 the authoritative matrix is `docs/evidence/RESULTS.md`.
 
 ## Build and install
@@ -55,6 +57,15 @@ executable and rootfs are installed using the core runtime installers. The
 first download is large; progress and failures are shown in the harness.
 PRoot entrypoints remain packaged native libraries and are never downloaded
 or executed from writable app storage.
+
+For the S1 server probe, tap **Start authenticated server + mock prompt**.
+It starts OpenCode directly through the bundled musl loader, binds the
+server and deterministic mock provider to `127.0.0.1`, checks authenticated
+`/global/health`, creates a session, and polls for the exact mock response.
+The probe uses a per-run random server password and a test-only provider key;
+it never contacts a hosted model. Cleartext networking is enabled only in
+this isolated debug harness so its loopback HTTP server and mock provider can
+communicate. This is not production listener or gateway wiring.
 
 The harness builds a test-only `arm64-v8a` JNI helper with NDK 27.2 and
 CMake 3.22.1. It calls `forkpty`, starts the same PRoot/Alpine shell used
