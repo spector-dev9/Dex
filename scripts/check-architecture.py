@@ -42,6 +42,11 @@ ALLOWED_EXTERNAL_DEPENDENCIES = {
         "libs.junit.jupiter",
         "libs.junit.platform.launcher",
     },
+    "runtime-api": {
+        "libs.kotlinx.serialization.json",
+        "libs.junit.jupiter",
+        "libs.junit.platform.launcher",
+    },
     "opencode-client": {
         "libs.kotlinx.coroutines.core",
         "libs.kotlinx.serialization.json",
