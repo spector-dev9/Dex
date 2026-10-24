@@ -11,6 +11,7 @@ import io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus
 import kotlinx.coroutines.runBlocking
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.div
+import kotlin.io.path.readBytes
 import kotlin.io.path.writeBytes
 import kotlin.io.path.createSymbolicLinkPointingTo
 import kotlin.test.Test
@@ -19,6 +20,33 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class RuntimeManagerImplTest {
+    @Test
+    fun `artifact verifier accepts a matching sha-256 pin`() {
+        val archive = createTempDirectory("runtime-archive") / "runtime.tar.gz"
+        val bytes = "verified runtime archive".toByteArray()
+        archive.writeBytes(bytes)
+        val expected = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(bytes)
+            .joinToString("") { "%02x".format(it) }
+
+        val result = RuntimeArtifactVerifier().verify(archive, expected)
+
+        val verified = assertIs<ApiResult.Success<VerifiedRuntimeArtifact>>(result).value
+        assertEquals(expected, verified.sha256)
+        assertEquals(bytes.size.toLong(), verified.sizeBytes)
+        assertEquals(bytes.toList(), verified.path.readBytes().toList())
+    }
+
+    @Test
+    fun `artifact verifier rejects a mismatched sha-256 pin`() {
+        val archive = createTempDirectory("runtime-archive-mismatch") / "runtime.tar.gz"
+        archive.writeBytes("tampered runtime archive".toByteArray())
+
+        val result = RuntimeArtifactVerifier().verify(archive, "a".repeat(64))
+
+        assertIs<ApiResult.Failure>(result)
+    }
+
     @Test
     fun `ensureReady succeeds with a valid manifest and required files`() = runBlocking {
         val root = createTempDirectory("runtime-manager")

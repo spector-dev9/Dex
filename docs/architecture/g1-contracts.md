@@ -4,9 +4,10 @@ Status: core contracts and the minimal Compose Android shell compile. An
 app-local unit-test harness contains fake service ports and a partial bridge
 handler for contract-level tests only; none of those fakes are wired into
 the app runtime. The `core:runtime` JVM module validates the pinned manifest
-and installed file layout, but installation, artifact-content verification,
-platform process launch, production bridge handling, and JNI are not yet
-implemented.
+and installed file layout, and provides archive SHA-256 verification. The
+installer does not yet wire those checks into an atomic installation flow or
+verify extracted files at startup. Platform process launch, production bridge
+handling, and JNI are also not yet implemented.
 
 The TypeScript bridge contract is retained as a parity fixture only. It is
 not part of the Android UI or runtime architecture. Its envelope is
