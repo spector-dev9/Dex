@@ -3,6 +3,14 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+val generatedRuntimeAssets = layout.buildDirectory.dir("generated/runtime-assets")
+val syncRuntimeManifest = tasks.register<Sync>("syncRuntimeManifest") {
+    from(rootProject.file("runtime/manifest.json")) {
+        rename { "runtime-manifest.json" }
+    }
+    into(generatedRuntimeAssets)
+}
+
 android {
     namespace = "io.github.spectordev9.opencode.spike"
     compileSdk = 36
@@ -21,6 +29,12 @@ android {
                 cppFlags += "-std=c++17"
                 abiFilters += "arm64-v8a"
             }
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            assets.srcDir(generatedRuntimeAssets)
         }
     }
 
@@ -55,4 +69,13 @@ android {
             version = "3.22.1"
         }
     }
+
+}
+
+dependencies {
+    implementation(project(":core:runtime"))
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(syncRuntimeManifest)
 }

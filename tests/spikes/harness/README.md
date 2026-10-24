@@ -40,10 +40,21 @@ Alpine rootfs/runtime packages and Android libraries with
 `scripts/fetch-runtime.py --alpine --android-libs --alpine-runtime-libs`,
 verifies their hashes, creates `runtime/artifacts/spike-runtime.tar.gz`, and copies
 `libldmusl.so`, `libproot.so` and `libproot_loader.so` into the
-gitignored `src/main/jniLibs/arm64-v8a/` directory. Re-run the Gradle
-build after staging so the APK contains the entrypoints. The harness
-sets `PROOT_LOADER` to the staged PRoot loader; without it PRoot would look
-for the Termux `libexec` path.
+gitignored `src/main/jniLibs/arm64-v8a/` directory. It also stages
+PRoot's helper libraries as APK assets. Re-run the Gradle build after
+staging so the APK contains the native entrypoints and helper libraries.
+The harness sets `PROOT_LOADER` to the packaged PRoot loader; without it
+PRoot would look for the Termux `libexec` path.
+
+At runtime, tap **Download and verify pinned runtime**. The harness reads the
+same `runtime/manifest.json` used by the host installers and downloads the
+pinned OpenCode archive, Alpine minirootfs and Alpine runtime packages over
+HTTPS concurrently (up to four at a time). It verifies each SHA-256 before
+installation and stores the results in app-private storage. The OpenCode
+executable and rootfs are installed using the core runtime installers. The
+first download is large; progress and failures are shown in the harness.
+PRoot entrypoints remain packaged native libraries and are never downloaded
+or executed from writable app storage.
 
 The harness builds a test-only `arm64-v8a` JNI helper with NDK 27.2 and
 CMake 3.22.1. It calls `forkpty`, starts the same PRoot/Alpine shell used
@@ -52,8 +63,9 @@ reported guest `PWD`, `PATH` and `node -v` result. This is feasibility
 evidence only, not the production `PtyService` implementation.
 
 CI compiles the harness **without** running the staging script, so the
-CI APK is a compile check and cannot run S1/S3 until the runtime and
-jniLibs are staged locally.
+CI APK is a compile check. It can fetch the OpenCode/Alpine runtime, but
+cannot run S1/S3 because the native loader and PRoot entrypoints are not
+present in the APK.
 
 The rootfs entrypoint check resolves absolute symlinks under the guest
 root, so Alpine's `/bin/sh -> /bin/busybox` link does not need to be
@@ -64,7 +76,8 @@ result with text-change count, final text length, and observed key-down
 count/last key. Typed text itself is not included in that result. S9 is
 release-compliance evidence and is not an on-device harness probe.
 
-Stage the runtime into the debug app's private files directory:
+Manual staging is only needed when testing an older harness build without
+the runtime download button:
 
 ```bash
 adb push runtime/artifacts/spike-runtime.tar.gz /data/local/tmp/

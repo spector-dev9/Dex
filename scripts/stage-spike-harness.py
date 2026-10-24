@@ -30,6 +30,9 @@ DEFAULT_TAR = os.path.join(DEFAULT_ARTIFACTS, "spike-runtime.tar.gz")
 DEFAULT_JNI = os.path.join(
     ROOT, "tests", "spikes", "harness", "src", "main", "jniLibs", "arm64-v8a"
 )
+DEFAULT_RUNTIME_ASSETS = os.path.join(
+    ROOT, "tests", "spikes", "harness", "src", "main", "assets", "runtime-libs"
+)
 APP_ID = "io.github.spectordev9.opencode.spike.debug"
 
 
@@ -158,7 +161,13 @@ def extract_alpine_runtime_package(archive_path: str, rootfs: str) -> None:
         archive.extractall(rootfs, members=members, filter="data")
 
 
-def stage(manifest_path: str, artifacts: str, stage_dir: str, jni_dir: str) -> str:
+def stage(
+    manifest_path: str,
+    artifacts: str,
+    stage_dir: str,
+    jni_dir: str,
+    runtime_assets_dir: str,
+) -> str:
     with open(manifest_path, encoding="utf-8") as handle:
         manifest = json.load(handle)
 
@@ -243,6 +252,10 @@ def stage(manifest_path: str, artifacts: str, stage_dir: str, jni_dir: str) -> s
     for name in ("libldmusl.so", "libproot.so", "libproot_loader.so"):
         os.chmod(os.path.join(jni_dir, name), 0o755)
 
+    os.makedirs(runtime_assets_dir, exist_ok=True)
+    for name in ("libtalloc.so.2", "libandroid-shmem.so"):
+        shutil.copy2(android_libs[name], os.path.join(runtime_assets_dir, name))
+
     manifest_text = [
         "OpenCode Phase 2 spike runtime",
         f"opencode: {version} ({manifest['artifact']['sha256']})",
@@ -277,6 +290,7 @@ def main() -> int:
     parser.add_argument("--stage-dir", default=DEFAULT_STAGE)
     parser.add_argument("--tar", default=DEFAULT_TAR)
     parser.add_argument("--jni-dir", default=DEFAULT_JNI)
+    parser.add_argument("--runtime-assets-dir", default=DEFAULT_RUNTIME_ASSETS)
     parser.add_argument("--no-fetch", action="store_true", help="use already fetched artifacts")
     parser.add_argument("--force", action="store_true", help="redownload artifacts")
     args = parser.parse_args()
@@ -284,7 +298,13 @@ def main() -> int:
     if not args.no_fetch:
         run_fetch(args.force)
 
-    stage(args.manifest, args.artifacts, args.stage_dir, args.jni_dir)
+    stage(
+        args.manifest,
+        args.artifacts,
+        args.stage_dir,
+        args.jni_dir,
+        args.runtime_assets_dir,
+    )
     create_archive(args.stage_dir, args.tar)
 
     print()
@@ -295,13 +315,8 @@ def main() -> int:
         "  adb install -r "
         "tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk"
     )
-    print("Stage the runtime into app-private storage:")
-    print(f"  adb push {args.tar} /data/local/tmp/")
-    print(
-        f"  adb shell run-as {APP_ID} sh -c "
-        f"'cd files && tar xzf /data/local/tmp/{os.path.basename(args.tar)}'"
-    )
-    print("Then open the harness, run the probes and pull the JSON report:")
+    print("Open the harness and tap Download and verify pinned runtime.")
+    print("Then run the probes and pull the JSON report:")
     print(f"  adb shell run-as {APP_ID} ls files/reports")
     print(f"  adb shell run-as {APP_ID} cat files/reports/<report>.json")
     return 0

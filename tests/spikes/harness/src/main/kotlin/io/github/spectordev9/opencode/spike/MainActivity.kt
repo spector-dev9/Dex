@@ -66,6 +66,40 @@ class MainActivity : Activity() {
         runtimeView = monospace()
         root.addView(runtimeView)
 
+        root.addView(button("Download and verify pinned runtime (large download)") {
+            runProbes("runtime-download") {
+                val started = System.currentTimeMillis()
+                try {
+                    val installed = SpikeRuntimeInstaller.install(applicationContext) { item, bytes, total ->
+                        runOnUiThread {
+                            val amount = if (total > 0) {
+                                "${bytes / 1_048_576} / ${total / 1_048_576} MiB"
+                            } else {
+                                "${bytes / 1_048_576} MiB"
+                            }
+                            statusView.text = "Downloading $item: $amount"
+                        }
+                    }
+                    listOf(
+                        ProbeRecord(
+                            id = "runtime-download",
+                            pass = true,
+                            detail = installed,
+                            durationMs = System.currentTimeMillis() - started,
+                        ),
+                    )
+                } catch (failure: Exception) {
+                    listOf(
+                        ProbeRecord(
+                            id = "runtime-download",
+                            pass = false,
+                            detail = "${failure.javaClass.simpleName}: ${failure.message}",
+                            durationMs = System.currentTimeMillis() - started,
+                        ),
+                    )
+                }
+            }
+        })
         root.addView(button("Probe entrypoints (S1/S3 packaging)") {
             runProbes("entrypoints") { SpikeProbe.probeEntrypoints(this) }
         })

@@ -46,10 +46,14 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
                 val archivePath = if (prefix.isEmpty()) name else "$prefix/$name"
                 val path = normalizeArchivePath(archivePath)
                 val type = header[TYPE_OFFSET].toInt().toChar().let { if (it == '\u0000') '0' else it }
+                val size = readOctal(header, SIZE_OFFSET, SIZE_LENGTH)
+                if (type == 'x') {
+                    skipPaxHeader(input, size)
+                    continue
+                }
                 if (type !in setOf('0', '5', '2')) {
                     throw IOException("unsupported Alpine archive entry type: $type")
                 }
-                val size = readOctal(header, SIZE_OFFSET, SIZE_LENGTH)
                 if (size < 0 || size > MAX_ENTRY_SIZE) throw IOException("Alpine archive entry is too large")
                 if (type != '0' && size != 0L) throw IOException("non-file Alpine entry has a payload")
                 val mode = readOctal(header, MODE_OFFSET, MODE_LENGTH)
@@ -125,6 +129,11 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
                     return
                 }
                 verifyChecksum(header)
+                val type = header[TYPE_OFFSET].toInt().toChar()
+                if (type == 'x') {
+                    skipPaxHeader(input, readOctal(header, SIZE_OFFSET, SIZE_LENGTH))
+                    continue
+                }
                 val member = expectedMembers.getOrNull(index++)
                     ?: throw IOException("Alpine archive changed during extraction")
                 val parsed = parseMember(header)
@@ -297,6 +306,58 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
         skipPadding(input, size)
     }
 
+    private fun skipPaxHeader(input: InputStream, size: Long) {
+        if (size <= 0 || size > MAX_PAX_HEADER_SIZE) {
+            throw IOException("invalid Alpine PAX header size")
+        }
+        val payload = ByteArray(size.toInt())
+        var offset = 0
+        while (offset < payload.size) {
+            val read = input.read(payload, offset, payload.size - offset)
+            if (read < 0) throw IOException("truncated Alpine PAX header")
+            if (read > 0) offset += read
+        }
+        validatePaxMetadata(payload)
+        skipPadding(input, size)
+    }
+
+    private fun validatePaxMetadata(payload: ByteArray) {
+        var offset = 0
+        val seenKeys = mutableSetOf<String>()
+        while (offset < payload.size) {
+            val space = (offset until payload.size).firstOrNull { payload[it] == ' '.code.toByte() }
+                ?: throw IOException("invalid Alpine PAX record")
+            val lengthText = payload.copyOfRange(offset, space).toString(Charsets.US_ASCII)
+            if (lengthText.isEmpty() || lengthText.any { it !in '0'..'9' }) {
+                throw IOException("invalid Alpine PAX record length")
+            }
+            val length = lengthText.toIntOrNull()
+                ?: throw IOException("invalid Alpine PAX record length")
+            if (length <= space - offset + 2 || length > payload.size - offset ||
+                payload[offset + length - 1] != '\n'.code.toByte()
+            ) {
+                throw IOException("invalid Alpine PAX record length")
+            }
+            val record = payload.copyOfRange(space + 1, offset + length - 1)
+                .toString(Charsets.US_ASCII)
+            val separator = record.indexOf('=')
+            if (separator <= 0) throw IOException("invalid Alpine PAX record")
+            val key = record.substring(0, separator)
+            val value = record.substring(separator + 1)
+            if (!seenKeys.add(key)) throw IOException("duplicate Alpine PAX metadata: $key")
+            when (key) {
+                "atime", "ctime" -> if (!value.matches(Regex("[0-9]+(?:\\.[0-9]+)?"))) {
+                    throw IOException("invalid Alpine PAX timestamp")
+                }
+                "APK-TOOLS.checksum.SHA1" -> if (!value.matches(Regex("[a-fA-F0-9]{40}"))) {
+                    throw IOException("invalid Alpine package checksum metadata")
+                }
+                else -> throw IOException("unsupported Alpine PAX metadata: $key")
+            }
+            offset += length
+        }
+    }
+
     private fun skipPadding(input: InputStream, size: Long) {
         val padding = (BLOCK_SIZE - size % BLOCK_SIZE) % BLOCK_SIZE
         repeat(padding.toInt()) {
@@ -327,6 +388,7 @@ class AlpineRootfsTarGzExtractor : RuntimeArchiveExtractor {
         const val BLOCK_SIZE = 512
         const val COPY_BUFFER_SIZE = 64 * 1024
         const val MAX_ENTRY_SIZE = 1L shl 30
+        const val MAX_PAX_HEADER_SIZE = 64 * 1024L
         const val MAX_ENTRIES = 10_000
         const val NAME_OFFSET = 0
         const val NAME_LENGTH = 100

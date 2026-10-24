@@ -39,6 +39,49 @@ class AlpineRootfsTarGzExtractorTest {
     }
 
     @Test
+    fun `skips safe Alpine PAX metadata records`() {
+        val root = createTempDirectory("alpine-rootfs-pax")
+        val archive = writeArchive(
+            root,
+            listOf(
+                Entry("bin/", type = '5', mode = 493),
+                Entry(
+                    "./PaxHeaders/bin/tool",
+                    paxMetadata(
+                        "ctime" to "0",
+                        "atime" to "0",
+                        "APK-TOOLS.checksum.SHA1" to "0123456789abcdef0123456789abcdef01234567",
+                    ),
+                    type = 'x',
+                ),
+                Entry("bin/tool", "binary".toByteArray(), mode = 493),
+            ),
+        )
+        val destination = root / "rootfs"
+
+        AlpineRootfsTarGzExtractor().extract(archive, destination)
+
+        assertContentEquals("binary".toByteArray(), (destination / "bin/tool").readBytes())
+    }
+
+    @Test
+    fun `rejects PAX path overrides`() {
+        val root = createTempDirectory("alpine-rootfs-pax-path")
+        val archive = writeArchive(
+            root,
+            listOf(
+                Entry("./PaxHeaders/file", paxMetadata("path" to "../outside"), type = 'x'),
+                Entry("file", "bad".toByteArray()),
+            ),
+        )
+
+        assertFailsWith<IOException> {
+            AlpineRootfsTarGzExtractor().extract(archive, root / "destination")
+        }
+        assertTrue(!Files.exists(root / "outside"))
+    }
+
+    @Test
     fun `rejects archive traversal and absolute entry paths`() {
         val root = createTempDirectory("alpine-rootfs-traversal")
         listOf("../outside", "/outside").forEachIndexed { index, path ->
@@ -113,6 +156,17 @@ class AlpineRootfsTarGzExtractorTest {
         GZIPOutputStream(Files.newOutputStream(archive)).use { it.write(tar.toByteArray()) }
         return archive
     }
+
+    private fun paxMetadata(vararg attributes: Pair<String, String>): ByteArray =
+        attributes.joinToString("") { (key, value) ->
+            val record = "$key=$value\n"
+            val body = record.toByteArray(Charsets.UTF_8)
+            var length = body.size + 2
+            while (length.toString().length + 1 + body.size != length) {
+                length = length.toString().length + 1 + body.size
+            }
+            "$length $record"
+        }.toByteArray(Charsets.UTF_8)
 
     private fun writeString(header: ByteArray, offset: Int, length: Int, value: String) {
         val bytes = value.toByteArray(Charsets.UTF_8)

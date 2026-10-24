@@ -60,18 +60,17 @@ object SpikeProbe {
 
     fun runtimeSummary(context: Context): String {
         val root = runtimeDir(context)
+        val nativeDir = File(context.applicationInfo.nativeLibraryDir)
         val required = listOf(
             "runtime/opencode",
             "runtime/libc.musl-aarch64.so.1",
             "runtime/libgcc_s.so.1",
             "runtime/libstdc++.so.6",
-            "proot",
-            "loader",
             "libtalloc.so.2",
             "libandroid-shmem.so",
             "rootfs/bin/sh",
         )
-        return required.joinToString("\n") { relative ->
+        val appFiles = required.map { relative ->
             val file = File(root, relative)
             val exists = if (relative == "rootfs/bin/sh") {
                 rootfsFileExists(File(root, "rootfs"), "bin/sh")
@@ -80,6 +79,15 @@ object SpikeProbe {
             }
             if (exists) "OK      $relative (${file.length()} B)" else "MISSING $relative"
         }
+        val nativeFiles = listOf("libldmusl.so", "libproot.so", "libproot_loader.so").map { name ->
+            val file = File(nativeDir, name)
+            if (file.isFile) {
+                "OK      $name in nativeLibraryDir (${file.length()} B)"
+            } else {
+                "MISSING $name in nativeLibraryDir"
+            }
+        }
+        return (appFiles + nativeFiles).joinToString("\n")
     }
 
     fun probeEntrypoints(context: Context): List<ProbeRecord> {
@@ -95,8 +103,6 @@ object SpikeProbe {
             "runtime/libc.musl-aarch64.so.1",
             "runtime/libgcc_s.so.1",
             "runtime/libstdc++.so.6",
-            "proot",
-            "loader",
             "libtalloc.so.2",
             "libandroid-shmem.so",
             "rootfs/bin/sh",
@@ -190,7 +196,11 @@ object SpikeProbe {
         val env = runtimeEnvironment(context).apply {
             put("PROOT_TMP_DIR", File(root, "tmp").absolutePath)
             put("PROOT_NO_SECCOMP", "1")
-            put("LD_LIBRARY_PATH", root.absolutePath + ":" + File(root, "runtime").absolutePath)
+            put(
+                "LD_LIBRARY_PATH",
+                root.absolutePath + ":" + File(root, "runtime").absolutePath + ":" +
+                    context.applicationInfo.nativeLibraryDir,
+            )
             put("PROOT_LOADER", loader.absolutePath)
         }
         val record = runProcess(
