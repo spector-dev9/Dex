@@ -2,6 +2,7 @@ package io.github.spectordev9.opencode.spike
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -22,18 +23,40 @@ object SpikeServerProbe {
     private const val RESPONSE_TEXT = "S1-MOCK-OK"
     private const val MAX_REQUEST_BYTES = 1024 * 1024
     private const val HEALTH_TIMEOUT_MS = 90_000L
+    private const val HEALTH_PROGRESS_INTERVAL_MS = 10_000L
     private const val PROMPT_TIMEOUT_MS = 120_000L
 
-    fun run(context: Context): List<ProbeRecord> {
+    fun run(context: Context): List<ProbeRecord> =
+        try {
+            runProbe(context)
+        } catch (failure: Exception) {
+            writeDiagnostic(
+                context,
+                "probe-exception",
+                "${failure.javaClass.simpleName}: ${failure.message}",
+            )
+            listOf(
+                ProbeRecord(
+                    id = "S1-server-mock",
+                    pass = false,
+                    detail = "${failure.javaClass.simpleName}: ${failure.message}",
+                ),
+            )
+        }
+
+    private fun runProbe(context: Context): List<ProbeRecord> {
+        writeDiagnostic(context, "probe-start")
         val root = SpikeProbe.runtimeDir(context).toPath()
         val runtime = root.resolve("runtime")
         val binary = runtime.resolve("opencode")
         val loader = Path.of(context.applicationInfo.nativeLibraryDir).resolve("libldmusl.so")
         if (!Files.isRegularFile(binary) || !Files.isRegularFile(loader)) {
+            writeDiagnostic(context, "runtime-missing", "binary=$binary loader=$loader")
             return listOf(ProbeRecord("S1-server-mock", false, "runtime or musl loader is missing"))
         }
 
         SpikeProbe.prepareRuntime(context)
+        writeDiagnostic(context, "runtime-ready")
         val workingDirectory = root.resolve("s1").resolve("workspace")
         val home = root.resolve("s1").resolve("home")
         Files.createDirectories(workingDirectory)
@@ -41,11 +64,17 @@ object SpikeServerProbe {
         Files.createDirectories(home.resolve(".local/share"))
         Files.createDirectories(home.resolve(".cache"))
         Files.createDirectories(root.resolve("s1/tmp"))
+        writeDiagnostic(context, "probe-directories-ready")
 
         val provider = MockProvider()
         val serverPort = reservePort()
         val password = randomSecret()
         val config = writeProviderConfig(root.resolve("s1/opencode.json"), provider.port)
+        writeDiagnostic(
+            context,
+            "probe-config-ready",
+            "serverPort=$serverPort mockPort=${provider.port}",
+        )
         val command = listOf(
             loader.toString(),
             "--library-path",
@@ -79,6 +108,7 @@ object SpikeServerProbe {
         val started = System.currentTimeMillis()
         try {
             provider.start()
+            writeDiagnostic(context, "mock-provider-listening", "port=${provider.port}")
             process = ProcessBuilder(command)
                 .directory(workingDirectory.toFile())
                 .apply {
@@ -87,6 +117,7 @@ object SpikeServerProbe {
                     redirectErrorStream(true)
                 }
                 .start()
+            writeDiagnostic(context, "opencode-process-started", "alive=${process.isAlive}")
             val processOutput = process.inputStream
             val outputThread = Thread {
                 processOutput.use { input ->
@@ -100,6 +131,11 @@ object SpikeServerProbe {
             }.apply { name = "s1-server-output"; isDaemon = true; start() }
 
             val healthy = waitForHealth(serverPort, password, process)
+            writeDiagnostic(
+                context,
+                if (healthy.first) "authenticated-health-passed" else "authenticated-health-failed",
+                "status=${healthy.second} elapsedMs=${healthy.third} processExit=${process.exitValueOrNull()}",
+            )
             if (!healthy.first) {
                 val detail = "health failed: ${healthy.second}; processExit=${process.exitValueOrNull()}; " +
                     "server=${output.text().replace(password, "[REDACTED]")}"
@@ -122,7 +158,12 @@ object SpikeServerProbe {
                 exitCode = 0,
                 durationMs = healthy.third,
             )
-            val prompt = runPrompt(serverPort, password, workingDirectory, provider)
+            val prompt = runPrompt(serverPort, password, workingDirectory, provider, context)
+            writeDiagnostic(
+                context,
+                if (prompt.pass) "mock-prompt-passed" else "mock-prompt-failed",
+                prompt.detail,
+            )
             return listOf(
                 healthRecord,
                 ProbeRecord(
@@ -135,6 +176,11 @@ object SpikeServerProbe {
                 ),
             )
         } catch (failure: Exception) {
+            writeDiagnostic(
+                context,
+                "probe-exception",
+                "${failure.javaClass.simpleName}: ${failure.message}",
+            )
             return listOf(
                 ProbeRecord(
                     id = "S1-server-mock",
@@ -146,6 +192,7 @@ object SpikeServerProbe {
                 ),
             )
         } finally {
+            writeDiagnostic(context, "probe-shutdown")
             process?.let(::stopProcess)
             provider.close()
         }
@@ -156,11 +203,13 @@ object SpikeServerProbe {
         password: String,
         workspace: Path,
         provider: MockProvider,
+        context: Context,
     ): PromptOutcome {
         val baseUrl = "http://127.0.0.1:$port"
         val directoryQuery = "directory=${Uri.encode(workspace.toString())}"
         val auth = "Basic " + Base64.getEncoder()
             .encodeToString("opencode:$password".toByteArray(Charsets.UTF_8))
+        writeDiagnostic(context, "session-create-request")
         val create = request(
             url = "$baseUrl/session?$directoryQuery",
             method = "POST",
@@ -171,6 +220,7 @@ object SpikeServerProbe {
                 .toString(),
         )
         if (create.status !in 200..299) {
+            writeDiagnostic(context, "session-create-failed", "status=${create.status}")
             return PromptOutcome(false, "session create returned HTTP ${create.status}: ${create.body}", "")
         }
         val sessionID = try {
@@ -178,10 +228,12 @@ object SpikeServerProbe {
         } catch (failure: Exception) {
             return PromptOutcome(false, "session create returned invalid JSON", "")
         }
-        if (!sessionID.matches(Regex("ses[A-Za-z0-9]+"))) {
+        if (!sessionID.matches(Regex("ses_[A-Za-z0-9]+"))) {
+            writeDiagnostic(context, "session-create-invalid-id")
             return PromptOutcome(false, "server returned an invalid session ID", "")
         }
 
+        writeDiagnostic(context, "prompt-async-request", "sessionID=$sessionID")
         val prompt = request(
             url = "$baseUrl/session/$sessionID/prompt_async?$directoryQuery",
             method = "POST",
@@ -199,9 +251,11 @@ object SpikeServerProbe {
                 .toString(),
         )
         if (prompt.status !in 200..299) {
+            writeDiagnostic(context, "prompt-async-failed", "status=${prompt.status}")
             return PromptOutcome(false, "prompt_async returned HTTP ${prompt.status}: ${prompt.body}", "")
         }
 
+        writeDiagnostic(context, "prompt-accepted")
         val deadline = System.currentTimeMillis() + PROMPT_TIMEOUT_MS
         var lastResponse = ""
         while (System.currentTimeMillis() < deadline) {
@@ -211,6 +265,7 @@ object SpikeServerProbe {
                 authorization = auth,
             )
             if (messages.status !in 200..299) {
+                writeDiagnostic(context, "message-poll-failed", "status=${messages.status}")
                 return PromptOutcome(
                     false,
                     "message list returned HTTP ${messages.status}: ${messages.body}",
@@ -220,6 +275,11 @@ object SpikeServerProbe {
             lastResponse = assistantText(messages.body)
             if (lastResponse.contains(RESPONSE_TEXT)) {
                 val providerObserved = provider.requestCount.get() > 0
+                writeDiagnostic(
+                    context,
+                    "mock-response-observed",
+                    "providerRequests=${provider.requestCount.get()}",
+                )
                 return PromptOutcome(
                     providerObserved,
                     if (providerObserved) {
@@ -232,6 +292,11 @@ object SpikeServerProbe {
             }
             Thread.sleep(300)
         }
+        writeDiagnostic(
+            context,
+            "mock-response-timeout",
+            "providerRequests=${provider.requestCount.get()}",
+        )
         return PromptOutcome(
             false,
             "timed out waiting for $RESPONSE_TEXT; provider requests=${provider.requestCount.get()}",
@@ -259,6 +324,7 @@ object SpikeServerProbe {
         val started = System.currentTimeMillis()
         val deadline = started + HEALTH_TIMEOUT_MS
         var lastStatus = 0
+        var lastLoggedAt = started
         while (System.currentTimeMillis() < deadline && process.isAlive) {
             try {
                 val response = request(
@@ -278,8 +344,22 @@ object SpikeServerProbe {
             } catch (_: IOException) {
                 Thread.sleep(250)
             }
+            if (System.currentTimeMillis() - lastLoggedAt >= HEALTH_PROGRESS_INTERVAL_MS) {
+                lastLoggedAt = System.currentTimeMillis()
+                Log.i(TAG, "S1 waiting for authenticated health; status=$lastStatus")
+            }
         }
         return Triple(false, lastStatus, System.currentTimeMillis() - started)
+    }
+
+    private fun writeDiagnostic(context: Context, stage: String, detail: String = "") {
+        val line = "${System.currentTimeMillis()} $stage${if (detail.isEmpty()) "" else " $detail"}"
+        Log.i(TAG, line)
+        try {
+            SpikeReport.appendDiagnostic(context, line)
+        } catch (failure: Exception) {
+            Log.e(TAG, "Could not export S1 diagnostics to Downloads/OpenCodeSpike", failure)
+        }
     }
 
     private fun request(
@@ -515,4 +595,6 @@ object SpikeServerProbe {
             const val MAX_HEADER_LINE_BYTES = 16 * 1024
         }
     }
+
+    private const val TAG = "SpikeHarness"
 }

@@ -33,7 +33,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 
-class FileWorkspaceService(rootDirectory: Path) : WorkspaceService {
+internal fun interface AtomicWriteObserver {
+    fun afterWrite(bytesWritten: Long)
+}
+
+class FileWorkspaceService internal constructor(
+    rootDirectory: Path,
+    private val afterTemporaryWrite: AtomicWriteObserver?,
+) : WorkspaceService {
+    constructor(rootDirectory: Path) : this(rootDirectory, null)
+
     private val root: Path
     private val trashRoot: Path
     private val mutationLock = Mutex()
@@ -105,7 +114,15 @@ class FileWorkspaceService(rootDirectory: Path) : WorkspaceService {
             try {
                 FileChannel.open(temporary, WRITE, TRUNCATE_EXISTING).use { channel ->
                     val buffer = ByteBuffer.wrap(data)
-                    while (buffer.hasRemaining()) channel.write(buffer)
+                    if (afterTemporaryWrite == null) {
+                        while (buffer.hasRemaining()) channel.write(buffer)
+                    } else if (buffer.hasRemaining()) {
+                        buffer.limit(maxOf(1, buffer.remaining() / 2))
+                        while (buffer.hasRemaining()) channel.write(buffer)
+                        afterTemporaryWrite.afterWrite(channel.position())
+                        buffer.limit(data.size)
+                        while (buffer.hasRemaining()) channel.write(buffer)
+                    }
                     channel.force(true)
                 }
                 if (existingPermissions != null) {
@@ -438,15 +455,15 @@ class FileWorkspaceService(rootDirectory: Path) : WorkspaceService {
     private class WorkspaceFailure(val code: ErrorCode, message: String) : RuntimeException(message)
 
     private companion object {
-        const val TRASH_DIRECTORY = ".opencode-trash"
-        const val TRASH_PATH_FILE = "original-path"
-        const val TRASH_DATA_FILE = "data"
-        const val TEMP_PREFIX = ".workspace-write-"
-        const val TEMP_SUFFIX = ".tmp"
-        const val MAX_READ_BYTES = 1024 * 1024
-        const val MAX_WRITE_BYTES = 50 * 1024 * 1024
-        const val MAX_SEARCH_RESULTS = 1000
-        const val HASH_BUFFER_SIZE = 64 * 1024
-        val SHA256_PATTERN = Regex("[a-fA-F0-9]{64}")
+        private const val TRASH_DIRECTORY = ".opencode-trash"
+        private const val TRASH_PATH_FILE = "original-path"
+        private const val TRASH_DATA_FILE = "data"
+        private const val TEMP_PREFIX = ".workspace-write-"
+        private const val TEMP_SUFFIX = ".tmp"
+        private const val MAX_READ_BYTES = 1024 * 1024
+        private const val MAX_WRITE_BYTES = 50 * 1024 * 1024
+        private const val MAX_SEARCH_RESULTS = 1000
+        private const val HASH_BUFFER_SIZE = 64 * 1024
+        private val SHA256_PATTERN = Regex("[a-fA-F0-9]{64}")
     }
 }

@@ -66,6 +66,16 @@ The probe uses a per-run random server password and a test-only provider key;
 it never contacts a hosted model. Cleartext networking is enabled only in
 this isolated debug harness so its loopback HTTP server and mock provider can
 communicate. This is not production listener or gateway wiring.
+Each startup/prompt stage is appended to
+`Downloads/OpenCodeSpike/s1-server-diagnostics.log` and tagged
+`SpikeHarness` in logcat, so it is visible outside the app and remains
+available if the probe process exits before a report is written. Retrieve
+it from the device's Downloads folder, or with:
+
+```bash
+adb pull /sdcard/Download/OpenCodeSpike/s1-server-diagnostics.log
+adb logcat -d -s SpikeHarness AndroidRuntime
+```
 
 The harness builds a test-only `arm64-v8a` JNI helper with NDK 27.2 and
 CMake 3.22.1. It calls `forkpty`, starts the same PRoot/Alpine shell used

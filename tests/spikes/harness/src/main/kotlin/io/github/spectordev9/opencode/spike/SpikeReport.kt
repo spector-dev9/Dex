@@ -1,7 +1,9 @@
 package io.github.spectordev9.opencode.spike
 
 import android.content.ContentValues
+import android.content.ContentUris
 import android.content.Context
+import android.database.Cursor
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -40,6 +42,15 @@ object SpikeReport {
     @Synchronized
     fun clear() {
         records.clear()
+    }
+
+    @Synchronized
+    fun appendDiagnostic(context: Context, line: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appendDiagnosticToDownloads(context, line)
+        } else {
+            appendDiagnosticToLegacyDownloads(line)
+        }
     }
 
     @Synchronized
@@ -123,8 +134,55 @@ object SpikeReport {
         return report.absolutePath
     }
 
+    private fun appendDiagnosticToDownloads(context: Context, line: String) {
+        val resolver = context.contentResolver
+        val filename = "s1-server-diagnostics.log"
+        val relativePath = "${Environment.DIRECTORY_DOWNLOADS}/OpenCodeSpike"
+        val existingUri = resolver.query(
+            MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+            arrayOf(MediaStore.Downloads._ID),
+            "${MediaStore.Downloads.DISPLAY_NAME}=? AND ${MediaStore.Downloads.RELATIVE_PATH}=?",
+            arrayOf(filename, "$relativePath/"),
+            null,
+        )?.use { cursor -> cursor.firstUri() }
+        val uri = existingUri ?: resolver.insert(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, filename)
+                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                    put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
+                    put(MediaStore.Downloads.IS_PENDING, 0)
+                },
+            )
+            ?: error("Could not create diagnostics in Downloads/OpenCodeSpike")
+
+        resolver.openOutputStream(uri, "wa")?.bufferedWriter(Charsets.UTF_8)?.use {
+            it.appendLine(line)
+        } ?: error("Could not append diagnostics in Downloads/OpenCodeSpike")
+    }
+
+    @Suppress("DEPRECATION")
+    private fun appendDiagnosticToLegacyDownloads(line: String) {
+        val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val reportDirectory = File(directory, "OpenCodeSpike")
+        check(reportDirectory.exists() || reportDirectory.mkdirs()) {
+            "Could not create Downloads/OpenCodeSpike"
+        }
+        File(reportDirectory, "s1-server-diagnostics.log").appendText("$line\n", Charsets.UTF_8)
+    }
+
     fun logEvent(id: String, detail: String) {
         add(ProbeRecord(id = id, pass = true, detail = detail))
         Log.i(TAG, "$id: $detail")
     }
+
+    private fun Cursor.firstUri(): android.net.Uri? =
+        if (moveToFirst()) {
+            ContentUris.withAppendedId(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                getLong(getColumnIndexOrThrow(MediaStore.Downloads._ID)),
+            )
+        } else {
+            null
+        }
 }
