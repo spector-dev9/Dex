@@ -19,7 +19,7 @@ corresponding Android service exists. G0 decisions use the separate IDs in
 | D9: Alpine Git as the single source of truth | `core/git-api/` defines Git operations | Contract only | Implement guest Git and measure the specified 5,000-file status workload before considering JGit |
 | D10: GitHub Releases and F-Droid distribution | `docs/adr/0001-distribution.md` records the channel decision; license checklist and SBOMs are present | Decision recorded; release blockers remain | Complete source offers, reproducible builds, signing, trademark, and release compliance |
 | Staged migration: contract tests and behavior traceability first | `contract/tests/contract.test.mjs`, `ui/src/bridge/*.test.ts`, this map | Prerequisite present; model/client extraction is established; `core/runtime` is a separate module with manifest/file validation, archive-hash verification, and a platform process-launch port; the official release asset and Alpine C++ runtime libraries are now pinned | Implement atomic artifact installation and extracted-content verification plus a secure platform launcher; then rerun the isolated device smoke path against the official artifact. Upstream runtime sources in `docs/UPSTREAM.md` still require adaptation |
-| Phase 2 device harness | `tests/spikes/harness/`, `scripts/stage-spike-harness.py` | Harness and host staging complete; previous physical run used the pre-official package and is not validation of the current official artifact | Run S1/S3/S7/S8 on Tier A/B/C, 16 KB-page and keyboard devices; rerun on the official package and add the native PTY comparison |
+| Phase 2 device harness | `tests/spikes/harness/`, `scripts/stage-spike-harness.py` | Harness and host staging complete; official-package physical report passes loader, guest-shell/native-PTY, and FGS start/stop probes on one 4 KB-page Infinix device; S8 records text changes but no key-down events | Run S1/S3/S7/S8 on Tier A/B/C, 16 KB-page and keyboard devices; capture artifact hash and complete keyboard/lifecycle coverage |
 | Physical-device baseline before freezing provisional budgets | `docs/runtime-matrix.md`, `docs/evidence/RESULTS.md`, and `docs/plan/phase-0.md` | Blocked | Run the listed device experiments and record measured evidence before freezing affected decisions and thresholds |
 
 ## Evidence boundaries
@@ -32,7 +32,9 @@ corresponding Android service exists. G0 decisions use the separate IDs in
 - The runtime implementation currently validates manifest shape and required
   files only. The pinned manifest hashes the downloadable archive, not each
   extracted runtime file; runtime installation/content verification and the
-  production platform launcher remain incomplete. No physical-device smoke
-  test was run against the current official OpenCode artifact.
+  production platform launcher remain incomplete. The isolated harness
+  passed loader, guest-shell and native-PTY checks on one device for the
+  current official OpenCode version; its report omits the staged archive
+  hash. No production-app physical-device smoke test was run.
 - Host spikes are not physical-device acceptance. The authoritative device
   statuses remain in `docs/evidence/RESULTS.md`.

@@ -14,17 +14,17 @@ linked or appended; host spikes cannot promote device rows.
 
 | Requirement | Scope | Status | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
-| S1 | Tier A | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md): loader exec `opencode --version` exit 0 on one device | production app/runtime implementation and remaining tiers |
+| S1 | Tier A | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md) and [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json): loader exec `opencode --version` exit 0 on one Infinix device | full server/prompt path, production app/runtime implementation and remaining tiers |
 | S1 | Tier B | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md) covers Tier A device only | production app/runtime implementation and remaining tiers |
 | S1 | Tier C | pending | none | production app/runtime implementation and remaining tiers |
 | S2 cold start | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md) (packaging blocked) and [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md): S1/S3 packaging, loader exec, guest shell and native PTY all pass on one device | production app wiring and G0 acceptance run required; harness is pre-G0 |
+| S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md) (packaging blocked), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), and [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json): guest shell and native PTY pass on one device | production app wiring and G0 acceptance run required; harness is pre-G0 |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
-| S7 | Tier A/B/C | pending | [first device run](tests/spikes/results/S3-device-harness-20261024.md) and [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
-| S8 | Gboard + Samsung Keyboard | pending | Owner-approved user attestation: keyboard test passed on an Infinix Note 50s 5G using “emojikeyboard”; earlier trace observed text entry/edit updates and `KEYCODE_DEL` (67). The keyboard app/IME identity and test coverage are unverified. The 2026-10-24 04:22 confirmation JSON contains only S1/S3/S7 probes and explicitly did not exercise S8. | named Gboard and Samsung Keyboard runs, verified keyboard identity, and extra-key/paste/select coverage |
+| S7 | Tier A/B/C | pending | [first device run](tests/spikes/results/S3-device-harness-20261024.md), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), and [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
+| S8 | Gboard + Samsung Keyboard | pending | [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json) records 5 text changes, final length 5, and zero key-down events. Owner-approved earlier “emojikeyboard” result remains unverified for IME identity. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
 | RT-5 | 16 KB-page device | pending | none | no 16 KB-page target available |
@@ -36,12 +36,19 @@ linked or appended; host spikes cannot promote device rows.
 
 ## Notes
 
-- The physical-device runs recorded below predate the current official
-  OpenCode package. They remain historical evidence only and do not
-  validate the official archive pinned in `runtime/manifest.json`
-  (`39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3`).
-  Rerun S1/S3/S7/S8 with the newly staged harness and attach its report
-  before using those results to evaluate the current runtime package.
+- The earlier physical-device runs predate the current official
+  OpenCode package and remain historical evidence. The new
+  `spike-20261024-080149.json` report records OpenCode `1.19.3`,
+  Alpine `3.20.3`, successful loader/guest-shell/native-PTY and
+  foreground-service start/stop probes on an Infinix X6870 running
+  Android 16 with 4 KB pages. The report does not include the staged
+  archive SHA-256, so it does not independently prove byte-for-byte
+  correspondence with the pinned artifact.
+- The new S8 result confirms text changes were recorded but reports
+  `keyDownEvents=0`; it does not demonstrate hardware-key events,
+  keyboard identity, paste/select behavior, or named Gboard/Samsung
+  coverage. The `16KB-ok` strings describe native ELF load alignment;
+  this device reports 4096-byte pages and is not 16 KB-device evidence.
 - The `partial-host` value is retained for existing spike records under
   `tests/spikes/results/`; no row above is promoted by those records.
 - S2 remains `pending`: the app has no Profile B implementation and no
@@ -79,4 +86,11 @@ linked or appended; host spikes cannot promote device rows.
 - A repeat run of the same day
   (`raw/spike-device-20261024-042222.json`) passed all 13 harness records
   again, confirming the result is deterministic.
+- The official-package rerun is a separate report at
+  `raw/spike-20261024-080149.json`. It passes the staged runtime layout,
+  OpenCode loader version, PRoot guest shell, native PTY comparison, and
+  foreground-service start/stop. It records five S8 text changes but no
+  key-down events. This remains partial harness evidence: S1 server and
+  prompt behavior, long-duration service survival, tier coverage, and
+  full S8 acceptance are still outstanding.
 - G0 remains open; no acceptance value here freezes D4 or D5.
