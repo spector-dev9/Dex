@@ -1,0 +1,209 @@
+{
+  "spikeVersion": "0.1",
+  "generatedAt": "2026-10-24T08:01:49+05:30",
+  "device": {
+    "manufacturer": "INFINIX",
+    "model": "Infinix X6870",
+    "device": "Infinix-X6870",
+    "androidRelease": "16",
+    "sdkInt": "36",
+    "supportedAbis": "arm64-v8a",
+    "supported64BitAbis": "arm64-v8a",
+    "buildTags": "release-keys",
+    "buildType": "user",
+    "pageSize": "4096",
+    "applicationId": "io.github.spectordev9.opencode.spike.debug",
+    "dataDir": "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug",
+    "nativeLibraryDir": "\/data\/app\/~~sCa4mEqxWq92CAEWc35Dqw==\/io.github.spectordev9.opencode.spike.debug-uJlDaZ3TmL3MQSpxD8ecgQ==\/lib\/arm64",
+    "extractNativeLibs": "true",
+    "externalFilesDir": "\/storage\/emulated\/0\/Android\/data\/io.github.spectordev9.opencode.spike.debug\/files",
+    "runtimeDir": "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike"
+  },
+  "results": [
+    {
+      "id": "S1-native-loader",
+      "pass": true,
+      "detail": "path=\/data\/app\/~~sCa4mEqxWq92CAEWc35Dqw==\/io.github.spectordev9.opencode.spike.debug-uJlDaZ3TmL3MQSpxD8ecgQ==\/lib\/arm64\/libldmusl.so size=723408 executable=true minLoadAlign=65536 16KB-ok",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S3-native-proot",
+      "pass": true,
+      "detail": "path=\/data\/app\/~~sCa4mEqxWq92CAEWc35Dqw==\/io.github.spectordev9.opencode.spike.debug-uJlDaZ3TmL3MQSpxD8ecgQ==\/lib\/arm64\/libproot.so size=258576 executable=true minLoadAlign=16384 16KB-ok",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S3-native-proot-loader",
+      "pass": true,
+      "detail": "path=\/data\/app\/~~sCa4mEqxWq92CAEWc35Dqw==\/io.github.spectordev9.opencode.spike.debug-uJlDaZ3TmL3MQSpxD8ecgQ==\/lib\/arm64\/libproot_loader.so size=18136 executable=true minLoadAlign=16384 16KB-ok",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "runtime-layout",
+      "pass": true,
+      "detail": "runtime layout complete at \/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S1-loader",
+      "pass": true,
+      "detail": "exit=0",
+      "command": [
+        "\/data\/app\/~~sCa4mEqxWq92CAEWc35Dqw==\/io.github.spectordev9.opencode.spike.debug-uJlDaZ3TmL3MQSpxD8ecgQ==\/lib\/arm64\/libldmusl.so",
+        "--library-path",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/runtime",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/runtime\/opencode",
+        "--version"
+      ],
+      "exitCode": 0,
+      "durationMs": 2233,
+      "stdout": "1.19.3\n",
+      "stderr": ""
+    },
+    {
+      "id": "S3-guest-shell",
+      "pass": true,
+      "detail": "exit=0",
+      "command": [
+        "\/data\/app\/~~sCa4mEqxWq92CAEWc35Dqw==\/io.github.spectordev9.opencode.spike.debug-uJlDaZ3TmL3MQSpxD8ecgQ==\/lib\/arm64\/libproot.so",
+        "--kill-on-exit",
+        "-0",
+        "-r",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/rootfs",
+        "-b",
+        "\/dev",
+        "-b",
+        "\/proc",
+        "-b",
+        "\/sys",
+        "-w",
+        "\/root",
+        "\/bin\/sh",
+        "-c",
+        "printf 'PWD=%s\\nPATH=%s\\nNODE=%s\\n' \"$PWD\" \"$PATH\" \"$(node -v 2>&1)\"; \/bin\/cat \/etc\/alpine-release 2>\/dev\/null; echo GUEST-OK"
+      ],
+      "exitCode": 0,
+      "durationMs": 158,
+      "stdout": "PWD=\/root\nPATH=\/system\/bin:\/system\/xbin:\/usr\/local\/sbin:\/usr\/local\/bin:\/usr\/sbin:\/usr\/bin:\/sbin:\/bin\nNODE=\/bin\/sh: node: not found\n3.20.3\nGUEST-OK\n",
+      "stderr": ""
+    },
+    {
+      "id": "S3-guest-shell",
+      "pass": true,
+      "detail": "exit=0",
+      "command": [
+        "\/data\/app\/~~sCa4mEqxWq92CAEWc35Dqw==\/io.github.spectordev9.opencode.spike.debug-uJlDaZ3TmL3MQSpxD8ecgQ==\/lib\/arm64\/libproot.so",
+        "--kill-on-exit",
+        "-0",
+        "-r",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/rootfs",
+        "-b",
+        "\/dev",
+        "-b",
+        "\/proc",
+        "-b",
+        "\/sys",
+        "-w",
+        "\/root",
+        "\/bin\/sh",
+        "-c",
+        "printf 'PWD=%s\\nPATH=%s\\nNODE=%s\\n' \"$PWD\" \"$PATH\" \"$(node -v 2>&1)\"; \/bin\/cat \/etc\/alpine-release 2>\/dev\/null; echo GUEST-OK"
+      ],
+      "exitCode": 0,
+      "durationMs": 107,
+      "stdout": "PWD=\/root\nPATH=\/system\/bin:\/system\/xbin:\/usr\/local\/sbin:\/usr\/local\/bin:\/usr\/sbin:\/usr\/bin:\/sbin:\/bin\nNODE=\/bin\/sh: node: not found\n3.20.3\nGUEST-OK\n",
+      "stderr": ""
+    },
+    {
+      "id": "S3-native-pty",
+      "pass": true,
+      "detail": "exit=0 terminalSize=80x24 environmentMatch=true",
+      "command": [
+        "forkpty",
+        "\/data\/app\/~~sCa4mEqxWq92CAEWc35Dqw==\/io.github.spectordev9.opencode.spike.debug-uJlDaZ3TmL3MQSpxD8ecgQ==\/lib\/arm64\/libproot.so",
+        "\/bin\/sh",
+        "-i"
+      ],
+      "exitCode": 0,
+      "durationMs": 225,
+      "stdout": "stty -echo; stty size; printf 'PWD=%s\\nPATH=%s\\nNODE=%s\\n' \"$PWD\" \"$PATH\" \"$(node -v 2>&1)\"; printf 'GUEST-PTY-OK\\n'; exit\n~ # stty -echo; stty size; printf 'PWD=%s\\nPATH=%s\\nNODE=%s\\n' \"$PWD\" \"$PATH\" \"$\n\n(node -v 2>&1)\"; printf 'GUEST-PTY-OK\\n'; exit\n24 80\nPWD=\/root\nPATH=\/system\/bin:\/system\/xbin:\/usr\/local\/sbin:\/usr\/local\/bin:\/usr\/sbin:\/usr\/bin:\/sbin:\/bin\nNODE=\/bin\/sh: node: not found\nGUEST-PTY-OK\n",
+      "stderr": ""
+    },
+    {
+      "id": "S7-fgs-start",
+      "pass": true,
+      "detail": "startForegroundService requested",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-service",
+      "pass": true,
+      "detail": "onCreate",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-service",
+      "pass": true,
+      "detail": "startForeground onStartCommand startId=1",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-fgs-stop",
+      "pass": true,
+      "detail": "stopService requested",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-service",
+      "pass": true,
+      "detail": "onDestroy",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S8-keyboard-ime",
+      "pass": true,
+      "detail": "textChanges=5; finalTextLength=5; keyDownEvents=0; lastKey=none; input text omitted",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}
