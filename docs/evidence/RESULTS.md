@@ -14,17 +14,17 @@ linked or appended; host spikes cannot promote device rows.
 
 | Requirement | Scope | Status | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
-| S1 | Tier A | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md) and [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json): loader exec `opencode --version` exit 0 on one Infinix device | full server/prompt path, production app/runtime implementation and remaining tiers |
+| S1 | Tier A | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): loader exec `opencode --version` exit 0 on one Infinix device | full server/prompt path, production app/runtime implementation and remaining tiers |
 | S1 | Tier B | pending | [staged harness run](tests/spikes/results/S3-device-harness-20261024-staged.md) covers Tier A device only | production app/runtime implementation and remaining tiers |
 | S1 | Tier C | pending | none | production app/runtime implementation and remaining tiers |
 | S2 cold start | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
 | S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
 | S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md) (packaging blocked), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), and [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json): guest shell and native PTY pass on one device | production app wiring and G0 acceptance run required; harness is pre-G0 |
+| S3 | app sandbox + native PTY | pending | [device run](tests/spikes/results/S3-device-harness-20261024.md) (packaging blocked), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): guest shell and native PTY pass on one device | production app wiring and G0 acceptance run required; harness is pre-G0 |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
-| S7 | Tier A/B/C | pending | [first device run](tests/spikes/results/S3-device-harness-20261024.md), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), and [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
-| S8 | Gboard + Samsung Keyboard | pending | [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json) records 5 text changes, final length 5, and zero key-down events. Owner-approved earlier “emojikeyboard” result remains unverified for IME identity. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
+| S7 | Tier A/B/C | pending | [first device run](tests/spikes/results/S3-device-harness-20261024.md), [staged rerun](tests/spikes/results/S3-device-harness-20261024-staged.md), [official-package rerun](tests/spikes/results/raw/spike-20261024-080149.json), and [runtime-download rerun](spike-20261024-153116.json): FGS start/stop lifecycle observed on one device | Tier A/B/C coverage and background-survival duration pending |
+| S8 | Gboard + Samsung Keyboard | pending | [runtime-download rerun](spike-20261024-153116.json) records 7 text changes, final length 6, and zero key-down events. Owner-approved earlier “emojikeyboard” result remains unverified for IME identity. | named Gboard and Samsung Keyboard runs, observed extra-key events, paste/select coverage |
 | RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
 | RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
 | RT-5 | 16 KB-page device | pending | none | no 16 KB-page target available |
@@ -93,4 +93,15 @@ linked or appended; host spikes cannot promote device rows.
   key-down events. This remains partial harness evidence: S1 server and
   prompt behavior, long-duration service survival, tier coverage, and
   full S8 acceptance are still outstanding.
+- The runtime-download rerun at `spike-20261024-153116.json` records
+  15/15 passing results on the same Infinix X6870 / Android 16 device.
+  The pinned OpenCode, Alpine rootfs, `libgcc`, and `libstdc++` archive
+  hashes match the manifest; the download/install action took 39.05 s.
+  The preceding attempt had already completed and cached these archives
+  before Alpine APK extraction failed on PAX metadata, so this rerun is
+  not a cold-network speed measurement. Loader, guest-shell, PTY and FGS
+  probes pass again. S8 records seven text changes and zero key-down
+  events. This remains pre-G0 evidence on a 4 KB-page device; it does not
+  satisfy the device matrix, server/prompt round trip, long-duration FGS
+  test, or named keyboard acceptance.
 - G0 remains open; no acceptance value here freezes D4 or D5.
