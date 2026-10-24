@@ -13,6 +13,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.WRITE
+import java.io.RandomAccessFile
 import java.security.MessageDigest
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.div
@@ -26,6 +27,29 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class FileWorkspaceServiceTest {
+    @Test
+    fun `reads bounded ranges from a sparse one-gibibyte file`() = runBlocking {
+        val root = createTempDirectory("workspace-large-file")
+        val file = root / "large.bin"
+        RandomAccessFile(file.toFile(), "rw").use { it.setLength(1024L * 1024 * 1024) }
+        val marker = "end".toByteArray()
+        FileChannel.open(file, WRITE).use { channel ->
+            channel.position(1024L * 1024 * 1024 - marker.size)
+            channel.write(ByteBuffer.wrap(marker))
+        }
+        val service = FileWorkspaceService(root)
+
+        val finalRange = assertIs<ApiResult.Success<Chunk>>(
+            service.readRange("/large.bin", 1024L * 1024 * 1024 - 16, 16),
+        ).value
+
+        assertEquals(16, finalRange.bytes.size)
+        assertEquals(true, finalRange.endOfFile)
+        val expected = ByteArray(16)
+        marker.copyInto(expected, destinationOffset = expected.size - marker.size)
+        assertContentEquals(expected, finalRange.bytes)
+    }
+
     @Test
     fun `writes empty and nonempty files atomically with receipts and range reads`() = runBlocking {
         val root = createTempDirectory("workspace-write")

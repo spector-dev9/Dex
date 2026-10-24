@@ -59,6 +59,7 @@ private data class RuntimeManifestArtifact(
 @Serializable
 private data class RuntimeManifestAlpine(
     val version: String = "",
+    val url: String = "",
     val sha256: String = "",
 )
 
@@ -98,12 +99,55 @@ class ManifestRuntimeManager(
     override val profile: RuntimeProfile = RuntimeProfile.A_DIRECT,
     private val installer: RuntimeArtifactInstaller = RuntimeArtifactInstaller(),
     private val alpineInstaller: AlpineRootfsInstaller = AlpineRootfsInstaller(),
+    private val artifactDownloader: RuntimeArtifactDownloader = RuntimeArtifactDownloader(),
     private val installedDirectory: Path = rootDirectory.resolve("environment"),
 ) : RuntimeManager {
     private val stateFlow = MutableStateFlow(RuntimeState(status = RuntimeStateStatus.ABSENT))
     private val json = runtimeManifestJson
 
     override val state: StateFlow<RuntimeState> = stateFlow.asStateFlow()
+
+    suspend fun installPinnedArtifact(): ApiResult<RuntimeInfo> {
+        val manifest = try {
+            parseManifest(manifestFile)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: IOException) {
+            return failed(RuntimeStateStatus.FAILED, failure.message ?: "runtime manifest could not be read", ErrorCode.E_RUNTIME_DOWN)
+        } catch (failure: IllegalArgumentException) {
+            return failed(
+                RuntimeStateStatus.FAILED,
+                failure.message ?: "invalid runtime manifest",
+                ErrorCode.E_UNSUPPORTED_VERSION,
+            )
+        } catch (failure: SerializationException) {
+            return failed(
+                RuntimeStateStatus.FAILED,
+                failure.message ?: "invalid runtime manifest",
+                ErrorCode.E_UNSUPPORTED_VERSION,
+            )
+        }
+        val archivePath = rootDirectory.resolve("downloads")
+            .resolve("opencode-${manifest.artifact.sha256.lowercase(Locale.US)}.tar.gz")
+        val downloaded = withContext(Dispatchers.IO) {
+            artifactDownloader.download(
+                manifest.artifact.url,
+                manifest.artifact.sha256,
+                archivePath,
+            )
+        }
+        return when (downloaded) {
+            is ApiResult.Failure -> {
+                stateFlow.value = RuntimeState(
+                    status = RuntimeStateStatus.FAILED,
+                    reason = downloaded.error.message,
+                    version = manifest.version,
+                )
+                downloaded
+            }
+            is ApiResult.Success -> installArtifact(downloaded.value)
+        }
+    }
 
     suspend fun installArtifact(archive: Path): ApiResult<RuntimeInfo> {
         val manifest = try {
@@ -211,6 +255,43 @@ class ManifestRuntimeManager(
             )
         if (alpine.version.isBlank() || !alpine.sha256.matches(Regex("[a-fA-F0-9]{64}"))) {
             return ApiResult.Failure(ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "invalid Alpine rootfs pin"))
+        }
+
+        suspend fun installPinnedAlpineRootfs(): ApiResult<Path> {
+            val manifest = try {
+                parseManifest(manifestFile)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: IOException) {
+                return ApiResult.Failure(
+                    ApiError(ErrorCode.E_RUNTIME_DOWN, failure.message ?: "runtime manifest could not be read"),
+                )
+            } catch (failure: IllegalArgumentException) {
+                return ApiResult.Failure(
+                    ApiError(ErrorCode.E_UNSUPPORTED_VERSION, failure.message ?: "invalid runtime manifest"),
+                )
+            } catch (failure: SerializationException) {
+                return ApiResult.Failure(
+                    ApiError(ErrorCode.E_UNSUPPORTED_VERSION, failure.message ?: "invalid runtime manifest"),
+                )
+            }
+            val alpine = manifest.alpine
+                ?: return ApiResult.Failure(
+                    ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "manifest does not pin an Alpine rootfs"),
+                )
+            if (alpine.version.isBlank() || !alpine.sha256.matches(Regex("[a-fA-F0-9]{64}"))) {
+                return ApiResult.Failure(ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "invalid Alpine rootfs pin"))
+            }
+            val archivePath = rootDirectory.resolve("downloads")
+                .resolve("alpine-${alpine.sha256.lowercase(Locale.US)}.tar.gz")
+            return when (
+                val downloaded = withContext(Dispatchers.IO) {
+                    artifactDownloader.download(alpine.url, alpine.sha256, archivePath)
+                }
+            ) {
+                is ApiResult.Failure -> downloaded
+                is ApiResult.Success -> installAlpineRootfs(downloaded.value)
+            }
         }
 
         val previousState = stateFlow.value

@@ -22,6 +22,7 @@ tasks.register<JavaExec>("workspaceAtomicWriteStress") {
     classpath = sourceSets.test.get().runtimeClasspath
     mainClass.set("io.github.spectordev9.opencode.core.workspace.impl.WorkspaceAtomicWriteStress")
     val runCount = providers.gradleProperty("workspaceAtomicWriteRuns").orElse("1000")
-    doFirst { args(runCount.get()) }
+    val workerClasspath = sourceSets.test.get().runtimeClasspath.asPath
+    doFirst { args(runCount.get(), workerClasspath) }
     dependsOn(tasks.testClasses)
 }

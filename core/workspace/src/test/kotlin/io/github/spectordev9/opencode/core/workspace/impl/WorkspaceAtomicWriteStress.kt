@@ -26,17 +26,17 @@ object WorkspaceAtomicWriteStress {
             } else {
                 error("run count must be a positive integer")
             }
-            runStress(runs)
+            val workerClasspath = args.getOrNull(1) ?: System.getProperty("java.class.path")
+            runStress(runs, workerClasspath)
         }
     }
 
-    private fun runStress(runs: Int) {
+    private fun runStress(runs: Int, workerClasspath: String) {
         require(runs > 0)
         val root = createTempDirectory("workspace-atomic-crash")
         val target = root.resolve("target.bin")
         val marker = root.resolve("write-progress")
         val java = Path.of(System.getProperty("java.home"), "bin", "java").toString()
-        val classpath = System.getProperty("java.class.path")
         var interruptedWrites = 0
 
         try {
@@ -45,11 +45,12 @@ object WorkspaceAtomicWriteStress {
                 val old = "old-$index".toByteArray()
                 Files.write(target, old)
                 Files.deleteIfExists(marker)
+                val workerLog = root.resolve("worker-$index.log")
 
                 val process = ProcessBuilder(
                     java,
                     "-cp",
-                    classpath,
+                    workerClasspath,
                     WorkspaceAtomicWriteStress::class.java.name,
                     "worker",
                     root.toString(),
@@ -58,11 +59,14 @@ object WorkspaceAtomicWriteStress {
                     marker.toString(),
                 )
                     .redirectErrorStream(true)
-                    .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                    .redirectOutput(workerLog.toFile())
                     .start()
 
                 try {
-                    check(awaitMarker(marker)) { "worker $index did not reach its partial-write checkpoint" }
+                    check(awaitMarker(marker)) {
+                        val output = Files.readString(workerLog)
+                        "worker $index did not reach its partial-write checkpoint: $output"
+                    }
                     val bytesWritten = Files.readString(marker).toLong()
                     check(bytesWritten in 1 until size.toLong()) {
                         "worker $index did not stop mid-write: wrote $bytesWritten of $size bytes"
@@ -102,13 +106,27 @@ object WorkspaceAtomicWriteStress {
         val index = args[3].toInt()
         val marker = Path.of(args[4])
         val payload = ByteArray(size) { payloadByte(index) }
-        val latch = CountDownLatch(1)
-        val service = FileWorkspaceService(root, AtomicWriteObserver { bytesWritten ->
-            Files.writeString(marker, bytesWritten.toString())
-            latch.await()
-        })
+        val service = FileWorkspaceService(
+            root,
+            AtomicWriteObserver { bytesWritten ->
+                val temporaryMarker = marker.resolveSibling("${marker.fileName}.tmp")
+                Files.writeString(temporaryMarker, bytesWritten.toString())
+                Files.move(temporaryMarker, marker, java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+                CountDownLatch(1).await()
+            },
+        )
+        val existing = runBlocking { service.stat("/target.bin") }
+        val entry = (existing as? ApiResult.Success)?.value
+            ?: error("existing target could not be read: $existing")
+        val existingBytes = Files.readAllBytes(root.resolve("target.bin"))
+        val expect = Precondition.Match(
+            sizeBytes = entry.sizeBytes,
+            modifiedAtEpochMillis = entry.modifiedAtEpochMillis,
+            sha256 = MessageDigest.getInstance("SHA-256").digest(existingBytes)
+                .joinToString("") { "%02x".format(it) },
+        )
 
-        val result = runBlocking { service.write("/target.bin", payload, Precondition.None) }
+        val result = runBlocking { service.write("/target.bin", payload, expect) }
         check(result is ApiResult.Success<*>) { "workspace write failed: $result" }
     }
 

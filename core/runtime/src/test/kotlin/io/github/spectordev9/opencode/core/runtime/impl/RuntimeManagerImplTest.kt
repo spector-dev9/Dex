@@ -9,6 +9,7 @@ import io.github.spectordev9.opencode.core.runtime.RuntimeInfo
 import io.github.spectordev9.opencode.core.runtime.RuntimeProfile
 import io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus
 import kotlinx.coroutines.runBlocking
+import java.net.URI
 import java.nio.file.Files
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.div
@@ -196,6 +197,48 @@ class RuntimeManagerImplTest {
     }
 
     @Test
+    fun `installPinnedArtifact downloads the manifest pin before verified installation`() = runBlocking {
+        val root = createTempDirectory("runtime-pinned-install")
+        val archive = "pinned official archive".toByteArray()
+        val executable = "verified OpenCode binary".toByteArray()
+        val url = "https://runtime.test/opencode.tar.gz"
+        writeManifest(
+            root,
+            artifactHash = sha256(archive),
+            binaryHash = sha256(executable),
+            artifactUrl = url,
+        )
+        val connection = FakeHttpsConnection(URI(url).toURL()) {
+            bytes = archive
+        }
+        val downloader = RuntimeArtifactDownloader(
+            connectionFactory = HttpsConnectionFactory { connection },
+        )
+        val installer = RuntimeArtifactInstaller(
+            extractor = RuntimeArchiveExtractor { _, destination ->
+                (destination / "opencode").writeBytes(executable)
+            },
+        )
+        val manager = ManifestRuntimeManager(
+            rootDirectory = root,
+            processLauncher = FakeRuntimeProcessLauncher(),
+            installer = installer,
+            artifactDownloader = downloader,
+        )
+
+        val result = manager.installPinnedArtifact()
+
+        val runtime = assertIs<ApiResult.Success<RuntimeInfo>>(result).value
+        assertEquals("1.19.3", runtime.version)
+        assertEquals(RuntimeStateStatus.READY, manager.state.value.status)
+        assertTrue(connection.disconnected)
+        assertEquals(
+            archive.toList(),
+            (root / "downloads" / "opencode-${sha256(archive)}.tar.gz").readBytes().toList(),
+        )
+    }
+
+    @Test
     fun `installArtifact keeps valid installed runtime when new archive verification fails`() = runBlocking {
         val root = createTempDirectory("runtime-install-invalid-archive")
         val installed = Files.createDirectory(root / "environment")
@@ -252,6 +295,7 @@ class RuntimeManagerImplTest {
         required: String = """["opencode"]""",
         artifactHash: String = "a".repeat(64),
         binaryHash: String = sha256("binary".toByteArray()),
+        artifactUrl: String = "https://runtime.test/opencode.tar.gz",
         alpineJson: String = "",
     ) {
         (root / "manifest.json").writeBytes(
@@ -262,7 +306,7 @@ class RuntimeManagerImplTest {
               "binary": "opencode",
               "binarySha256": "$binaryHash",
               "required": $required,
-              "artifact": {"sha256": "$artifactHash"}$alpineJson
+              "artifact": {"url": "$artifactUrl", "sha256": "$artifactHash"}$alpineJson
             }
             """.trimIndent().toByteArray(),
         )

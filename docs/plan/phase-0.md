@@ -1,6 +1,6 @@
 # Phase 0 plan — repository setup, audit, feasibility
 
-Status: **Phase 0 complete. Phase 2 in progress. G0 is blocked.**
+Status: **Phase 0 evidence audit complete. Phase 2 in progress. G0 is blocked.**
 
 Decision IDs in this document follow `docs/spec.md`: D1 is distribution,
 D4 is the runtime profile, and D5 is the OpenCode version pin. The older
@@ -290,3 +290,23 @@ See `docs/architecture/g1-contracts.md`.
    baseline.
 6. **After G0:** begin production service wiring and command DTOs; then
    validate app/UI bridge abort/reconnect behavior and event-to-paint.
+
+## Outstanding device evidence
+
+The latest official-package report is
+`docs/evidence/spike-20261024-153116.json`. It is a single pre-G0 harness
+run, not device-matrix acceptance. Its probe count must not be used to
+infer completion of the following tests:
+
+| Blocked run | Missing evidence | Required next action |
+| --- | --- | --- |
+| S1 authenticated server and prompt | The report proves loader execution, not authenticated `/global/health` or a mock-provider prompt round trip on a physical target. | Run the harness's authenticated-server action on each required Tier A/B/C device and preserve the report and APK/artifact hashes. |
+| S2 runtime profiles | No comparable per-device cold start, idle PSS/RSS, 10k-file Git status, agent `npm test`, or thermal results for Profiles A and B. | Execute the prescribed workloads on Tier A/B and record repeated measurements before deciding D4. |
+| Tier coverage and RT-5 | Only Infinix X6870, Android 16, arm64-v8a, 4096-byte pages is represented. No Tier B/C or 16384-byte-page boot evidence exists. | Acquire and test the specified targets; include page size, ABI, thermal state, run count, packaged artifact hashes, and ELF alignment results. |
+| S7 / LC lifecycle | One-device foreground-service start/stop is present; background task survival, crash recovery, soak and thermal acceptance are absent. | Run the required duration/repetition on Tier A/B/C and classify failures from diagnostics. |
+| S8 / TERM-5 keyboard | Existing run has text changes but zero key-down events; owner attestation does not establish IME identity or test coverage. | Capture named Gboard and Samsung Keyboard runs, including extra keys, paste/select, and observed key events. |
+| S6 / 2.x | No distributable OpenCode 2.x artifact is available to test. | Keep the 1.19.3 pin and run contract tests only when a distributable candidate exists. |
+
+Device rows in `docs/evidence/RESULTS.md` therefore remain `pending`.
+Host builds, host runtime tests, the one-device harness and emulator
+availability are separate evidence classes and do not promote those rows.

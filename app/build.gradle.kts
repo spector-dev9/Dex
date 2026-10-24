@@ -49,6 +49,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":core:security"))
+
     testImplementation(project(":core:bridge-api"))
     testImplementation(project(":core:common-api"))
     testImplementation(project(":core:diagnostics-api"))

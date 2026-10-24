@@ -10,6 +10,24 @@ Status vocabulary:
 Every row starts as `pending`. A row may move only when its evidence is
 linked or appended; host spikes cannot promote device rows.
 
+## Host-only evidence
+
+- `:core:workspace:workspaceAtomicWriteStress` passed 1,000 host-side
+  SIGKILL interruptions with payloads from 1 KiB through 50 MiB. This is
+  durability evidence for the host filesystem/test harness only; it does
+  not satisfy target-device or app-integration requirements.
+- `:core:workspace:test` includes a sparse 1 GiB file range-read check that
+  requests 16 bytes near EOF and validates the returned bytes. It verifies
+  bounded range behavior on the host; it is not a measured memory or latency
+  result on Android.
+- `:core:runtime:test` covers HTTPS-only downloads, redirect constraints,
+  bounded transfer size, SHA-256 verification, cleanup on failures, and a
+  pinned-download-to-installer path. These host tests do not establish
+  device networking or production runtime launch.
+- App unit tests exercise encrypted-file storage mechanics through a test
+  cipher. They do not exercise Android Keystore hardware/software providers,
+  device lifecycle, or production listener wiring.
+
 ## Device matrix
 
 | Requirement | Scope | Status | Evidence | Blocker |
