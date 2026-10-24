@@ -67,7 +67,6 @@ def main() -> int:
     names = {item["name"] for item in components}
     for required in (
         "opencode",
-        "opencode-termux",
         "bun",
         "JavaScriptCore (WebKit)",
         "tinycc",

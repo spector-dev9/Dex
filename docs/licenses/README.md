@@ -9,8 +9,7 @@ and SEC-5.
 
 | Component | Version | License | Source | Obligations |
 | --- | --- | --- | --- | --- |
-| OpenCode | 1.19.3 | MIT | Upstream release / `anomalyco/opencode` | Include copyright and permission notice |
-| Community Termux artifact | 1.19.3 | MIT | `C04-wq/opencode-termux` release | Include notice; confirm bundled dependency notices |
+| OpenCode official ARM64 musl release | 1.19.3 | MIT | `anomalyco/opencode` release | Include copyright and permission notice; verify bundled dependency notices |
 | OpenCode npm closure | 1.19.3 lockfile | permissive + CC-BY | npm registry | See `opencode-deps.*`; include CC-BY attribution |
 | Bun runtime inside artifact | 1.3.14 | MIT | Bun | Include Bun LICENSE and SBOM |
 | Bun bundled libraries/polyfills | bundled | mixed | Bun | Listed in `NOTICES.md`; verify presence at release |
@@ -21,6 +20,7 @@ and SEC-5.
 | libtalloc | 2.5.0 | LGPL-3.0-or-later | Samba talloc | LGPL relink/source-offer review |
 | libandroid-shmem | 0.7 | BSD-3-Clause | `termux/libandroid-shmem` | Include copyright and license |
 | Alpine minirootfs | 3.20.3 | mixed | Alpine release | Per-package notices; source offer for GPL/LGPL/MPL packages |
+| Alpine `libgcc` / `libstdc++` | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | Alpine v3.20 aarch64 packages | Include notices and corresponding GCC source offer |
 | App clean-room code | — | Apache-2.0 (accepted) | this repo | Include `LICENSE`; publish source with releases |
 | React/TypeScript/Vite/CodeMirror/xterm.js | not added | MIT/BSD/Apache-2.0 | npm | Bundle notices via license scan |
 

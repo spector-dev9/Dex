@@ -19,7 +19,7 @@ another delivery mechanism required?
 | Bun | 1.3.14, `0d9b296af33f2b851fcbf4df3e9ec89751734ba4` | MIT | `runtime/manifest.json`; source archive sha256 `112a5915992807f04b183854d360c2bf87ac7c1587fb5da3c560bdbb75b8c92e` |
 | JavaScriptCore/WebKit | `5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b` | LGPL-2.0-only | `oven-sh/WebKit`; JSC `COPYING.LIB` is GNU Library GPL v2 |
 | tinycc | `12882eee073cfe5c7621bcfadf679e1372d4537b` | LGPL-2.1-only | `oven-sh/tinycc`; source archive sha256 `6b50485fcbbfa90a99c56e8e2b6a92014dcd34377d5edb23e1938dc9ec96f0aa` |
-| OpenCode runtime | 1.19.3 | MIT | Pinned source archive; community aarch64 artifact |
+| OpenCode runtime | 1.19.3 | MIT | Official `opencode-linux-arm64-musl.tar.gz` release; manifest-pinned SHA-256 |
 
 Bun's LICENSE identifies the WebKit/JavaScriptCore and tinycc licenses
 and says Bun statically links them. WebKit also contains additional

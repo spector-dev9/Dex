@@ -1,21 +1,35 @@
 {
   "schema": 1,
   "version": "1.19.3",
-  "channel": "community-termux",
+  "channel": "official-release",
   "profile": "A_DIRECT",
   "artifact": {
-    "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz",
-    "sha256": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
+    "url": "https://github.com/anomalyco/opencode/releases/download/v1.19.3/opencode-linux-arm64-musl.tar.gz",
+    "sha256": "39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3"
   },
-  "loader": "ld-musl-aarch64.so.1",
+  "loader": "lib/ld-musl-aarch64.so.1",
   "binary": "opencode",
   "required": [
-    "opencode",
-    "ld-musl-aarch64.so.1",
+    "opencode"
+  ],
+  "runtimeLibraries": [
     "libc.musl-aarch64.so.1",
     "libgcc_s.so.1",
-    "libstdc++.so.6",
-    "libstdc++.so.6.runtime"
+    "libstdc++.so.6"
+  ],
+  "alpineRuntimePackages": [
+    {
+      "name": "libgcc",
+      "version": "13.2.1_git20240309-r1",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libgcc-13.2.1_git20240309-r1.apk",
+      "sha256": "0d6aabf922c91c8bfc62cf625366a6669d67048c3a4fef2318a1246f152de2c0"
+    },
+    {
+      "name": "libstdc++",
+      "version": "13.2.1_git20240309-r1",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libstdc++-13.2.1_git20240309-r1.apk",
+      "sha256": "ee68ab3af02350f2135b6c0de393a55be88fbb20171e6182cdda6517c38b60a0"
+    }
   ],
   "alpine": {
     "version": "3.20.3",

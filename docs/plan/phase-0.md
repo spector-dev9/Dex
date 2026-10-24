@@ -12,14 +12,15 @@ set; G0 is governed by `docs/spec.md` and this phase plan.
 | Decision | Current resolution | Status at G0 | Evidence / remaining work |
 | --- | --- | --- | --- |
 | D1 — distribution | GitHub Releases + Obtainium first; self-hosted F-Droid after reproducible builds; Play deferred; Apache-2.0 app code. | Accepted by owner; release work remains. | `docs/adr/0001-distribution.md`. Complete the S9 legal, source-offer, signing and reproducible-build blockers before release. |
-| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | The staged harness passes S1 loader launch and the S3 guest-shell/native-PTY comparison on one Infinix Android 16 device (4 KB pages). Full S1 server/prompt coverage, S2 comparison, required device tiers and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
+| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | A prior staged harness passed S1 loader launch and the S3 guest-shell/native-PTY comparison on one Infinix Android 16 device (4 KB pages), but that run used the pre-official package. Rerun against the official artifact; full S1 server/prompt coverage, S2 comparison, required device tiers and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
 | D5 — version pin | Keep OpenCode **1.19.3** as the exact current baseline; verify its manifest hash; reject unknown major versions. Re-evaluate only when a distributable 2.x artifact is available. | Resolved for the current baseline; 2.x compatibility is unverified. | `runtime/manifest.json`, `tests/spikes/results/S6-2.x.md`. The 2.x release-artifact check is blocked, not a reason to silently change the pin. |
 
 **G0 is not complete.** The specification requires S1–S9, Tier A/B/C
 baselines, ratified thresholds, and frozen D1/D4/D5. One physical device
-has passed the staged harness's S1 loader-version check and S3 guest
-shell/native-PTY probes; this does not satisfy the full S1 server and
-prompt round trip or the required device matrix. S2, longer-duration
+passed the staged harness's S1 loader-version check and S3 guest
+shell/native-PTY probes against the pre-official package; rerun these
+probes against the current official artifact. This does not satisfy the
+full S1 server and prompt round trip or the required device matrix. S2, longer-duration
 and cross-tier S7, keyboard S8, S6's 2.x artifact decision and S9
 compliance items remain open. Do not start G0-dependent production
 service wiring or claim gate acceptance until these blockers clear.
@@ -36,8 +37,9 @@ PTY behavior, lifecycle and keyboard feasibility; it must not become
 production service wiring or be treated as acceptance until run on the
 required devices.
 
-The first physical-device harness report is now recorded for one Infinix
-X6870 (Android 16, arm64-v8a, 4 KB pages). The staged APK passes the
+The first physical-device harness report is recorded for one Infinix
+X6870 (Android 16, arm64-v8a, 4 KB pages) using the pre-official package.
+It is not validation of the currently pinned official artifact. That staged APK passed the
 loader version check, PRoot guest shell, native 80x24 PTY comparison and
 basic foreground-service start/stop. It does not cover a 16 KB-page
 device, the remaining tiers, S8 keyboards or S7 background survival.
@@ -131,9 +133,9 @@ partial feasibility evidence, not G0 acceptance.
   self-hosted F-Droid repo after reproducible builds, bundled runtime,
   Play deferred, app code Apache-2.0. Compliance checklist is in
   `docs/licenses/`.
-- S9 artifacts generated: 14 Alpine packages, 45 Bun-bundled
+- S9 artifacts generated: 16 Alpine packages, 45 Bun-bundled
   libraries/polyfills, pinned PRoot/libtalloc/libandroid-shmem, a
-  67-component main CycloneDX 1.5 SBOM, an 849-package OpenCode
+  68-component main CycloneDX 1.5 SBOM, an 849-package OpenCode
   dependency SBOM, per-package Alpine copyright notices, notices,
   license texts and a source-offer draft. Bun 1.3.14, WebKit/JSC and
   tinycc sources are pinned and static JSC/tinycc linkage confirmed;

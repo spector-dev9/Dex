@@ -35,13 +35,14 @@ python3 scripts/stage-spike-harness.py
 adb install -r tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk
 ```
 
-The staging script downloads the pinned artifacts with
-`scripts/fetch-runtime.py --alpine --android-libs`, verifies their
-hashes, creates `runtime/artifacts/spike-runtime.tar.gz`, and copies
+The staging script downloads the official OpenCode release, pinned
+Alpine rootfs/runtime packages and Android libraries with
+`scripts/fetch-runtime.py --alpine --android-libs --alpine-runtime-libs`,
+verifies their hashes, creates `runtime/artifacts/spike-runtime.tar.gz`, and copies
 `libldmusl.so`, `libproot.so` and `libproot_loader.so` into the
 gitignored `src/main/jniLibs/arm64-v8a/` directory. Re-run the Gradle
 build after staging so the APK contains the entrypoints. The harness
-sets `PROOT_LOADER` to the staged loader; without it PRoot would look
+sets `PROOT_LOADER` to the staged PRoot loader; without it PRoot would look
 for the Termux `libexec` path.
 
 The harness builds a test-only `arm64-v8a` JNI helper with NDK 27.2 and
@@ -57,6 +58,11 @@ jniLibs are staged locally.
 The rootfs entrypoint check resolves absolute symlinks under the guest
 root, so Alpine's `/bin/sh -> /bin/busybox` link does not need to be
 rewritten on the device.
+
+When writing the JSON report, the harness includes an `S8-keyboard-ime`
+result with text-change count, final text length, and observed key-down
+count/last key. Typed text itself is not included in that result. S9 is
+release-compliance evidence and is not an on-device harness probe.
 
 Stage the runtime into the debug app's private files directory:
 
@@ -101,6 +107,9 @@ hashes, and whether the loader/PRoot came from `jniLibs`. Attach:
   in app-private storage and are exposed through `LD_LIBRARY_PATH`. The
   probe reports linker failures; fixing the packaging or rebuilding
   PRoot statically is part of the D3 decision, not this harness.
+- The official OpenCode tarball contains only the `opencode` binary.
+  Alpine supplies musl; pinned `libgcc` and `libstdc++` APKs supply the
+  other ELF libraries.
 - `opencode` is mapped by the musl loader from app-private storage; this
   is allowed precisely because the loader itself is an entrypoint from
   `nativeLibraryDir`. A direct `execve` of the opencode binary is not

@@ -35558,7 +35558,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
+          "url": "https://github.com/anomalyco/opencode/releases/download/v1.19.3/opencode-linux-arm64-musl.tar.gz"
         },
         {
           "type": "source-distribution",
@@ -35598,7 +35598,7 @@
       }
     ]
   },
-  "serialNumber": "urn:uuid:da38ed0d-fef0-5cff-b8e4-f5f12b4a75e7",
+  "serialNumber": "urn:uuid:740f0dfb-fc6d-55a5-9884-1e8991ee10ce",
   "specVersion": "1.5",
   "version": 1
 }

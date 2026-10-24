@@ -115,6 +115,21 @@
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl"
     },
     {
+      "copyright": "Copyright notices for the GCC runtime libraries are contained in the GCC source distribution and are attributed to the Free Software Foundation and GCC contributors.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc/APKBUILD",
+        "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-13.2.0/COPYING.RUNTIME"
+      ],
+      "license": "GPL-2.0-or-later AND LGPL-2.1-or-later",
+      "licenseTexts": [
+        "texts/GPL-2.0-or-later.txt",
+        "texts/LGPL-2.1-only.txt"
+      ],
+      "name": "libgcc",
+      "origin": "gcc",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc"
+    },
+    {
       "copyright": "Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson.",
       "evidence": [
         "https://gitlab.alpinelinux.org/alpine/aports/-/raw/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl/APKBUILD",
@@ -128,6 +143,21 @@
       "name": "libssl3",
       "origin": "openssl",
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl"
+    },
+    {
+      "copyright": "Copyright notices for libstdc++ are contained in the GCC source distribution and are attributed to the Free Software Foundation and GCC contributors.",
+      "evidence": [
+        "https://gitlab.alpinelinux.org/alpine/aports/-/raw/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc/APKBUILD",
+        "https://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html"
+      ],
+      "license": "GPL-2.0-or-later AND LGPL-2.1-or-later",
+      "licenseTexts": [
+        "texts/GPL-2.0-or-later.txt",
+        "texts/LGPL-2.1-only.txt"
+      ],
+      "name": "libstdc++",
+      "origin": "gcc",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc"
     },
     {
       "copyright": "Copyright \u00a9 2005-2020 Rich Felker, et al.",

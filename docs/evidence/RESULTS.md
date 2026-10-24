@@ -36,6 +36,12 @@ linked or appended; host spikes cannot promote device rows.
 
 ## Notes
 
+- The physical-device runs recorded below predate the current official
+  OpenCode package. They remain historical evidence only and do not
+  validate the official archive pinned in `runtime/manifest.json`
+  (`39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3`).
+  Rerun S1/S3/S7/S8 with the newly staged harness and attach its report
+  before using those results to evaluate the current runtime package.
 - The `partial-host` value is retained for existing spike records under
   `tests/spikes/results/`; no row above is promoted by those records.
 - S2 remains `pending`: the app has no Profile B implementation and no

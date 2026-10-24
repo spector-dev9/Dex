@@ -109,6 +109,11 @@ def main() -> int:
         action="store_true",
         help="also fetch the pinned PRoot, libtalloc and libandroid-shmem packages",
     )
+    parser.add_argument(
+        "--alpine-runtime-libs",
+        action="store_true",
+        help="also fetch the pinned Alpine libgcc and libstdc++ packages",
+    )
     args = parser.parse_args()
 
     with open(args.manifest, encoding="utf-8") as handle:
@@ -117,7 +122,7 @@ def main() -> int:
     artifact = manifest["artifact"]
     version = manifest["version"]
     expected = artifact["sha256"].lower()
-    archive = os.path.join(args.dest, f"opencode-termux-{version}-aarch64.tar.gz")
+    archive = os.path.join(args.dest, f"opencode-linux-arm64-musl-{version}.tar.gz")
     extracted = os.path.join(args.dest, f"opencode-{version}")
 
     os.makedirs(args.dest, exist_ok=True)
@@ -184,6 +189,28 @@ def main() -> int:
                 "source": spec["source"]["url"],
                 "sourceSha256": spec["source"]["sha256"],
             }
+
+    if args.alpine_runtime_libs:
+        result["alpineRuntimePackages"] = []
+        for spec in manifest["alpineRuntimePackages"]:
+            package_archive = os.path.join(args.dest, os.path.basename(spec["url"]))
+            if args.force or not os.path.isfile(package_archive):
+                download_verified(spec["url"], package_archive, spec["sha256"])
+            else:
+                actual = sha256(package_archive)
+                if actual != spec["sha256"]:
+                    fail(
+                        f"cached {spec['name']} sha-256 mismatch: "
+                        f"expected {spec['sha256']}, got {actual}"
+                    )
+            result["alpineRuntimePackages"].append(
+                {
+                    "name": spec["name"],
+                    "version": spec["version"],
+                    "archive": package_archive,
+                    "sha256": spec["sha256"],
+                }
+            )
 
     print(json.dumps(result, indent=2))
     return 0

@@ -30,6 +30,7 @@ yarn-error.log*
 # Gradle / Android
 .gradle/
 build/
+.kotlin/
 local.properties
 captures/
 .cxx/

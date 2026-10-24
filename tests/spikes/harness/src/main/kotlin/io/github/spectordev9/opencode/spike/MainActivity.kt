@@ -26,6 +26,10 @@ class MainActivity : Activity() {
     private lateinit var resultsView: TextView
     private lateinit var statusView: TextView
     private lateinit var imeView: TextView
+    private lateinit var imeField: EditText
+    private var imeTextChanges = 0
+    private var imeKeyDownEvents = 0
+    private var imeLastKey = "none"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,7 +86,7 @@ class MainActivity : Activity() {
         root.addView(label("S8 keyboard/IME probe"))
         imeView = monospace().apply { text = "No key events yet." }
         root.addView(imeView)
-        val imeField = EditText(this).apply {
+        imeField = EditText(this).apply {
             hint = "Type, use extra keys, paste and select text here."
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
             setSingleLine(false)
@@ -94,6 +98,8 @@ class MainActivity : Activity() {
             )
             setOnKeyListener { _, keyCode, event ->
                 if (event.action == KeyEvent.ACTION_DOWN) {
+                    imeKeyDownEvents++
+                    imeLastKey = "${KeyEvent.keyCodeToString(keyCode)} code=$keyCode"
                     imeView.text = "key=${KeyEvent.keyCodeToString(keyCode)} code=$keyCode"
                 }
                 false
@@ -103,6 +109,7 @@ class MainActivity : Activity() {
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
                 override fun afterTextChanged(s: Editable?) {
                     val text = s?.toString().orEmpty()
+                    imeTextChanges++
                     imeView.text = "${imeView.text}\ntext length=${text.length} tail=${text.takeLast(24)}"
                 }
             })
@@ -116,6 +123,11 @@ class MainActivity : Activity() {
         root.addView(button("Write JSON report") { writeReport() })
         root.addView(button("Clear results") {
             SpikeReport.clear()
+            imeField.setText("")
+            imeTextChanges = 0
+            imeKeyDownEvents = 0
+            imeLastKey = "none"
+            imeView.text = "No key events yet."
             resultsView.text = ""
             statusView.text = "Cleared"
         })
@@ -199,6 +211,14 @@ class MainActivity : Activity() {
     }
 
     private fun writeReport() {
+        SpikeReport.upsert(
+            ProbeRecord(
+                id = "S8-keyboard-ime",
+                pass = imeTextChanges > 0,
+                detail = "textChanges=$imeTextChanges; finalTextLength=${imeField.text.length}; " +
+                    "keyDownEvents=$imeKeyDownEvents; lastKey=$imeLastKey; input text omitted",
+            ),
+        )
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
             checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
         ) {

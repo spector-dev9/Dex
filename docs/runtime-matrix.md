@@ -11,9 +11,15 @@ default only if A fails S1 or S3. Profile B is rejected as the default if
 it is more than 2.5x slower than A on the S2 git-status or npm-test
 workloads.
 
-Acceptance uses the pinned OpenCode 1.19.3 runtime, Alpine 3.20.3,
-PRoot 5.1.107.100 and the D3 packaging rules. The runtime artifact hash is
-`cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748`.
+Acceptance uses the pinned official OpenCode 1.19.3 ARM64 musl runtime,
+Alpine 3.20.3, PRoot 5.1.107.100 and the D3 packaging rules. The official
+runtime archive SHA-256 is
+`39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3`.
+The official archive contains only the `opencode` executable. Alpine provides
+the musl loader; pinned Alpine `libgcc` and `libstdc++` packages provide the
+other ELF dependencies. Host/device evidence recorded against the former
+community archive must be rerun against this official package before it is
+used to evaluate D4.
 
 PRoot was moved from 5.1.107.98 to 5.1.107.100 on 2026-10-24 because the
 Termux pool no longer serves the .98 deb (HTTP 404). The .100 deb and

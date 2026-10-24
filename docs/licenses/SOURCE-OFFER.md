@@ -17,6 +17,8 @@ the binary.
 | busybox | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |
 | busybox-binsh | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |
 | ca-certificates-bundle | 20240705-r0 | MPL-2.0 AND MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates |
+| libgcc | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc |
+| libstdc++ | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc |
 | musl-utils | 1.2.5-r0 | MIT AND BSD-2-Clause AND GPL-2.0-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl |
 | scanelf | 1.3.7-r2 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6/main/pax-utils |
 | ssl_client | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |

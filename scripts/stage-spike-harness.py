@@ -46,9 +46,17 @@ def sha256(path: str) -> str:
     return digest.hexdigest()
 
 
+def verify_pin(path: str, expected: str, label: str) -> None:
+    if not os.path.isfile(path):
+        fail(f"missing {label} archive: {path}")
+    actual = sha256(path)
+    if actual != expected:
+        fail(f"{label} sha-256 mismatch: expected {expected}, got {actual}")
+
+
 def run_fetch(force: bool) -> None:
     command = [sys.executable, os.path.join(ROOT, "scripts", "fetch-runtime.py")]
-    command.extend(["--alpine", "--android-libs"])
+    command.extend(["--alpine", "--android-libs", "--alpine-runtime-libs"])
     if force:
         command.append("--force")
     print("fetching pinned runtime, Alpine rootfs and Android libraries")
@@ -123,14 +131,45 @@ def extract_alpine(archive_path: str, destination: str) -> None:
             archive.extractall(destination)
 
 
+def extract_alpine_runtime_package(archive_path: str, rootfs: str) -> None:
+    os.makedirs(rootfs, exist_ok=True)
+    root = os.path.realpath(rootfs)
+    with tarfile.open(archive_path, "r:gz") as archive:
+        members = []
+        for member in archive.getmembers():
+            name = member.name
+            parts = name.split("/")
+            if name.startswith("/") or ".." in parts:
+                fail(f"unsafe path in Alpine runtime package: {name}")
+            if name not in ("usr", "usr/lib") and not name.startswith("usr/lib/"):
+                continue
+            target = os.path.realpath(os.path.join(rootfs, name))
+            if target != root and not target.startswith(root + os.sep):
+                fail(f"Alpine runtime package escapes rootfs: {name}")
+            if member.issym() or member.islnk():
+                if os.path.isabs(member.linkname):
+                    fail(f"absolute link in Alpine runtime package: {name}")
+                resolved = os.path.realpath(
+                    os.path.join(os.path.dirname(target), member.linkname)
+                )
+                if resolved != root and not resolved.startswith(root + os.sep):
+                    fail(f"Alpine runtime package link escapes rootfs: {name}")
+            members.append(member)
+        archive.extractall(rootfs, members=members, filter="data")
+
+
 def stage(manifest_path: str, artifacts: str, stage_dir: str, jni_dir: str) -> str:
     with open(manifest_path, encoding="utf-8") as handle:
         manifest = json.load(handle)
 
     version = manifest["version"]
     runtime_source = os.path.join(artifacts, f"opencode-{version}")
+    runtime_archive = os.path.join(
+        artifacts, f"opencode-linux-arm64-musl-{version}.tar.gz"
+    )
     if not os.path.isdir(runtime_source):
         fail(f"runtime not found at {runtime_source}; run without --no-fetch first")
+    verify_pin(runtime_archive, manifest["artifact"]["sha256"], "OpenCode")
 
     if os.path.isdir(stage_dir):
         shutil.rmtree(stage_dir)
@@ -162,6 +201,7 @@ def stage(manifest_path: str, artifacts: str, stage_dir: str, jni_dir: str) -> s
     for key, (deb_path, wanted) in deb_files.items():
         if not os.path.isfile(deb_path):
             fail(f"missing {deb_path}; rerun with --force or fetch --android-libs")
+        verify_pin(deb_path, manifest[key]["sha256"], key)
         android_libs.update(extract_deb(deb_path, wanted, stage_dir))
 
     for name in ("proot", "loader", "libtalloc.so.2", "libandroid-shmem.so"):
@@ -173,11 +213,27 @@ def stage(manifest_path: str, artifacts: str, stage_dir: str, jni_dir: str) -> s
     )
     if not os.path.isfile(alpine_archive):
         fail(f"missing {alpine_archive}; rerun with --force")
-    extract_alpine(alpine_archive, os.path.join(stage_dir, "rootfs"))
+    verify_pin(alpine_archive, alpine["sha256"], "Alpine minirootfs")
+    rootfs = os.path.join(stage_dir, "rootfs")
+    extract_alpine(alpine_archive, rootfs)
+
+    for spec in manifest["alpineRuntimePackages"]:
+        package_archive = os.path.join(artifacts, os.path.basename(spec["url"]))
+        verify_pin(package_archive, spec["sha256"], spec["name"])
+        extract_alpine_runtime_package(package_archive, rootfs)
+
+    for name in manifest["runtimeLibraries"]:
+        matches = []
+        for directory, _, files in os.walk(rootfs):
+            if name in files or os.path.islink(os.path.join(directory, name)):
+                matches.append(os.path.join(directory, name))
+        if len(matches) != 1 or not os.path.isfile(matches[0]):
+            fail(f"expected exactly one Alpine runtime library {name}")
+        shutil.copy2(matches[0], os.path.join(runtime_destination, name))
 
     os.makedirs(jni_dir, exist_ok=True)
     shutil.copy2(
-        os.path.join(runtime_source, manifest["loader"]),
+        os.path.join(rootfs, manifest["loader"]),
         os.path.join(jni_dir, "libldmusl.so"),
     )
     shutil.copy2(os.path.join(stage_dir, "proot"), os.path.join(jni_dir, "libproot.so"))

@@ -927,6 +927,47 @@
     {
       "externalReferences": [
         {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libgcc"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GPL-2.0-or-later AND LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "name": "libgcc",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "gcc"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-or-later AND LGPL-2.1-or-later"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "13.2.1_git20240309-r1"
+        }
+      ],
+      "purl": "pkg:apk/alpine/libgcc@13.2.1_git20240309-r1?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "13.2.1_git20240309-r1"
+    },
+    {
+      "externalReferences": [
+        {
           "type": "license",
           "url": "https://github.com/oven-sh/bun/blob/main/LICENSE.md"
         },
@@ -1058,6 +1099,47 @@
       "purl": "pkg:apk/alpine/libssl3@3.3.2-r0?arch=aarch64&distro=alpine-3.20.3",
       "type": "library",
       "version": "3.3.2-r0"
+    },
+    {
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libstdc++"
+        },
+        {
+          "type": "vcs",
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GPL-2.0-or-later AND LGPL-2.1-or-later"
+          }
+        }
+      ],
+      "name": "libstdc++",
+      "properties": [
+        {
+          "name": "alpine:repository",
+          "value": "main"
+        },
+        {
+          "name": "alpine:origin",
+          "value": "gcc"
+        },
+        {
+          "name": "alpine:license-raw",
+          "value": "GPL-2.0-or-later AND LGPL-2.1-or-later"
+        },
+        {
+          "name": "alpine:repository-version",
+          "value": "13.2.1_git20240309-r1"
+        }
+      ],
+      "purl": "pkg:apk/alpine/libstdc%2B%2B@13.2.1_git20240309-r1?arch=aarch64&distro=alpine-3.20.3",
+      "type": "library",
+      "version": "13.2.1_git20240309-r1"
     },
     {
       "externalReferences": [
@@ -1395,7 +1477,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
+          "url": "https://github.com/anomalyco/opencode/releases/download/v1.19.3/opencode-linux-arm64-musl.tar.gz"
         },
         {
           "type": "source-distribution",
@@ -1409,7 +1491,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
+          "content": "39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3"
         }
       ],
       "licenses": [
@@ -1429,33 +1511,6 @@
         }
       ],
       "purl": "pkg:github/anomalyco/opencode@v1.19.3",
-      "type": "application",
-      "version": "1.19.3"
-    },
-    {
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/C04-wq/opencode-termux"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ],
-      "name": "opencode-termux",
-      "purl": "pkg:github/C04-wq/opencode-termux@v1.19.3",
       "type": "application",
       "version": "1.19.3"
     },
@@ -2262,7 +2317,7 @@
       }
     ]
   },
-  "serialNumber": "urn:uuid:00b98131-9214-5bb6-91da-17fa4b7b2a05",
+  "serialNumber": "urn:uuid:8571ee61-4533-58b7-840d-1728658f6543",
   "specVersion": "1.5",
   "version": 1
 }

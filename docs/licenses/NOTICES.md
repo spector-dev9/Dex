@@ -12,7 +12,6 @@ This file is a draft. The upstream license text governs; see
 | --- | --- | --- | --- |
 | opencode-mobile | 0.0.0 | Apache-2.0 | https://github.com/spector-dev9/Opencode-mobile |
 | opencode | 1.19.3 | MIT | https://github.com/anomalyco/opencode |
-| opencode-termux | 1.19.3 | MIT | https://github.com/C04-wq/opencode-termux |
 | bun | 1.3.14 | MIT | https://github.com/oven-sh/bun |
 | JavaScriptCore (WebKit) | bundled in Bun 1.3.14 | LGPL-2.0-only | https://github.com/oven-sh/WebKit |
 | tinycc | bundled in Bun 1.3.14 | LGPL-2.1-only | https://github.com/oven-sh/tinycc |
@@ -85,7 +84,9 @@ verified and versions are not pinned.
 | busybox-binsh | 1.36.1-r29 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/1747c01fb96905f101c25609011589d28e01cbb8/main/busybox |
 | ca-certificates-bundle | 20240705-r0 | MPL-2.0 AND MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/5d17fc7e5ae113319f201d781607ffe4bee95b61/main/ca-certificates |
 | libcrypto3 | 3.3.2-r0 | Apache-2.0 | https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl |
+| libgcc | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc |
 | libssl3 | 3.3.2-r0 | Apache-2.0 | https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl |
+| libstdc++ | 13.2.1_git20240309-r1 | GPL-2.0-or-later AND LGPL-2.1-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc |
 | musl | 1.2.5-r0 | MIT | https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl |
 | musl-utils | 1.2.5-r0 | MIT AND BSD-2-Clause AND GPL-2.0-or-later | https://gitlab.alpinelinux.org/alpine/aports/-/tree/4fe5bdbe47b100daa6380f81c4c8ea3f99b61362/main/musl |
 | scanelf | 1.3.7-r2 | GPL-2.0-only | https://gitlab.alpinelinux.org/alpine/aports/-/tree/e65a4f2d0470e70d862ef2b5c412ecf2cb9ad0a6/main/pax-utils |
@@ -95,7 +96,6 @@ verified and versions are not pinned.
 ## Copyright notices
 
 - OpenCode: Copyright (c) 2025 opencode.
-- opencode-termux artifact: Copyright (c) 2026 C04-wq.
 - Bun: see `texts/Bun-LICENSE.md` (upstream file has no separate
   copyright line).
 - Alpine packages: copyright notices are in the linked sources.
@@ -110,6 +110,7 @@ verified and versions are not pinned.
 | --- | --- |
 | Apache-2.0 | 2 |
 | GPL-2.0-only | 7 |
+| GPL-2.0-or-later AND LGPL-2.1-or-later | 2 |
 | MIT | 2 |
 | MIT AND BSD-2-Clause AND GPL-2.0-or-later | 1 |
 | MPL-2.0 AND MIT | 1 |
@@ -130,7 +131,9 @@ Collected from the pinned APKBUILDs and upstream sources; evidence:
 | busybox-binsh | GPL-2.0-only | Copyright (C) Erik Andersen, Rob Landley, Denys Vlasenko, and other BusyBox contributors; see AUTHORS in the source archive. |
 | ca-certificates-bundle | MPL-2.0 AND MIT | certdata.txt: Mozilla Foundation and the owners of the included CA certificates; c_rehash.c: Copyright (c) 2013-2014 Timo Teräs. |
 | libcrypto3 | Apache-2.0 | Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson. |
+| libgcc | GPL-2.0-or-later AND LGPL-2.1-or-later | Copyright notices for the GCC runtime libraries are contained in the GCC source distribution and are attributed to the Free Software Foundation and GCC contributors. |
 | libssl3 | Apache-2.0 | Copyright (c) 1998-2024 The OpenSSL Project Authors; Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson. |
+| libstdc++ | GPL-2.0-or-later AND LGPL-2.1-or-later | Copyright notices for libstdc++ are contained in the GCC source distribution and are attributed to the Free Software Foundation and GCC contributors. |
 | musl | MIT | Copyright © 2005-2020 Rich Felker, et al. |
 | musl-utils | MIT AND BSD-2-Clause AND GPL-2.0-or-later | musl: Copyright © 2005-2020 Rich Felker, et al.; getconf/getent: Copyright (c) 1996, 1998 and 2004-2006 The NetBSD Foundation; iconv: Copyright © 2011 Rich Felker. |
 | scanelf | GPL-2.0-only | Copyright 2005-2012 Gentoo Foundation; Copyright 2005-2012 Ned Ludd; Copyright 2005-2012 Mike Frysinger. |

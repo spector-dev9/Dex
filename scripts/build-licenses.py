@@ -92,7 +92,13 @@ def read_apkindex(version: str, artifacts: Path, refresh: bool) -> tuple[dict[st
         for fields in parse_stanzas(archive_text(archive, "APKINDEX")):
             repos.setdefault(
                 fields["P"],
-                {"repo": repo, "origin": fields.get("o", fields["P"]), "version": fields.get("V", "")},
+                {
+                    "repo": repo,
+                    "origin": fields.get("o", fields["P"]),
+                    "version": fields.get("V", ""),
+                    "license": fields.get("L", "NOASSERTION"),
+                    "commit": fields.get("c", ""),
+                },
             )
     return repos, hashes
 
@@ -102,7 +108,7 @@ def parse_rootfs(archive: Path) -> list[dict[str, str]]:
 
 
 def bun_version(binary: Path) -> str | None:
-    pattern = re.compile(rb"bun-v(\d+\.\d+\.\d+)")
+    pattern = re.compile(rb"(?:bun-v|Bun v)(\d+\.\d+\.\d+)")
     tail = b""
     with binary.open("rb") as handle:
         while True:
@@ -237,6 +243,31 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
                 "repositoryVersion": mapping.get("version", ""),
             }
         )
+    installed_names = {item["name"] for item in packages}
+    for spec in manifest.get("alpineRuntimePackages", []):
+        if spec["name"] in installed_names:
+            continue
+        mapping = repo_by_name.get(spec["name"])
+        if mapping is None or mapping["version"] != spec["version"]:
+            fail(f"runtime package is not present at its pinned Alpine version: {spec['name']}")
+        package_fields = {
+            "P": spec["name"],
+            "o": mapping["origin"],
+            "c": mapping["commit"],
+        }
+        packages.append(
+            {
+                "name": spec["name"],
+                "version": spec["version"],
+                "repo": mapping["repo"],
+                "origin": mapping["origin"],
+                "license": mapping["license"],
+                "commit": mapping["commit"],
+                "sourceUrl": alpine_source_url(package_fields, mapping["repo"], alpine_version),
+                "distributionUrl": alpine_package_url(spec["name"], mapping["repo"], alpine_version),
+                "repositoryVersion": mapping["version"],
+            }
+        )
     packages.sort(key=lambda item: (item["name"], item["version"]))
 
     runtime_binary = artifacts / f"opencode-{version}" / manifest["binary"]
@@ -270,18 +301,6 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
             properties=[
                 {"name": "source:sha256", "value": manifest["source"]["sha256"]},
                 {"name": "source:ref", "value": manifest["source"]["tag"]},
-            ],
-            component_type="application",
-        ),
-        component(
-            "opencode-termux",
-            version,
-            "MIT",
-            purl=f"pkg:github/C04-wq/opencode-termux@v{version}",
-            hashes=[{"alg": "SHA-256", "content": artifact["sha256"]}],
-            references=[
-                {"type": "distribution", "url": artifact["url"]},
-                {"type": "vcs", "url": "https://github.com/C04-wq/opencode-termux"},
             ],
             component_type="application",
         ),
@@ -589,7 +608,6 @@ def notices(data: dict) -> str:
         "## Copyright notices",
         "",
         "- OpenCode: Copyright (c) 2025 opencode.",
-        "- opencode-termux artifact: Copyright (c) 2026 C04-wq.",
         "- Bun: see `texts/Bun-LICENSE.md` (upstream file has no separate",
         "  copyright line).",
         "- Alpine packages: copyright notices are in the linked sources.",

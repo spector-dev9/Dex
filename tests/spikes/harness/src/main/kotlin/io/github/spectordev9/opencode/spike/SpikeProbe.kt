@@ -62,7 +62,6 @@ object SpikeProbe {
         val root = runtimeDir(context)
         val required = listOf(
             "runtime/opencode",
-            "runtime/ld-musl-aarch64.so.1",
             "runtime/libc.musl-aarch64.so.1",
             "runtime/libgcc_s.so.1",
             "runtime/libstdc++.so.6",
@@ -93,6 +92,9 @@ object SpikeProbe {
         val root = runtimeDir(context)
         val required = listOf(
             "runtime/opencode",
+            "runtime/libc.musl-aarch64.so.1",
+            "runtime/libgcc_s.so.1",
+            "runtime/libstdc++.so.6",
             "proot",
             "loader",
             "libtalloc.so.2",
@@ -371,10 +373,6 @@ object SpikeProbe {
             File(root, it).mkdirs()
         }
         listOf(
-            "runtime/opencode",
-            "runtime/ld-musl-aarch64.so.1",
-            "proot",
-            "loader",
             "rootfs/bin/sh",
         ).forEach { markExecutable(File(root, it)) }
         val nativeDir = File(context.applicationInfo.nativeLibraryDir)

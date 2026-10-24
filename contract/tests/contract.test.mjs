@@ -121,9 +121,17 @@ test("SSE reconnect delivers a fresh server.connected event", () => {
 
 test("runtime manifest pins 1.19.3 and refuses unknown majors", () => {
   assert.equal(manifest.version, "1.19.3");
-  assert.equal(manifest.artifact.sha256.length, 64);
+  assert.equal(
+    manifest.artifact.url,
+    "https://github.com/anomalyco/opencode/releases/download/v1.19.3/opencode-linux-arm64-musl.tar.gz",
+  );
+  assert.equal(
+    manifest.artifact.sha256,
+    "39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3",
+  );
   assert.equal(manifest.unknownMajorVersions, "refused");
   assert.ok(manifest.required.includes("opencode"));
-  assert.ok(manifest.required.includes("ld-musl-aarch64.so.1"));
+  assert.ok(manifest.runtimeLibraries.includes("libstdc++.so.6"));
+  assert.equal(manifest.alpineRuntimePackages.length, 2);
   assert.equal(inventory.pinnedVersion, manifest.version);
 });

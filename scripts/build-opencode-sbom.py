@@ -138,7 +138,7 @@ def source_archive(manifest: dict) -> Path:
     archive = ARTIFACTS / f"opencode-source-{manifest['version']}.tar.gz"
     if not archive.is_file():
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory(dir=ARTIFACTS) as tmp:
             staged = Path(tmp) / archive.name
             download(source["url"], staged)
             actual = sha256(staged)

@@ -412,6 +412,7 @@
   "licenseSummary": {
     "Apache-2.0": 2,
     "GPL-2.0-only": 7,
+    "GPL-2.0-or-later AND LGPL-2.1-or-later": 2,
     "MIT": 2,
     "MIT AND BSD-2-Clause AND GPL-2.0-or-later": 1,
     "MPL-2.0 AND MIT": 1,
@@ -507,6 +508,17 @@
       "version": "3.3.2-r0"
     },
     {
+      "commit": "3f9204e1a873a55c29fcfa8ba42ec8209b264472",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libgcc",
+      "license": "GPL-2.0-or-later AND LGPL-2.1-or-later",
+      "name": "libgcc",
+      "origin": "gcc",
+      "repo": "main",
+      "repositoryVersion": "13.2.1_git20240309-r1",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc",
+      "version": "13.2.1_git20240309-r1"
+    },
+    {
       "commit": "f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b",
       "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libssl3",
       "license": "Apache-2.0",
@@ -516,6 +528,17 @@
       "repositoryVersion": "3.3.7-r0",
       "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/f81b26d0708cf0a8149e2caf8e5bc3e7fda1225b/main/openssl",
       "version": "3.3.2-r0"
+    },
+    {
+      "commit": "3f9204e1a873a55c29fcfa8ba42ec8209b264472",
+      "distributionUrl": "https://pkgs.alpinelinux.org/package/v3.20/main/aarch64/libstdc++",
+      "license": "GPL-2.0-or-later AND LGPL-2.1-or-later",
+      "name": "libstdc++",
+      "origin": "gcc",
+      "repo": "main",
+      "repositoryVersion": "13.2.1_git20240309-r1",
+      "sourceUrl": "https://gitlab.alpinelinux.org/alpine/aports/-/tree/3f9204e1a873a55c29fcfa8ba42ec8209b264472/main/gcc",
+      "version": "13.2.1_git20240309-r1"
     },
     {
       "commit": "4fe5bdbe47b100daa6380f81c4c8ea3f99b61362",
@@ -578,7 +601,7 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
+          "url": "https://github.com/anomalyco/opencode/releases/download/v1.19.3/opencode-linux-arm64-musl.tar.gz"
         },
         {
           "type": "source-distribution",
@@ -592,7 +615,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
+          "content": "39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3"
         }
       ],
       "licenses": [
@@ -612,33 +635,6 @@
         }
       ],
       "purl": "pkg:github/anomalyco/opencode@v1.19.3",
-      "type": "application",
-      "version": "1.19.3"
-    },
-    {
-      "externalReferences": [
-        {
-          "type": "distribution",
-          "url": "https://github.com/C04-wq/opencode-termux/releases/download/v1.19.3/opencode-termux-aarch64.tar.gz"
-        },
-        {
-          "type": "vcs",
-          "url": "https://github.com/C04-wq/opencode-termux"
-        }
-      ],
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "cd0d834225a190f6b2c959c3076cf0b2e7e40d589de6802c91507de702e16748"
-        }
-      ],
-      "licenses": [
-        {
-          "expression": "MIT"
-        }
-      ],
-      "name": "opencode-termux",
-      "purl": "pkg:github/C04-wq/opencode-termux@v1.19.3",
       "type": "application",
       "version": "1.19.3"
     },

@@ -28,6 +28,16 @@ object SpikeReport {
     }
 
     @Synchronized
+    fun upsert(record: ProbeRecord) {
+        val index = records.indexOfFirst { it.id == record.id }
+        if (index < 0) {
+            records += record
+        } else {
+            records[index] = record
+        }
+    }
+
+    @Synchronized
     fun clear() {
         records.clear()
     }
