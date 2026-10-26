@@ -20,9 +20,15 @@ data class WrittenSpikeReport(
     val downloadLocation: String,
 )
 
+data class G0GateResult(
+    val status: String,
+    val detail: String,
+)
+
 object SpikeReport {
     private const val TAG = "SpikeHarness"
     private val records = mutableListOf<ProbeRecord>()
+    private val g0GateResults = linkedMapOf<String, G0GateResult>()
 
     @Synchronized
     fun add(record: ProbeRecord) {
@@ -42,6 +48,20 @@ object SpikeReport {
     @Synchronized
     fun clear() {
         records.clear()
+        g0GateResults.clear()
+    }
+
+    @Synchronized
+    fun setG0GateResult(id: String, status: String, detail: String) {
+        require(status in setOf("pass", "fail", "partial", "blocked", "manual", "deferred"))
+        g0GateResults[id] = G0GateResult(status, detail)
+    }
+
+    @Synchronized
+    fun g0GateResult(id: String): G0GateResult? = g0GateResults[id]
+
+    @Synchronized
+    fun g0GateSnapshot(): Map<String, G0GateResult> = g0GateResults.toMap()
     }
 
     @Synchronized
@@ -75,6 +95,21 @@ object SpikeReport {
                 ),
             ),
         )
+        val gateResults = JSONObject()
+        G0GateCatalog.checks.forEach { check ->
+            val result = g0GateResult(check.id)
+            gateResults.put(
+                check.id,
+                JSONObject()
+                    .put("title", check.title)
+                    .put("status", result?.status ?: "pending")
+                    .put("requirement", check.requirement)
+                    .put("detail", result?.detail ?: "Not yet assessed"),
+            )
+        }
+        val allGateChecksPassed = G0GateCatalog.checks.all { g0GateResult(it.id)?.status == "pass" }
+        root.put("g0Status", if (allGateChecksPassed) "green" else "pending")
+        root.put("g0GateChecks", gateResults)
         root.put("device", JSONObject(SpikeProbe.deviceInfo(context)))
         val results = JSONArray()
         records.forEach { record ->
@@ -116,7 +151,7 @@ object SpikeReport {
                 put(MediaStore.Downloads.MIME_TYPE, "application/json")
                 put(
                     MediaStore.Downloads.RELATIVE_PATH,
-                    "${Environment.DIRECTORY_DOWNLOADS}/OpenCodeSpike",
+                    "${Environment.DIRECTORY_DOWNLOADS}/OpenCodeG0",
                 )
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
@@ -136,13 +171,13 @@ object SpikeReport {
             resolver.delete(uri, null, null)
             throw error
         }
-        return "Download/OpenCodeSpike/$filename"
+        return "Download/OpenCodeG0/$filename"
     }
 
     @Suppress("DEPRECATION")
     private fun writeToLegacyDownloads(filename: String, text: String): String {
         val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val reportDirectory = File(directory, "OpenCodeSpike")
+        val reportDirectory = File(directory, "OpenCodeG0")
         check(reportDirectory.exists() || reportDirectory.mkdirs()) {
             "Could not create Downloads/OpenCodeSpike"
         }
