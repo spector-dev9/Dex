@@ -1,0 +1,509 @@
+OpenCode Mobile — Working Context
+Last updated: 2026-10-26
+Device: Infinix X6870 (Android 16 / API 36, arm64-v8a, 4 KB pages, 5.7 GB RAM)
+
+This file replaces any older context.txt. Nothing from an older context file is retained.
+
+1. Project purpose and scope
+----------------------------
+Project: OpenCode Mobile, an Android shell and runtime host for OpenCode.
+
+G0 scope is deliberately narrow:
+- Reference device: Infinix X6870 only.
+- Keyboard: Gboard only.
+- Active-agent test: one 10-minute screen-off run.
+- Post-G0 only: 30-minute runs, 19/20 repeats, Samsung Keyboard, Tier A/B/C,
+  16 KB-page devices, multi-device matrices.
+- Do not claim general device support from G0 evidence.
+
+Primary project rules:
+- docs/spec.md
+- docs/plan/phase-0.md
+- docs/project-checklist.md
+- docs/evidence/RESULTS.md
+
+Root plan.md is legacy. It has a superseded banner; docs/spec.md and
+docs/plan/phase-0.md govern current decisions.
+
+2. Paths and repository state
+-----------------------------
+Active repository:
+  /data/data/com.termux/files/home/mkd/remote-check
+
+Extracted source archive:
+  /data/data/com.termux/files/home/mkd/Opencode-mobile-main
+
+Git remote:
+  origin https://github.com/vector-dev9/Opencode-mobile.git
+
+Authenticated GitHub account:
+  vector-dev9
+
+Read-only upstream:
+  spector-dev9/Opencode-mobile (push returns 403)
+
+Current branch: main
+
+Recent commits:
+  8429bda docs: narrow v1 G0 to reference device and Gboard
+  4d35a17 fix(spike): guard IME trace before initialization
+  a0fac19 feat(app): add native OpenCode shell and refresh device evidence
+  5d06f5e fix(spike): capture soft-keyboard input via InputConnection
+  d7f983c docs: update threat model and device traceability
+
+Important state:
+- Commits 4d35a17 and 8429bda are pushed to origin/main.
+- The 27 G0 scope documentation/harness edits are committed in 8429bda.
+- The working tree is clean relative to origin/main.
+- The crash fix touched only:
+  tests/spikes/harness/src/main/kotlin/io/github/spectordev9/opencode/spike/ImeProbeEditText.kt
+- This context.txt lives outside the repository and is not pushed to GitHub.
+- Do not force-push. Preserve the current history.
+
+If a clone is shallow and push fails with "remote unpack failed" or
+"did not receive expected object", fetch full history first:
+  git fetch --unshallow https://github.com/spector-dev9/Opencode-mobile.git main
+
+3. Installed environment (audit on 2026-10-26)
+----------------------------------------------
+Present:
+- Android/Termux, aarch64
+- JDK 21.0.13 (JAVA_HOME points to Termux OpenJDK 21)
+- Node.js 24.22.1
+- npm 11.21.1
+- Python 3.14.8
+- git, curl, tar, xz, unzip
+- adb (from Termux package android-tools)
+- aapt2 and apksigner
+
+Missing or not configured:
+- ANDROID_HOME and ANDROID_SDK_ROOT are unset
+- cmake (system Termux package missing)
+- ninja (missing)
+- zipalign (not a Termux package)
+- d8 (package exists but is not installed)
+- sdkmanager (not a Termux package)
+- gradle CLI (use the repo's ./gradlew wrapper instead)
+- jq (missing)
+
+Useful existing temporary workspace:
+  /data/data/com.termux/files/usr/tmp/opencode
+It contains previous APKs, CI artifacts, crash logs, SDK pieces and helper scripts.
+Do not treat files there as source-of-truth; the repository is authoritative.
+
+4. Tool installation
+--------------------
+Install the Termux packages that are available:
+
+  pkg update -y && pkg upgrade -y
+  pkg install -y \
+    openjdk-21 nodejs-lts python git curl wget unzip zip \
+    tar xz-utils jq cmake ninja clang make \
+    android-tools aapt apksigner d8
+
+Notes:
+- The adb binary comes from android-tools, not from a package named "adb".
+- There is no Termux zipalign or sdkmanager package.
+- The repo uses the Gradle wrapper; do not install a separate Gradle version.
+- Node must satisfy package.json: Node >= 22.
+- Verify:
+    java -version
+    node -v
+    npm -v
+    python3 --version
+    adb version
+    aapt2 version
+    apksigner version
+
+5. Android SDK setup
+--------------------
+The full Android SDK is not currently configured. To build locally, install
+Android command-line tools from the official Android developer download page:
+
+  developer.android.com/studio#command-tools
+
+Do not invent or guess a versioned download URL. Download the current
+Linux command-line tools zip, then install it under $HOME/android-sdk:
+
+  mkdir -p "$HOME/android-sdk/cmdline-tools"
+  unzip commandlinetools-linux-*.zip -d "$HOME/android-sdk/cmdline-tools"
+  mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" \
+     "$HOME/android-sdk/cmdline-tools/latest"
+
+  export ANDROID_HOME="$HOME/android-sdk"
+  export ANDROID_SDK_ROOT="$ANDROID_HOME"
+  export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+  yes | sdkmanager --licenses
+  sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+The Android Gradle build requires:
+- compileSdk 36
+- build-tools 36.0.0
+- JDK 21
+- For the harness: NDK 27.2.12479018 and CMake 3.22.1
+
+Create local.properties if needed:
+
+  sdk.dir=/data/data/com.termux/files/home/android-sdk
+
+On aarch64 Termux, the x86_64 aapt2 downloaded by Gradle cannot execute.
+Use the Termux aapt2 as an override for local app builds:
+
+  ./gradlew --no-daemon \
+    -Pandroid.aapt2FromMavenOverride=$PREFIX/bin/aapt2 \
+    :app:assembleDebug
+
+A previous local :app:assembleDebug succeeded with this override in about
+4.5 minutes. That does not prove the native harness build works locally.
+
+6. Building the spike harness
+-----------------------------
+The harness is a separate debug APK. It contains test-only native helpers,
+the pinned Alpine/PRoot runtime, and S1/S3/S7/S8 probes. It is not the
+production app.
+
+Recommended path: build in GitHub Actions, because this Termux host has no
+NDK and the official NDK host toolchain is x86_64. The workflow installs
+platform 36, build-tools 36.0.0, NDK 27.2.12479018 and CMake 3.22.1.
+
+Before compiling any harness build, stage the pinned runtime:
+
+  cd /data/data/com.termux/files/home/mkd/remote-check
+  python3 scripts/stage-spike-harness.py
+
+Staging downloads and SHA-256-verifies the pinned artifacts, then creates:
+- runtime/artifacts/spike-runtime.tar.gz
+- tests/spikes/harness/src/main/jniLibs/arm64-v8a/libldmusl.so
+- tests/spikes/harness/src/main/jniLibs/arm64-v8a/libproot.so
+- tests/spikes/harness/src/main/jniLibs/arm64-v8a/libproot_loader.so
+- additional packaged runtime libraries
+
+The jniLibs and runtime artifacts are gitignored. Re-run staging after a
+clean checkout.
+
+Local harness build command, only with a working SDK + NDK + CMake:
+
+  ./gradlew --no-daemon \
+    -Pandroid.aapt2FromMavenOverride=$PREFIX/bin/aapt2 \
+    -PspikeHarness=true -PskipApp=true \
+    :spike-harness:assembleDebug
+
+CI build path:
+
+  gh workflow run ci.yml --repo vector-dev9/Opencode-mobile
+  gh run list --repo vector-dev9/Opencode-mobile --workflow ci.yml --limit 3
+  gh run watch <run-id> --repo vector-dev9/Opencode-mobile
+  gh run download <run-id> --repo vector-dev9/Opencode-mobile \
+    -n app-apks \
+    -D /data/data/com.termux/files/usr/tmp/opencode/ci-rebuild
+
+The CI artifact is named app-apks. It contains:
+- app/build/outputs/apk/debug/app-debug.apk
+- app/build/outputs/apk/release/app-release-unsigned.apk
+- tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk
+
+The current CI workflow runs stage-spike-harness.py before compiling the
+harness. A statement in tests/spikes/harness/README.md saying CI does not
+run the staging script is stale; trust .github/workflows/ci.yml.
+
+CI run for commit 4d35a17:
+  databaseId 40273727925 (created 2026-10-26T05:20:54Z)
+  Result: success. All three jobs (contract, kotlin, android) passed and the
+  app-apks artifact, including the fixed spike harness, was produced.
+
+CI run for docs commit 8429bda:
+  databaseId 40274661756
+  Result: success (contract 12s, kotlin 1m31s, android 3m18s).
+
+Downloaded fixed harness artifact:
+  /data/data/com.termux/files/usr/tmp/opencode/ci-rebuild-4d35a17/tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk
+  V2-signed debug APK; package io.github.spectordev9.opencode.spike.debug;
+  versionName 0.1.0-spike; minSdk 26; targetSdk 36.
+No Android device was connected via adb at the time of this note, so the APK
+was not installed or launch-verified on the Infinix.
+
+7. Installing and running the harness
+-------------------------------------
+Install the CI or local APK:
+
+  adb install -r \
+    tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk
+
+Or from a downloaded artifact:
+
+  adb install -r \
+    /data/data/com.termux/files/usr/tmp/opencode/ci-rebuild/tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk
+
+Launch:
+
+  adb shell am force-stop io.github.spectordev9.opencode.spike.debug
+  adb shell am start \
+    -n io.github.spectordev9.opencode.spike.debug/io.github.spectordev9.opencode.spike.MainActivity
+
+Harness actions:
+- Download and verify pinned runtime
+- Start authenticated server + mock prompt (S1 harness check)
+- Run all available device probes (S1/S3)
+- Start S7 10-minute soak with child workload
+- Record this keyboard's observation (S8 Gboard probe)
+- Write JSON report
+
+Evidence retrieval:
+
+  adb pull /sdcard/Download/OpenCodeSpike ./evidence
+  adb pull /sdcard/Download/OpenCodeSpike/s1-server-diagnostics.log
+  adb logcat -d -s SpikeHarness > evidence/logcat.txt
+  adb logcat -d -s AndroidRuntime SpikeHarness > evidence/crash-check.txt
+
+The S8 field probe proves that input events were observed. It does not prove
+that Gboard supports the production terminal's key protocol. Hardware
+keyDownEvents=0 is normal for a soft keyboard.
+
+8. Startup crash: cause and fix
+-------------------------------
+Crash files:
+  /storage/emulated/0/download/crash-report-20261026-085752.txt
+  /storage/emulated/0/download/harness-crash-20261026-085731.txt
+
+Exception:
+  java.lang.NullPointerException:
+  Attempt to do a synchronize operation on a null object
+  at ImeProbeEditText.record(ImeProbeEditText.kt:152)
+  at ImeProbeEditText.onSelectionChanged(ImeProbeEditText.kt:110)
+  at android.widget.TextView...<init>
+  at ImeProbeEditText.<init>
+  at MainActivity.buildUi
+
+Root cause:
+Android's EditText superclass constructor calls onSelectionChanged() while
+the ImeProbeEditText constructor is still running. Kotlin instance field
+initializers (eventTrace and eventTraceLock) run after the superclass
+constructor. Therefore record() saw eventTraceLock == null and synchronizing
+on it threw NullPointerException.
+
+Fix applied in commit 4d35a17:
+- Added private var traceReady = false.
+- Set traceReady = true in an init block, after all field initializers.
+- record() now returns immediately while traceReady is false.
+
+Relevant code shape:
+
+  private var traceReady = false
+
+  init {
+      traceReady = true
+  }
+
+  private fun record(event: String) {
+      if (!traceReady) return
+      lastEvent = event
+      synchronized(eventTraceLock) {
+          ...
+      }
+      post { eventListener?.invoke(event) }
+  }
+
+Why this is safe:
+- Only construction-time internal callbacks are dropped.
+- No user keyboard event occurs before the view is attached and interactive.
+- Counters and normal tracing remain active after construction.
+- Do not "fix" this by only making eventTraceLock nullable; eventTrace is also
+  uninitialized during the superclass constructor.
+
+Rebuild and verify:
+  gh workflow run ci.yml --repo vector-dev9/Opencode-mobile
+  gh run watch <run-id> --repo vector-dev9/Opencode-mobile
+  gh run download <run-id> --repo vector-dev9/Opencode-mobile \
+    -n app-apks -D /data/data/com.termux/files/usr/tmp/opencode/ci-rebuild
+
+  adb install -r \
+    /data/data/com.termux/files/usr/tmp/opencode/ci-rebuild/tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk
+  adb shell am force-stop io.github.spectordev9.opencode.spike.debug
+  adb shell am start \
+    -n io.github.spectordev9.opencode.spike.debug/io.github.spectordev9.opencode.spike.MainActivity
+  adb logcat -d -s AndroidRuntime SpikeHarness
+
+Expected: the harness opens without a NullPointerException. If the crash
+persists, pull a fresh crash report and confirm the installed APK contains
+commit 4d35a17.
+
+9. Other known issues and troubleshooting
+-----------------------------------------
+A. Missing local Android SDK / NDK
+   Symptom: Gradle cannot find android.jar, aapt2, NDK or CMake.
+   Fix: install the SDK as in section 5, use the aapt2 override, or use CI.
+   The harness native build is best treated as CI-only on this host.
+
+B. aapt2 executable format error
+   Symptom: "cannot execute binary file" or Exec format error.
+   Cause: Gradle downloaded an x86_64 aapt2 for aarch64 Termux.
+   Fix: use -Pandroid.aapt2FromMavenOverride=$PREFIX/bin/aapt2.
+
+C. check-provisional.py fails with "no compiled core classes"
+   Run the core compilation first:
+     ./gradlew --no-daemon -PskipApp=true coreCheck
+     python3 scripts/check-provisional.py
+
+D. Node tests fail before dependencies are installed
+   Run:
+     npm ci
+     npm run typecheck
+     npm test
+
+E. Shallow clone push failure
+   Symptom: "remote unpack failed: index-pack failed" or
+   "did not receive expected object".
+   Fix:
+     git fetch --unshallow https://github.com/spector-dev9/Opencode-mobile.git main
+   The current clone already has full history.
+
+F. Push to spector-dev9 fails with 403
+   Use origin, which points at vector-dev9/Opencode-mobile. Never change the
+   remote to a read-only repository and never embed a token in the remote URL.
+
+G. Stale helper path
+   /data/data/com.termux/files/usr/tmp/opencode/run-harness.sh still contains
+   an old /home/GP/opencode-mobile path and old probe labels. Update the TAR
+   path and action labels before using it for automation.
+
+H. Runtime is missing or S1/S3 fail with missing loader
+   Re-run:
+     python3 scripts/stage-spike-harness.py
+   Manual fallback:
+     adb push runtime/artifacts/spike-runtime.tar.gz /data/local/tmp/
+     adb shell run-as io.github.spectordev9.opencode.spike.debug \
+       sh -c 'cd files && tar xzf /data/local/tmp/spike-runtime.tar.gz'
+
+I. Old crashing APK remains installed
+   Reinstall the new APK with adb install -r. If the signing key differs,
+   uninstall first:
+     adb uninstall io.github.spectordev9.opencode.spike.debug
+
+J. README contradiction
+   tests/spikes/harness/README.md says CI does not stage the harness, but
+   .github/workflows/ci.yml does run scripts/stage-spike-harness.py.
+
+K. G0 scope documentation commit
+   The 27 docs/harness text edits were committed in 8429bda
+   ("docs: narrow v1 G0 to reference device and Gboard") and pushed.
+   The working tree is clean. Keep future crash fixes separate from doc
+   scope changes unless a combined commit is explicitly requested.
+
+10. Automated checks
+--------------------
+From the repository root:
+
+  npm ci
+  npm run typecheck
+  npm test
+  python3 -m py_compile scripts/*.py tests/spikes/scripts/*.py
+  python3 scripts/check-architecture.py
+  python3 scripts/check-bridge-contract.py
+  python3 scripts/check-licenses.py
+  (cd docs/licenses/texts && sha256sum -c SHA256SUMS)
+  python3 scripts/build-inventory.py
+  git diff --exit-code -- contract/endpoints.json
+
+Full G0 suite:
+
+  python3 scripts/run-g0-suite.py
+
+The full suite also needs a working Android/Java toolchain. CI is the
+supported execution environment. CI jobs are contract, kotlin and android.
+
+11. Remaining G0 tests and how to run them
+-----------------------------------------
+S1 — runtime/server/health/mock prompt
+  Harness path exists: tap "Start authenticated server + mock prompt" and
+  "Write JSON report"; pull the report and s1-server-diagnostics.log.
+  Production path is still not wired. A real G0 pass needs the production
+  app/runtime path, or an explicit owner decision to accept harness evidence.
+
+S2 — Profile A/B comparison
+  Profile B (OpenCode inside PRoot Alpine) is not implemented. Implement it,
+  then measure on the Infinix for both profiles:
+  - cold start to health
+  - idle RSS (adb shell dumpsys meminfo <package>)
+  - 10k-file git status through the agent
+  - npm test through the agent
+  - thermal/background behavior
+  Apply the 2.5x decision rule and freeze D4.
+
+S3 — agent shell vs native PTY
+  Harness guest-shell/native-PTY comparison exists. Production agent shell
+  is not wired. After wiring, compare pwd, node -v and PATH; values must match.
+
+S7 — active-agent lifecycle
+  Current harness evidence is only a foreground-service/child-workload soak.
+  Required G0 run: start a real prompt/tool task, turn the screen off, run
+  10 minutes, and capture elapsedRealtime, heartbeats, restarts, Doze/power
+  state, dumpsys activity services, dumpsys deviceidle, and am_kill/lmkd logs.
+
+S8 — Gboard TERM-5
+  Harness field input is green-reported, but the native terminal UI and
+  extra-key row do not exist. Implement them, then manually test:
+  text, Enter, Backspace, paste/select, Esc, Tab, Ctrl-C, Alt, arrows,
+  resize, signals, and cleanup.
+
+S6 — OpenCode 2.x
+  Blocked: no distributable 2.x artifact. Keep the 1.19.3 pin. Re-check:
+    gh api repos/anomalyco/opencode/releases?per_page=10
+    npm view opencode-ai dist-tags
+  If 2.x appears, run the contract suite against its live /doc. Otherwise
+  record a formal owner deferral.
+
+S9 — release/legal
+  Complete LGPL/source-offer duties, dependency closure, SBOM, signing and
+  reproducible builds. Check docs/licenses/README.md and run:
+    python3 scripts/check-licenses.py
+    python3 scripts/build-opencode-sbom.py
+    ./gradlew :app:assembleRelease
+    apksigner verify --print-certs <apk>
+
+G0 exit requirements:
+- S1-S9 evidence recorded in docs/evidence/RESULTS.md.
+- No G0 row left pending.
+- Section 7 thresholds ratified.
+- D4 (Profile A/B) and D5 (OpenCode pin) frozen.
+- S1 production wiring cycle resolved; see docs/plan/phase-0.md:39.
+
+12. Known good and partial evidence
+-----------------------------------
+- S4/S5 host coverage passes.
+- S1 is partial: harness authenticated mock prompt exists; production path absent.
+- S2 is host-only; Profile B device comparison missing.
+- S3 is harness-only; production agent shell absent.
+- S7 is partial: 10-minute service diagnostic (631,745 ms) exists; real
+  active-agent screen-off run missing.
+- S8 Gboard field input is reported green; TERM-5 terminal probe pending.
+- S9 open.
+- S6 blocked by no 2.x release artifact; latest 1.x drift check 1.19.4 is clean.
+
+13. Security rules for this context file
+----------------------------------------
+Never write any of the following into context.txt or committed files:
+- GitHub personal access tokens
+- npm tokens
+- server passwords or provider API keys
+- Android keystore contents or passwords
+- SSH private keys
+- device ADB pairing codes
+
+Use gh auth for GitHub operations. Do not put credentials in git remote URLs.
+Cleartext networking in the debug harness is test-only loopback behavior and
+must not be copied into production.
+
+14. Quick command reference
+---------------------------
+  cd /data/data/com.termux/files/home/mkd/remote-check
+  git status --short
+  git log --oneline -5
+  python3 scripts/stage-spike-harness.py
+  gh workflow run ci.yml --repo vector-dev9/Opencode-mobile
+  gh run list --repo vector-dev9/Opencode-mobile --workflow ci.yml --limit 3
+  adb install -r tests/spikes/harness/build/outputs/apk/debug/spike-harness-debug.apk
+  adb shell am start -n io.github.spectordev9.opencode.spike.debug/io.github.spectordev9.opencode.spike.MainActivity
+  adb logcat -d -s SpikeHarness AndroidRuntime
+
+End of context.
