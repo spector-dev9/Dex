@@ -14,6 +14,7 @@ class ImeProbeEditText(context: Context) : EditText(context) {
     private val eventTrace = mutableListOf<String>()
     private var droppedEventTraceEvents = 0
     private val eventTraceLock = Any()
+    private var traceReady = false
 
     var hardwareKeyDownEvents = 0
         private set
@@ -37,6 +38,10 @@ class ImeProbeEditText(context: Context) : EditText(context) {
         private set
     var lastEvent = "none"
         private set
+
+    init {
+        traceReady = true
+    }
 
     override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection? {
         val target = super.onCreateInputConnection(outAttrs) ?: return null
@@ -148,6 +153,7 @@ class ImeProbeEditText(context: Context) : EditText(context) {
     }
 
     private fun record(event: String) {
+        if (!traceReady) return
         lastEvent = event
         synchronized(eventTraceLock) {
             if (eventTrace.size < MAX_EVENT_TRACE_EVENTS) {
