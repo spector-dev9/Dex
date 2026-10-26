@@ -124,8 +124,8 @@ class MainActivity : Activity() {
         root.addView(button("Run PRoot guest shell (S3 partial)") {
             runProbes("guest-shell") { listOf(SpikeProbe.runGuestShell(this)) }
         })
-        root.addView(button("Compare guest shell + PTY byte smoke (S3 / TERM-5 partial)") {
-            runProbes("guest-forkpty") { SpikeProbe.runGuestPtyComparison(this) }
+        root.addView(button("Run native PTY TERM-5 probe") {
+            runProbes("term5-native-pty") { SpikeProbe.runTerm5NativePty(this) }
         })
 
         root.addView(label("S7 lifecycle + child-workload diagnostics (harness service only)"))

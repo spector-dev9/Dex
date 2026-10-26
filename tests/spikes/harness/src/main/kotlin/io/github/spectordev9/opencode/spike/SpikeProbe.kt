@@ -333,6 +333,45 @@ object SpikeProbe {
             append("environmentMatch=$matches")
             if (!matches) append(" guest=$guestValues pty=$ptyValues")
         }
+        return listOf(
+            guest,
+            ProbeRecord(
+                id = "S3-native-pty",
+                pass = passed,
+                detail = detail,
+                command = listOf("forkpty", proot.absolutePath, "/bin/sh", "-i"),
+                exitCode = exitCode,
+                durationMs = System.currentTimeMillis() - started,
+                stdout = normalized,
+            ),
+            runTerm5PtyInput(context, proot, loader, rootfs, root),
+        )
+    }
+
+    fun runTerm5NativePty(context: Context): List<ProbeRecord> {
+        val root = runtimeDir(context)
+        val nativeDir = File(context.applicationInfo.nativeLibraryDir)
+        val proot = File(nativeDir, "libproot.so").takeIf { it.isFile }
+            ?: File(root, "proot").takeIf { it.isFile }
+        val loader = File(nativeDir, "libproot_loader.so").takeIf { it.isFile }
+            ?: File(root, "loader").takeIf { it.isFile }
+        val rootfs = File(root, "rootfs")
+        if (proot == null || loader == null || !rootfsFileExists(rootfs, "bin/sh")) {
+            return listOf(
+                ProbeRecord("TERM-5-pty-byte-roundtrip", false, "missing PRoot, loader or Alpine shell"),
+            )
+        }
+        prepareRuntime(context)
+        return listOf(runTerm5PtyInput(context, proot, loader, rootfs, root))
+    }
+
+    private fun runTerm5PtyInput(
+        context: Context,
+        proot: File,
+        loader: File,
+        rootfs: File,
+        root: File,
+    ): ProbeRecord {
         val inputStarted = System.currentTimeMillis()
         val inputRaw = try {
             NativePtyProbeClient.runProotShell(
@@ -356,28 +395,16 @@ object SpikeProbe {
             ?.toIntOrNull()
         val expectedInputBytes = "61 62 63 0a 7f 09 1b 1b 5b 41 03 1b 78"
         val inputBytesMatch = inputOutput.replace(Regex("\\s+"), " ").contains(expectedInputBytes)
-        return listOf(
-            guest,
-            ProbeRecord(
-                id = "S3-native-pty",
-                pass = passed,
-                detail = detail,
-                command = listOf("forkpty", proot.absolutePath, "/bin/sh", "-i"),
-                exitCode = exitCode,
-                durationMs = System.currentTimeMillis() - started,
-                stdout = normalized,
-            ),
-            ProbeRecord(
-                id = "TERM-5-pty-byte-roundtrip",
-                pass = inputExitCode == 0 && inputBytesMatch && inputOutput.contains("GUEST-PTY-OK"),
-                detail = "exit=$inputExitCode; Enter CR normalized to LF by ICRNL; " +
-                    "expectedBytes=$expectedInputBytes; byteRoundTrip=$inputBytesMatch; " +
-                    "scripted PTY injection only, not physical IME/key mapping",
-                command = listOf("forkpty", "PRoot", "scripted terminal byte sequence"),
-                exitCode = inputExitCode,
-                durationMs = System.currentTimeMillis() - inputStarted,
-                stdout = inputOutput,
-            ),
+        return ProbeRecord(
+            id = "TERM-5-pty-byte-roundtrip",
+            pass = inputExitCode == 0 && inputBytesMatch && inputOutput.contains("GUEST-PTY-OK"),
+            detail = "exit=$inputExitCode; Enter CR normalized to LF by ICRNL; " +
+                "expectedBytes=$expectedInputBytes; byteRoundTrip=$inputBytesMatch; " +
+                "scripted PTY injection only, not physical IME/key mapping",
+            command = listOf("forkpty", "PRoot", "scripted terminal byte sequence"),
+            exitCode = inputExitCode,
+            durationMs = System.currentTimeMillis() - inputStarted,
+            stdout = inputOutput,
         )
     }
 
