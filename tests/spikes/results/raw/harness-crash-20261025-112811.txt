@@ -1,0 +1,25 @@
+generatedAt=2026-10-25T11:28:11+05:30
+thread=s1-server-output
+device=INFINIX Infinix X6870
+androidRelease=16
+sdkInt=36
+applicationId=io.github.spectordev9.opencode.spike.debug
+process=io.github.spectordev9.opencode.spike.debug
+
+java.io.InterruptedIOException: read interrupted by close() on another thread
+	at libcore.io.Linux.readBytes(Native Method)
+	at libcore.io.Linux.read(Linux.java:231)
+	at libcore.io.ForwardingOs.read(ForwardingOs.java:624)
+	at libcore.io.BlockGuardOs.read(BlockGuardOs.java:325)
+	at libcore.io.ForwardingOs.read(ForwardingOs.java:624)
+	at libcore.io.IoBridge.read(IoBridge.java:604)
+	at java.io.FileInputStream.read(FileInputStream.java:353)
+	at java.io.BufferedInputStream.fill(BufferedInputStream.java:239)
+	at java.io.BufferedInputStream.read1(BufferedInputStream.java:279)
+	at java.io.BufferedInputStream.read(BufferedInputStream.java:338)
+	at java.io.FilterInputStream.read(FilterInputStream.java:107)
+	at io.github.spectordev9.opencode.spike.SpikeServerProbe.runProbe$lambda$3(SpikeServerProbe.kt:126)
+	at io.github.spectordev9.opencode.spike.SpikeServerProbe.$r8$lambda$_VBSxo7fwsaMm-8Y35v_mR7FQN0(Unknown Source:0)
+	at io.github.spectordev9.opencode.spike.SpikeServerProbe$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.lang.Thread.run(Thread.java:1564)
+

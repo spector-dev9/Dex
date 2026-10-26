@@ -1,0 +1,20 @@
+1792907886953 authenticated-health-passed status=200 elapsedMs=4924 processExit=null
+1792907887027 session-create-request
+1792907887947 prompt-async-request sessionID=ses_e8e5cbac8ffeLhb6u8G2IgQkOh
+1792907888012 prompt-accepted
+1792907891785 mock-response-observed providerRequests=1
+1792907891801 mock-prompt-passed mock prompt round trip passed; provider requests=1
+1792907891816 probe-shutdown
+1792908240191 probe-start
+1792908240321 runtime-ready
+1792908240345 probe-directories-ready
+1792908240365 probe-config-ready serverPort=33495 mockPort=40849
+1792908240376 mock-provider-listening port=40849
+1792908240389 opencode-process-started alive=true
+1792908244748 authenticated-health-passed status=200 elapsedMs=4349 processExit=null
+1792908244770 session-create-request
+1792908245570 prompt-async-request sessionID=ses_e8e5745d2ffeETv0XPkhH46qpn
+1792908245926 prompt-accepted
+1792908249780 mock-response-observed providerRequests=1
+1792908249794 mock-prompt-passed mock prompt round trip passed; provider requests=1
+1792908249805 probe-shutdown

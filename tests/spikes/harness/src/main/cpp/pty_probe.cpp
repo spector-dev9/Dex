@@ -23,6 +23,18 @@ constexpr char kProbeScript[] =
     "printf 'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; "
     "[ \"$node_status\" -eq 0 ] || exit \"$node_status\"; "
     "printf 'GUEST-PTY-OK\\n'; exit\n";
+constexpr char kInputProbeScript[] =
+    "stty -echo; stty size; "
+    "node_version=$(node -v 2>&1); node_status=$?; "
+    "printf 'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; "
+    "[ \"$node_status\" -eq 0 ] || exit \"$node_status\"; "
+    "printf 'TERM-5-INPUT-READY\\n'; "
+    "stty -echo -icanon -isig icrnl min 1 time 0; "
+    "od -An -tx1 -N 13; "
+    "printf 'GUEST-PTY-OK\\n'; exit\n";
+constexpr char kInputBytes[] = {
+    'a', 'b', 'c', '\r', '\x7f', '\t', '\x1b', '\x1b', '[', 'A', '\x03', '\x1b', 'x',
+};
 
 std::string fromJava(JNIEnv* env, jstring value) {
     if (value == nullptr) return {};
@@ -37,6 +49,16 @@ void appendOutput(std::string* output, const char* data, size_t count) {
     if (output->size() >= kMaxOutputBytes) return;
     const size_t remaining = kMaxOutputBytes - output->size();
     output->append(data, count < remaining ? count : remaining);
+}
+
+size_t countOccurrences(const std::string& text, const std::string& needle) {
+    size_t count = 0;
+    size_t offset = 0;
+    while ((offset = text.find(needle, offset)) != std::string::npos) {
+        ++count;
+        offset += needle.size();
+    }
+    return count;
 }
 
 int waitForChild(pid_t child, int* status) {
@@ -57,7 +79,8 @@ Java_io_github_spectordev9_opencode_spike_NativePtyProbe_runProotShell(
     jstring loader_value,
     jstring rootfs_value,
     jstring runtime_root_value,
-    jlong timeout_ms) {
+    jlong timeout_ms,
+    jboolean test_input_bytes_value) {
     std::string proot = fromJava(env, proot_value);
     const std::string loader = fromJava(env, loader_value);
     std::string rootfs = fromJava(env, rootfs_value);
@@ -133,8 +156,13 @@ Java_io_github_spectordev9_opencode_spike_NativePtyProbe_runProotShell(
 
     const int flags = fcntl(master, F_GETFL, 0);
     if (flags >= 0) fcntl(master, F_SETFL, flags | O_NONBLOCK);
-    const size_t script_length = sizeof(kProbeScript) - 1;
+    const bool test_input_bytes = test_input_bytes_value == JNI_TRUE;
+    const char* script = test_input_bytes ? kInputProbeScript : kProbeScript;
+    const size_t script_length = test_input_bytes
+        ? sizeof(kInputProbeScript) - 1
+        : sizeof(kProbeScript) - 1;
     size_t written = 0;
+    size_t input_written = 0;
     std::string output;
     int status = 0;
     bool child_exited = false;
@@ -145,8 +173,16 @@ Java_io_github_spectordev9_opencode_spike_NativePtyProbe_runProotShell(
 
     while (std::chrono::steady_clock::now() < deadline) {
         if (written < script_length) {
-            const ssize_t count = write(master, kProbeScript + written, script_length - written);
+            const ssize_t count = write(master, script + written, script_length - written);
             if (count > 0) written += static_cast<size_t>(count);
+        }
+        if (test_input_bytes && written == script_length && input_written < sizeof(kInputBytes) &&
+            countOccurrences(output, "TERM-5-INPUT-READY") >= 2) {
+            const ssize_t count = write(
+                master,
+                kInputBytes + input_written,
+                sizeof(kInputBytes) - input_written);
+            if (count > 0) input_written += static_cast<size_t>(count);
         }
 
         struct pollfd descriptor {};

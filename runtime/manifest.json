@@ -143,15 +143,15 @@
   "unknownMajorVersions": "refused",
   "proot": {
     "name": "PRoot",
-    "version": "5.1.107.100",
-    "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.100_aarch64.deb",
-    "sha256": "06082d4425523a9a618ed2a096c344518c33bc05029395a4ad44ea526d1612b6",
+    "version": "5.1.107.101",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.101_aarch64.deb",
+    "sha256": "a28355e9be257e1f87f4e9294b3118470d4fd7a5442fed8b278f4443c83407d7",
     "license": "GPL-2.0-or-later",
     "source": {
-      "url": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.100.tar.gz",
-      "sha256": "c6e4f5a33e184d2c4fae1aee6180d1b3da8cfc67b51d4c65552ba4668ea7ff82",
-      "tag": "v5.1.107.100",
-      "commit": "e921710eb80a06d1dd5448212e580b0f5fd7d8c9"
+      "url": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.101.tar.gz",
+      "sha256": "41e55685788202b864647f5969a52a60408d6a6452f265919adde819afb26ef4",
+      "tag": "v5.1.107.101",
+      "commit": "b27d81a68d765f3462e807f4a14e01a03f8e89ea"
     }
   },
   "libtalloc": {

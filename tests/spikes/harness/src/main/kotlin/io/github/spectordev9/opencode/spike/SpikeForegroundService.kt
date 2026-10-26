@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.AlarmManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -16,12 +17,14 @@ import android.os.SystemClock
 
 class SpikeForegroundService : Service() {
     private val handler = Handler(Looper.getMainLooper())
+    private var wakeLock: PowerManager.WakeLock? = null
     private val heartbeat = object : Runnable {
         override fun run() {
             recordHeartbeat()
             handler.postDelayed(this, HEARTBEAT_INTERVAL_MS)
         }
     }
+    private val finishSoak = Runnable { finishSoakIfDue() }
 
     override fun onCreate() {
         super.onCreate()
@@ -31,8 +34,17 @@ class SpikeForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         createChannel()
         val startingNewSoak = intent?.action == ACTION_START_SOAK
+        val requestedMinutes = intent?.getIntExtra(EXTRA_SOAK_MINUTES, DEFAULT_SOAK_MINUTES)
+            ?: DEFAULT_SOAK_MINUTES
         if (!startingNewSoak) recordServiceRestartIfNeeded()
-        initializeSoakIfNeeded(forceNew = startingNewSoak)
+        initializeSoakIfNeeded(
+            forceNew = startingNewSoak,
+            requestedMinimumMs = requestedMinutes
+                .coerceIn(MINIMUM_SOAK_MINUTES, MAXIMUM_SOAK_MINUTES) * 60_000L,
+        )
+        if (startingNewSoak) {
+            SpikeReport.upsert(SpikeChildProcessProbe.start(this))
+        }
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
@@ -59,6 +71,9 @@ class SpikeForegroundService : Service() {
         handler.removeCallbacks(heartbeat)
         recordHeartbeat()
         handler.postDelayed(heartbeat, HEARTBEAT_INTERVAL_MS)
+        acquireWakeLock()
+        scheduleAlarmHeartbeat(this)
+        scheduleSoakFinish()
         return START_STICKY
     }
 
@@ -69,10 +84,9 @@ class SpikeForegroundService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(heartbeat)
-        soakPreferences().edit()
-            .putBoolean(KEY_ACTIVE, false)
-            .putLong(KEY_STOPPED_AT, System.currentTimeMillis())
-            .apply()
+        handler.removeCallbacks(finishSoak)
+        SpikeChildProcessProbe.abort()
+        releaseWakeLock()
         SpikeReport.logEvent("S7-service", "onDestroy")
         super.onDestroy()
     }
@@ -90,7 +104,7 @@ class SpikeForegroundService : Service() {
         manager.createNotificationChannel(channel)
     }
 
-    private fun initializeSoakIfNeeded(forceNew: Boolean) {
+    private fun initializeSoakIfNeeded(forceNew: Boolean, requestedMinimumMs: Long) {
         val preferences = soakPreferences()
         val startedAt = preferences.getLong(KEY_STARTED_AT, 0L)
         val wasActive = preferences.getBoolean(KEY_ACTIVE, false)
@@ -98,15 +112,23 @@ class SpikeForegroundService : Service() {
             val now = System.currentTimeMillis()
             preferences.edit()
                 .putLong(KEY_STARTED_AT, now)
+                .putLong(KEY_MINIMUM_SOAK_MS, requestedMinimumMs)
                 .putLong(KEY_STARTED_ELAPSED, SystemClock.elapsedRealtime())
                 .putLong(KEY_LAST_HEARTBEAT_AT, now)
                 .putLong(KEY_LAST_HEARTBEAT_ELAPSED, 0L)
+                .putLong(KEY_LAST_ALARM_ELAPSED, 0L)
                 .putLong(KEY_STOPPED_AT, 0L)
                 .putInt(KEY_HEARTBEATS, 0)
+                .putInt(KEY_ALARM_HEARTBEATS, 0)
                 .putInt(KEY_SERVICE_RESTARTS, 0)
+                .putInt(KEY_INTERACTIVE_SAMPLES, 0)
+                .putInt(KEY_NON_INTERACTIVE_SAMPLES, 0)
+                .putInt(KEY_DEVICE_IDLE_SAMPLES, 0)
+                .putInt(KEY_POWER_SAVE_SAMPLES, 0)
                 .putInt(KEY_THERMAL_SAMPLES, 0)
                 .putInt(KEY_THERMAL_BELOW_MODERATE, 0)
                 .putInt(KEY_THERMAL_MAX, THERMAL_UNKNOWN)
+                .putBoolean(KEY_WAKE_LOCK_ACQUIRED, false)
                 .putBoolean(KEY_COMPLETED, false)
                 .putBoolean(KEY_ACTIVE, true)
                 .apply()
@@ -126,15 +148,21 @@ class SpikeForegroundService : Service() {
     }
 
     private fun recordHeartbeat() {
+        SpikeChildProcessProbe.hostSample()
         val preferences = soakPreferences()
         val now = System.currentTimeMillis()
         val elapsedRealtime = SystemClock.elapsedRealtime()
         val thermalStatus = currentThermalStatus()
+        val powerState = currentPowerState(this)
         val previousMax = preferences.getInt(KEY_THERMAL_MAX, THERMAL_UNKNOWN)
         val editor = preferences.edit()
             .putLong(KEY_LAST_HEARTBEAT_AT, now)
             .putLong(KEY_LAST_HEARTBEAT_ELAPSED, elapsedRealtime)
             .putInt(KEY_HEARTBEATS, preferences.getInt(KEY_HEARTBEATS, 0) + 1)
+            .putInt(KEY_INTERACTIVE_SAMPLES, preferences.getInt(KEY_INTERACTIVE_SAMPLES, 0) + if (powerState.interactive) 1 else 0)
+            .putInt(KEY_NON_INTERACTIVE_SAMPLES, preferences.getInt(KEY_NON_INTERACTIVE_SAMPLES, 0) + if (powerState.interactive) 0 else 1)
+            .putInt(KEY_DEVICE_IDLE_SAMPLES, preferences.getInt(KEY_DEVICE_IDLE_SAMPLES, 0) + if (powerState.deviceIdle) 1 else 0)
+            .putInt(KEY_POWER_SAVE_SAMPLES, preferences.getInt(KEY_POWER_SAVE_SAMPLES, 0) + if (powerState.powerSave) 1 else 0)
         if (thermalStatus != THERMAL_UNKNOWN) {
             editor
                 .putInt(KEY_THERMAL_SAMPLES, preferences.getInt(KEY_THERMAL_SAMPLES, 0) + 1)
@@ -157,6 +185,46 @@ class SpikeForegroundService : Service() {
 
     private fun soakPreferences() = getSharedPreferences(PREFERENCES, MODE_PRIVATE)
 
+    private fun acquireWakeLock() {
+        if (wakeLock?.isHeld == true) return
+        val minimumSoakMs = soakPreferences().getLong(KEY_MINIMUM_SOAK_MS, DEFAULT_MINIMUM_SOAK_MS)
+        wakeLock = getSystemService(PowerManager::class.java)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$packageName:S7-active-soak")
+            .apply {
+                setReferenceCounted(false)
+                acquire(minimumSoakMs + WAKE_LOCK_SLACK_MS)
+            }
+        soakPreferences().edit().putBoolean(KEY_WAKE_LOCK_ACQUIRED, true).apply()
+    }
+
+    private fun releaseWakeLock() {
+        wakeLock?.let { if (it.isHeld) it.release() }
+        wakeLock = null
+    }
+
+    private fun scheduleSoakFinish() {
+        val preferences = soakPreferences()
+        val startElapsed = preferences.getLong(KEY_STARTED_ELAPSED, 0L)
+        if (startElapsed == 0L || preferences.getBoolean(KEY_COMPLETED, false)) return
+        val minimumSoakMs = preferences.getLong(KEY_MINIMUM_SOAK_MS, DEFAULT_MINIMUM_SOAK_MS)
+        val remaining = (startElapsed + minimumSoakMs - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+        handler.removeCallbacks(finishSoak)
+        handler.postDelayed(finishSoak, remaining)
+    }
+
+    private fun finishSoakIfDue() {
+        val record = completeSoak(this)
+        if (record == null) {
+            scheduleSoakFinish()
+            return
+        }
+        SpikeReport.upsert(record)
+        SpikeChildProcessProbe.stopAndAnalyze(this, "soak-complete")?.let { SpikeReport.upsert(it) }
+        releaseWakeLock()
+        cancelAlarmHeartbeat(this)
+        stopSelf()
+    }
+
     companion object {
         const val CHANNEL_ID = "spike-foreground"
         const val NOTIFICATION_ID = 1
@@ -166,10 +234,17 @@ class SpikeForegroundService : Service() {
         private const val KEY_STARTED_ELAPSED = "started-elapsed"
         private const val KEY_LAST_HEARTBEAT_AT = "last-heartbeat-at"
         private const val KEY_LAST_HEARTBEAT_ELAPSED = "last-heartbeat-elapsed"
+        private const val KEY_LAST_ALARM_ELAPSED = "last-alarm-elapsed"
         private const val KEY_STOPPED_AT = "stopped-at"
         private const val KEY_HEARTBEATS = "heartbeats"
+        private const val KEY_ALARM_HEARTBEATS = "alarm-heartbeats"
         private const val KEY_SERVICE_RESTARTS = "service-restarts"
+        private const val KEY_INTERACTIVE_SAMPLES = "interactive-samples"
+        private const val KEY_DEVICE_IDLE_SAMPLES = "device-idle-samples"
+        private const val KEY_POWER_SAVE_SAMPLES = "power-save-samples"
+        private const val KEY_WAKE_LOCK_ACQUIRED = "wake-lock-acquired"
         private const val KEY_THERMAL_SAMPLES = "thermal-samples"
+        private const val KEY_NON_INTERACTIVE_SAMPLES = "non-interactive-samples"
         private const val KEY_THERMAL_BELOW_MODERATE = "thermal-below-moderate"
         private const val KEY_THERMAL_MAX = "thermal-max"
         private const val KEY_COMPLETED = "completed"
@@ -179,8 +254,61 @@ class SpikeForegroundService : Service() {
         private const val KEY_ACTIVE = "active"
         private const val HEARTBEAT_INTERVAL_MS = 60_000L
         private const val HEARTBEAT_STALE_MS = HEARTBEAT_INTERVAL_MS * 2
+        private const val ALARM_HEARTBEAT_INTERVAL_MS = 5 * 60_000L
         private const val THERMAL_UNKNOWN = -1
-        private const val MINIMUM_SOAK_MS = 30 * 60 * 1000L
+        const val EXTRA_SOAK_MINUTES = "soak-minutes"
+        private const val DEFAULT_SOAK_MINUTES = 10
+        private const val MINIMUM_SOAK_MINUTES = 1
+        private const val MAXIMUM_SOAK_MINUTES = 120
+        private const val KEY_MINIMUM_SOAK_MS = "minimum-soak-ms"
+        private const val DEFAULT_MINIMUM_SOAK_MS = 10 * 60 * 1000L
+        private const val WAKE_LOCK_SLACK_MS = 5 * 60 * 1000L
+
+        data class PowerState(
+            val interactive: Boolean,
+            val deviceIdle: Boolean,
+            val powerSave: Boolean,
+            val batteryOptimizationIgnored: Boolean,
+        )
+
+        fun currentPowerState(context: android.content.Context): PowerState {
+            val powerManager = context.getSystemService(PowerManager::class.java)
+            return PowerState(
+                interactive = powerManager.isInteractive,
+                deviceIdle = powerManager.isDeviceIdleMode,
+                powerSave = powerManager.isPowerSaveMode,
+                batteryOptimizationIgnored = powerManager.isIgnoringBatteryOptimizations(context.packageName),
+            )
+        }
+
+        fun recordAlarmHeartbeat(context: android.content.Context) {
+            val preferences = context.getSharedPreferences(PREFERENCES, MODE_PRIVATE)
+            preferences.edit()
+                .putLong(KEY_LAST_ALARM_ELAPSED, SystemClock.elapsedRealtime())
+                .putInt(KEY_ALARM_HEARTBEATS, preferences.getInt(KEY_ALARM_HEARTBEATS, 0) + 1)
+                .apply()
+        }
+
+        fun scheduleAlarmHeartbeat(context: android.content.Context) {
+            val pendingIntent = alarmPendingIntent(context)
+            context.getSystemService(AlarmManager::class.java).setAndAllowWhileIdle(
+                AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + ALARM_HEARTBEAT_INTERVAL_MS,
+                pendingIntent,
+            )
+        }
+
+        fun cancelAlarmHeartbeat(context: android.content.Context) {
+            context.getSystemService(AlarmManager::class.java).cancel(alarmPendingIntent(context))
+        }
+
+        private fun alarmPendingIntent(context: android.content.Context): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                7,
+                Intent(context, S7AlarmHeartbeatReceiver::class.java),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
 
         fun soakStatus(context: android.content.Context): String {
             val preferences = context.getSharedPreferences(PREFERENCES, MODE_PRIVATE)
@@ -192,9 +320,20 @@ class SpikeForegroundService : Service() {
             val lastHeartbeat = preferences.getLong(KEY_LAST_HEARTBEAT_ELAPSED, 0L)
             val alive = preferences.getBoolean(KEY_ACTIVE, false) &&
                 currentElapsed - lastHeartbeat in 0..HEARTBEAT_STALE_MS
-            return "elapsed=${durationMs / 60_000} min; heartbeats=${preferences.getInt(KEY_HEARTBEATS, 0)}; " +
-                "serviceRestarts=${preferences.getInt(KEY_SERVICE_RESTARTS, 0)}; serviceHeartbeatFresh=$alive"
+            val power = currentPowerState(context)
+            val minimumSoakMs = preferences.getLong(KEY_MINIMUM_SOAK_MS, DEFAULT_MINIMUM_SOAK_MS)
+            return "elapsedRealtimeMs=$durationMs; minimumSoakMs=$minimumSoakMs; " +
+                "serviceHeartbeats=${preferences.getInt(KEY_HEARTBEATS, 0)}; " +
+                "alarmHeartbeats=${preferences.getInt(KEY_ALARM_HEARTBEATS, 0)}; " +
+                "serviceRestarts=${preferences.getInt(KEY_SERVICE_RESTARTS, 0)}; serviceHeartbeatFresh=$alive; " +
+                "isInteractive=${power.interactive}; isDeviceIdleMode=${power.deviceIdle}; " +
+                "isPowerSaveMode=${power.powerSave}; " +
+                "batteryOptimizationIgnored=${power.batteryOptimizationIgnored}"
         }
+
+        fun minimumSoakMinutes(context: android.content.Context): Long =
+            context.getSharedPreferences(PREFERENCES, MODE_PRIVATE)
+                .getLong(KEY_MINIMUM_SOAK_MS, DEFAULT_MINIMUM_SOAK_MS) / 60_000L
 
         fun soakResult(context: android.content.Context): ProbeRecord? {
             val preferences = context.getSharedPreferences(PREFERENCES, MODE_PRIVATE)
@@ -213,6 +352,8 @@ class SpikeForegroundService : Service() {
             val nowElapsed = SystemClock.elapsedRealtime()
             val elapsedMs = (nowElapsed - preferences.getLong(KEY_STARTED_ELAPSED, nowElapsed))
                 .coerceAtLeast(0L)
+            val minimumSoakMs = preferences.getLong(KEY_MINIMUM_SOAK_MS, DEFAULT_MINIMUM_SOAK_MS)
+            if (elapsedMs < minimumSoakMs) return null
             val lastHeartbeat = preferences.getLong(KEY_LAST_HEARTBEAT_ELAPSED, 0L)
             val serviceAlive = preferences.getBoolean(KEY_ACTIVE, false) &&
                 nowElapsed - lastHeartbeat in 0..HEARTBEAT_STALE_MS
@@ -220,16 +361,28 @@ class SpikeForegroundService : Service() {
             val belowModerate = preferences.getInt(KEY_THERMAL_BELOW_MODERATE, 0)
             val maxThermal = preferences.getInt(KEY_THERMAL_MAX, THERMAL_UNKNOWN)
             val serviceRestarts = preferences.getInt(KEY_SERVICE_RESTARTS, 0)
-            val durationPassed = elapsedMs >= MINIMUM_SOAK_MS
+            val durationPassed = elapsedMs >= minimumSoakMs
+            val power = currentPowerState(context)
             return ProbeRecord(
                 id = "S7-background-survival",
                 pass = durationPassed && serviceAlive && serviceRestarts == 0,
-                detail = "elapsedMs=$elapsedMs; minimumRequiredMs=$MINIMUM_SOAK_MS; " +
-                    "heartbeats=${preferences.getInt(KEY_HEARTBEATS, 0)}; serviceRestarts=$serviceRestarts; " +
-                    "serviceHeartbeatFresh=$serviceAlive; " +
+                detail = "elapsedRealtimeMs=$elapsedMs; minimumRequiredMs=$minimumSoakMs; " +
+                    "serviceHeartbeats=${preferences.getInt(KEY_HEARTBEATS, 0)}; " +
+                    "alarmHeartbeats=${preferences.getInt(KEY_ALARM_HEARTBEATS, 0)}; " +
+                    "lastAlarmElapsedRealtimeMs=${preferences.getLong(KEY_LAST_ALARM_ELAPSED, 0L)}; " +
+                    "serviceRestarts=$serviceRestarts; serviceHeartbeatFresh=$serviceAlive; " +
+                    "partialWakeLockAcquired=${preferences.getBoolean(KEY_WAKE_LOCK_ACQUIRED, false)}; " +
+                    "isInteractive=${power.interactive}; isDeviceIdleMode=${power.deviceIdle}; " +
+                    "isPowerSaveMode=${power.powerSave}; " +
+                    "batteryOptimizationIgnored=${power.batteryOptimizationIgnored}; " +
+                    "interactiveSamples=${preferences.getInt(KEY_INTERACTIVE_SAMPLES, 0)}; " +
+                    "nonInteractiveSamples=${preferences.getInt(KEY_NON_INTERACTIVE_SAMPLES, 0)}; " +
+                    "deviceIdleSamples=${preferences.getInt(KEY_DEVICE_IDLE_SAMPLES, 0)}; " +
+                    "powerSaveSamples=${preferences.getInt(KEY_POWER_SAVE_SAMPLES, 0)}; " +
                     "thermalSamples=$thermalSamples; thermalBelowModerate=$belowModerate; " +
-                    "maximumThermalStatus=$maxThermal; screenOff=not-measured; this is one harness-service run, " +
-                    "not the agent-task 19/20 device-matrix acceptance test",
+                    "maximumThermalStatus=$maxThermal; this is one ${minimumSoakMs / 60_000}-minute " +
+                    "harness-service diagnostic of service and child-process survival; the 30-minute " +
+                    "agent-task acceptance test needs a real agent workload and 19/20 per-tier runs",
                 durationMs = elapsedMs,
             )
         }
@@ -242,8 +395,19 @@ class SpikeForegroundService : Service() {
                 .putBoolean(KEY_COMPLETED_PASS, record.pass)
                 .putString(KEY_COMPLETED_DETAIL, record.detail)
                 .putLong(KEY_COMPLETED_DURATION, record.durationMs)
+                .putBoolean(KEY_ACTIVE, false)
+                .putLong(KEY_STOPPED_AT, System.currentTimeMillis())
                 .apply()
+            cancelAlarmHeartbeat(context)
             return record
+        }
+
+        fun isEarlyRunActive(context: android.content.Context): Boolean {
+            val preferences = context.getSharedPreferences(PREFERENCES, MODE_PRIVATE)
+            val startedElapsed = preferences.getLong(KEY_STARTED_ELAPSED, 0L)
+            val minimumSoakMs = preferences.getLong(KEY_MINIMUM_SOAK_MS, DEFAULT_MINIMUM_SOAK_MS)
+            return startedElapsed > 0L && !preferences.getBoolean(KEY_COMPLETED, false) &&
+                SystemClock.elapsedRealtime() - startedElapsed < minimumSoakMs
         }
     }
 }

@@ -11,8 +11,13 @@ import android.widget.EditText
 
 class ImeProbeEditText(context: Context) : EditText(context) {
     var eventListener: ((String) -> Unit)? = null
+    private val eventTrace = mutableListOf<String>()
+    private var droppedEventTraceEvents = 0
+    private val eventTraceLock = Any()
 
     var hardwareKeyDownEvents = 0
+        private set
+    var hardwareKeyUpEvents = 0
         private set
     var imeSendKeyEvents = 0
         private set
@@ -56,7 +61,11 @@ class ImeProbeEditText(context: Context) : EditText(context) {
 
             override fun sendKeyEvent(event: KeyEvent): Boolean {
                 imeSendKeyEvents++
-                record("imeSendKeyEvent ${KeyEvent.keyCodeToString(event.keyCode)} code=${event.keyCode}")
+                record(
+                    "imeSendKeyEvent action=${actionName(event.action)} " +
+                        "key=${KeyEvent.keyCodeToString(event.keyCode)} code=${event.keyCode} " +
+                        "meta=${modifierNames(event.metaState)}",
+                )
                 return super.sendKeyEvent(event)
             }
 
@@ -80,8 +89,20 @@ class ImeProbeEditText(context: Context) : EditText(context) {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         hardwareKeyDownEvents++
-        record("hardwareKeyDown ${KeyEvent.keyCodeToString(keyCode)} code=$keyCode")
+        record(
+            "hardwareKeyDown ${KeyEvent.keyCodeToString(keyCode)} code=$keyCode " +
+                "meta=${modifierNames(event.metaState)}",
+        )
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        hardwareKeyUpEvents++
+        record(
+            "hardwareKeyUp ${KeyEvent.keyCodeToString(keyCode)} code=$keyCode " +
+                "meta=${modifierNames(event.metaState)}",
+        )
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onSelectionChanged(selStart: Int, selEnd: Int) {
@@ -98,6 +119,7 @@ class ImeProbeEditText(context: Context) : EditText(context) {
 
     fun resetCounters() {
         hardwareKeyDownEvents = 0
+        hardwareKeyUpEvents = 0
         imeSendKeyEvents = 0
         commitTextEvents = 0
         composingTextEvents = 0
@@ -107,10 +129,33 @@ class ImeProbeEditText(context: Context) : EditText(context) {
         selectionChanges = 0
         contextMenuEvents = 0
         lastEvent = "none"
+        synchronized(eventTraceLock) {
+            eventTrace.clear()
+            droppedEventTraceEvents = 0
+        }
+    }
+
+    fun recordTextChanged(length: Int) {
+        record("textChanged length=$length")
+    }
+
+    fun eventTraceSnapshot(): List<String> = synchronized(eventTraceLock) {
+        eventTrace.toList()
+    }
+
+    fun eventTraceDroppedCount(): Int = synchronized(eventTraceLock) {
+        droppedEventTraceEvents
     }
 
     private fun record(event: String) {
         lastEvent = event
+        synchronized(eventTraceLock) {
+            if (eventTrace.size < MAX_EVENT_TRACE_EVENTS) {
+                eventTrace += event
+            } else {
+                droppedEventTraceEvents++
+            }
+        }
         post { eventListener?.invoke(event) }
     }
 
@@ -123,5 +168,25 @@ class ImeProbeEditText(context: Context) : EditText(context) {
         android.R.id.undo -> "undo"
         android.R.id.redo -> "redo"
         else -> "id=$id"
+    }
+
+    private fun actionName(action: Int): String = when (action) {
+        KeyEvent.ACTION_DOWN -> "down"
+        KeyEvent.ACTION_UP -> "up"
+        KeyEvent.ACTION_MULTIPLE -> "multiple"
+        else -> "unknown($action)"
+    }
+
+    private fun modifierNames(metaState: Int): String = listOf(
+        "SHIFT" to (metaState and (KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON or KeyEvent.META_SHIFT_RIGHT_ON) != 0),
+        "CTRL" to (metaState and (KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON or KeyEvent.META_CTRL_RIGHT_ON) != 0),
+        "ALT" to (metaState and (KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON or KeyEvent.META_ALT_RIGHT_ON) != 0),
+        "FN" to (metaState and KeyEvent.META_FUNCTION_ON != 0),
+    ).filter { it.second }
+        .joinToString("+") { it.first }
+        .ifEmpty { "none" }
+
+    private companion object {
+        const val MAX_EVENT_TRACE_EVENTS = 256
     }
 }

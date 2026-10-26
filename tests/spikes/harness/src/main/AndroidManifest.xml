@@ -7,11 +7,12 @@
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="false"
-        android:extractNativeLibs="true"
         android:label="@string/app_name"
         android:usesCleartextTraffic="true"
         android:supportsRtl="true"
@@ -34,5 +35,14 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Pre-G0 feasibility spike; not a user feature" />
         </service>
+
+        <service
+            android:name=".NativePtyProbeService"
+            android:exported="false"
+            android:process=":nativepty" />
+
+        <receiver
+            android:name=".S7AlarmHeartbeatReceiver"
+            android:exported="false" />
     </application>
 </manifest>

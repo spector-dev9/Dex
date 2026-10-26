@@ -123,6 +123,9 @@ jobs:
           python3 scripts/check-release-manifest.py \
             app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
 
+      - name: Stage spike harness native entrypoints
+        run: python3 scripts/stage-spike-harness.py
+
       - name: Compile isolated spike harness
         run: ./gradlew --no-daemon -PspikeHarness=true -PskipApp=true :spike-harness:assembleDebug
 

@@ -1,0 +1,2 @@
+# Raw evidence is hashed byte-for-byte; never normalize line endings.
+tests/spikes/results/raw/** -text

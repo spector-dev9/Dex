@@ -50,6 +50,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":core:terminal-api"))
     implementation(project(":core:security"))
 
     testImplementation(project(":core:bridge-api"))

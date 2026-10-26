@@ -7,6 +7,7 @@ class NativePtyProbe private constructor() {
         rootfs: String,
         runtimeRoot: String,
         timeoutMillis: Long,
+        testInputBytes: Boolean,
     ): String
 
     companion object {

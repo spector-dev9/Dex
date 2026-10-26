@@ -29,7 +29,7 @@ object SpikeServerProbe {
     fun run(context: Context): List<ProbeRecord> =
         try {
             runProbe(context)
-        } catch (failure: Exception) {
+        } catch (failure: Throwable) {
             writeDiagnostic(
                 context,
                 "probe-exception",
@@ -120,13 +120,20 @@ object SpikeServerProbe {
             writeDiagnostic(context, "opencode-process-started", "alive=${process.isAlive}")
             val processOutput = process.inputStream
             val outputThread = Thread {
-                processOutput.use { input ->
-                    val buffer = ByteArray(4096)
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        output.append(buffer, count)
+                try {
+                    processOutput.use { input ->
+                        val buffer = ByteArray(4096)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            output.append(buffer, count)
+                        }
                     }
+                } catch (_: Throwable) {
+                    // stopProcess() calls destroy(), which closes the process
+                    // streams from another thread and interrupts a pending read
+                    // with InterruptedIOException. That is expected teardown,
+                    // not a probe failure; it must not kill the harness.
                 }
             }.apply { name = "s1-server-output"; isDaemon = true; start() }
 
@@ -175,7 +182,7 @@ object SpikeServerProbe {
                     stderr = output.text().replace(password, "[REDACTED]"),
                 ),
             )
-        } catch (failure: Exception) {
+        } catch (failure: Throwable) {
             writeDiagnostic(
                 context,
                 "probe-exception",
@@ -193,8 +200,8 @@ object SpikeServerProbe {
             )
         } finally {
             writeDiagnostic(context, "probe-shutdown")
-            process?.let(::stopProcess)
-            provider.close()
+            runCatching { process?.let(::stopProcess) }
+            runCatching { provider.close() }
         }
     }
 
@@ -357,7 +364,7 @@ object SpikeServerProbe {
         Log.i(TAG, line)
         try {
             SpikeReport.appendDiagnostic(context, line)
-        } catch (failure: Exception) {
+        } catch (failure: Throwable) {
             Log.e(TAG, "Could not export S1 diagnostics to Downloads/OpenCodeSpike", failure)
         }
     }
@@ -421,9 +428,14 @@ object SpikeServerProbe {
 
     private fun stopProcess(process: Process) {
         process.destroy()
-        if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
+        try {
+            if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                process.destroyForcibly()
+                process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+            }
+        } catch (_: InterruptedException) {
             process.destroyForcibly()
-            process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+            Thread.currentThread().interrupt()
         }
     }
 
@@ -588,7 +600,11 @@ object SpikeServerProbe {
         override fun close() {
             running.set(false)
             socket.close()
-            acceptThread?.join(1_000)
+            try {
+                acceptThread?.join(1_000)
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
         }
 
         private companion object {

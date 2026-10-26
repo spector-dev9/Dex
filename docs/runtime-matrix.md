@@ -31,6 +31,13 @@ source archive are pinned in `runtime/manifest.json`; the .100 binary's
 LOAD segments are 16 KB aligned. Host S1/S3 evidence recorded before this
 change used .98 and must not be presented as .100 device evidence.
 
+PRoot was moved again, 5.1.107.100 to 5.1.107.101, on 2026-10-25 for the
+same reason: the pool no longer serves the .100 deb (HTTP 404). The .101
+deb and source archive are pinned in `runtime/manifest.json`; the .101
+`proot` and loader LOAD segments were checked with the harness ELF rule
+and are 16 KB aligned. Evidence recorded before this change used .100 and
+must not be presented as .101 device evidence.
+
 ## Profiles
 
 | Property | Profile A (proposed default) | Profile B |

@@ -20,12 +20,26 @@ The harness currently covers:
 - S3 partial: a PRoot/Alpine guest shell (`pwd`, `PATH`,
   `node -v`, `/etc/alpine-release`), plus native `forkpty` comparison
   of guest `pwd`, `PATH` and `node -v`;
-- S7 partial: a single 30-minute `specialUse` foreground-service soak,
-  with persisted heartbeats and thermal-status samples; it is not the
-  agent-task 19/20 acceptance test;
+- TERM-5 partial: a scripted native-PTY byte round-trip for text, Enter,
+  Backspace, Tab, Esc, Up, Ctrl-C and Alt-x. This validates PTY byte transport,
+  not the physical Gboard/Samsung Keyboard mapping or production terminal UI;
+- S7 partial: a timed `specialUse` foreground-service diagnostic (10 or
+  30 minutes) with a partial wake lock held only during the run, service
+  and wakeup-alarm heartbeat counters, monotonic elapsed time, screen/Doze/
+  power-save samples, thermal samples, and battery-optimization state;
+- S7 partial: a child-process survival probe. A PRoot/Alpine guest workload
+  runs as a child process of the app and appends a sample line (wall clock,
+  kernel uptime, index) to `/root/s7-child.log` every 10 s while the soak
+  holds the screen off. The harness supervises the child from its service
+  heartbeat and reports `S7-child-process-survival` with sample coverage,
+  maximum sample gap, stall count, index continuity, liveness checks and
+  pre-kill exit code. Neither S7 probe is an active-agent task or the
+  30-minute, 19/20 acceptance test;
 - S8 partial: keyboard/IME input observation in a text field using
-  `InputConnection`, `TextWatcher` and hardware-key capture; this is not
-  a native terminal and does not replace the PTY comparison;
+  `InputConnection`, `TextWatcher` and hardware-key capture. The report
+  records the selected IME and a bounded key/action/modifier event trace, but
+  omits typed text; this is not a native terminal and does not replace the
+  PTY comparison;
 - a JSON report with command lines, exit codes and bounded stdout/stderr.
   The report also includes the installed APK SHA-256, device memory/page
   size, default IME, battery-optimization state, and thermal status.
@@ -76,23 +90,39 @@ On each device:
 
 1. Tap **Download and verify pinned runtime** and wait for success.
 2. Tap **Run all available device probes (S1/S3)**. This runs packaging,
-   loader/version, authenticated mock prompt, guest shell and native-PTY
-   checks in sequence. Inspect each result; the summary is not a G0 verdict.
-3. For S7, tap **Start S7 30-minute background survival run**, background
-   the app and turn the screen off for at least 30 minutes, then reopen it
-   and tap **Finish S7 run and record survival**. The exported record
-   includes heartbeat freshness and thermal samples. This tests only the
-   harness foreground service, not an agent task or the required 19/20
-   repeated-run acceptance threshold.
-4. For S8, run the keyboard observation separately with Gboard and Samsung
-   Keyboard where available. Try the extra-key row, hardware keys, paste and
-   text selection, then tap **Record this keyboard's observation** before
-   switching IMEs. The report captures a separate IME identity and observed
-   input record for each run but intentionally does not mark keyboard
-   acceptance as passed. Soft keyboards normally deliver text through
+  loader/version, authenticated mock prompt, guest shell, native-PTY
+  environment and scripted byte-round-trip checks in sequence. Inspect each
+  result; the summary is not a G0 verdict.
+3. For S7, start the 10-minute soak (or the 30-minute exploratory soak for
+  the LC-2 window) and choose whether to open Android's
+  battery-optimization exemption settings. The exemption is optional,
+  increases battery use, and should be restored after testing. Both soaks
+  also start the PRoot/Alpine child workload. Background the app, turn the
+  screen off, and leave it for the chosen duration. The service holds a
+  partial wake lock for this run only, then auto-completes, stops the child
+  and releases the lock. Early report exports are blocked. The result
+  records monotonic elapsed time, service/alarm heartbeats, `isInteractive`,
+  non-interactive, device-idle and power-save samples, exemption state,
+  restarts, thermal samples, and a separate `S7-child-process-survival`
+  record with the child sample count, coverage, maximum gap, stalls and
+  liveness. Run the host-side capture helper during the soak and again
+  after it completes:
+  `bash tests/spikes/scripts/capture-s7.sh <package> <output-dir>`.
+  Its logcat output is limited to the device's retained ring buffer. Even
+  the 30-minute soak remains a harness-service diagnostic of service and
+  child survival, not the active agent-task test or the 19/20 per-tier
+  acceptance threshold.
+4. For S8, run the keyboard observation with Gboard. Try the extra-key row,
+  hardware keys, paste and text selection, then tap **Record this keyboard's
+  observation**. The report captures the IME identity and observed input;
+  it does not automatically mark manual keyboard acceptance as passed. Soft
+  keyboards normally deliver text through
    `InputConnection.commitText`/`setComposingText`, not `KeyEvent`, so a
    zero hardware `keyDownEvents` count is expected and is not a failure.
-5. Tap **Write JSON report** and provide the JSON from both devices.
+5. Tap **Write JSON report** and provide the JSON from both devices. An
+  S7 harness pass does not promote S7/LC-2; acceptance still requires
+  active agent work, screen-off evidence, 19/20 repeats in Tier A/B/C,
+  and applicable OEM background settings.
 
 This APK can collect only the device-side feasibility probes listed above.
 Profile A/B performance comparison, host SSE/contract checks, OpenCode 2.x
@@ -183,8 +213,12 @@ hashes, and whether the loader/PRoot came from `jniLibs`. Attach:
 2. `adb logcat -d -s SpikeHarness`;
 3. `adb shell dumpsys package io.github.spectordev9.opencode.spike.debug`
    (confirms `extractNativeLibs`);
-4. for S7, the start/stop timestamps and a 30-minute background survival
-   result;
+4. for S7, the start/stop timestamps, the soak result and the
+  `S7-child-process-survival` record. The guest sample file is at
+  `<filesDir>/spike/rootfs/root/s7-child.log` (pull it with
+  `adb shell run-as <package> cat files/spike/rootfs/root/s7-child.log`).
+  The separate LC-2 acceptance run remains 30 minutes with active agent
+  work;
 5. for S8, the keyboard model and the IME text/key trace.
 
 ## Known limitations
@@ -208,3 +242,26 @@ hashes, and whether the loader/PRoot came from `jniLibs`. Attach:
 - The harness is debug-only (`run-as` is required for staging) and uses
   `minSdk 26` so it can run on older test devices; production minSdk is
   decided at G0.
+- The child-process survival record is produced from in-memory supervision.
+  If the app process itself is restarted mid-soak, the stop reason, the
+  service-restart counter and the soaked duration still describe the run,
+  but child survival is not claimed: the S7 service-restart count invalidates
+  the run and the report records that no child record could be finalized.
+- The child workload samples `/proc/uptime` inside PRoot for gap detection
+  and falls back to wall clock if the guest cannot read it. The analysis
+  records which timebase was used.
+- The 2026-10-25 Infinix X6870 smoke run exposed a teardown defect: the
+  guest PRoot workload survived `stopAndAnalyze`'s
+  `destroy()`/`destroyForcibly()` (the analysis consumed both 5 s timeouts
+  and 24 guest samples were written after service teardown; the guest had to
+  be stopped externally). The survival analysis from that run is still valid
+  (see `tests/spikes/results/S7-smoke-20261025-child-probe.md`). Teardown now
+  captures the tracer PID at start (the Android SDK exposes neither
+  `ProcessHandle` nor `Process.pid()`), walks `/proc` for PRoot descendants
+  before signalling the tracer, kills every survivor with SIGKILL, verifies
+  it, and logs failures instead of swallowing them. The fix compiles into the
+  current build, but its on-device teardown behavior has not been re-observed
+  (the owner treats S7 as green; no new soak was run). Until a run confirms
+  it, check for a leaked guest after a soak and stop it with
+  `adb shell run-as <package> kill -9 <pid>`. See
+  `tests/spikes/results/harness-defects-20261025.md`.

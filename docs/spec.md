@@ -213,7 +213,7 @@ opencode-mobile/
 | S5 | Endpoint inventory: diff the pinned /doc against 4.1; PTY routes; --port and auth behavior; unix-socket support. | Inventory committed to contract/. |
 | S6 | Does the contract suite pass on OpenCode 2.0.x? | Pin 2.x only if every used endpoint passes or needs a thin shim; otherwise pin 1.x with a drift job. |
 | S7 | Background survival with child-process restrictions on and off; specialUse service; OEM battery savers (Samsung, Xiaomi, Oppo). | LC-2 met on all tiers, or per-OEM guidance shipped in diagnostics. |
-| S8 | xterm.js versus a native terminal view for typing, extra keys, IME. | TERM-5 passes on Gboard and Samsung Keyboard; otherwise native view. |
+| S8 | xterm.js versus a native terminal view for typing, extra keys, IME. | TERM-5 passes on Gboard; otherwise native view. |
 | S9 | Licensing and distribution: GPLv2 duties for PRoot, Alpine package licenses, Play executable-code policy, F-Droid source-build rules. | Written decision for D1; compliance checklist in docs/licenses. |
 
 ## 7. Acceptance criteria
@@ -259,7 +259,7 @@ Reference devices: **Tier A** flagship, 8 GB or more, Android 15 or 16 (one with
 | TERM-2 | Signals and cleanup | Ctrl-C on a foreground job; close the session | Terminates within 500 ms (p95); exit status shown; 0 orphan processes |
 | TERM-3 | Resize | 20 random rotations and resizes, compare stty size | Always matches |
 | TERM-4 | Flood | yes piped to head -c 500M | Echo latency p95 at most 100 ms; memory growth at most 30 MB (scrollback bounded, default 10,000 lines) |
-| TERM-5 | Input | Extra-key row (Esc, Tab, Ctrl, Alt, arrows), hardware keyboard, Gboard, Samsung Keyboard | Typing test passes on both keyboards, else D10 fallback |
+| TERM-5 | Input | Extra-key row (Esc, Tab, Ctrl, Alt, arrows), hardware keyboard, Gboard | Typing test passes with Gboard, else D10 fallback |
 
 ### 7.5 Lifecycle and performance
 

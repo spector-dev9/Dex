@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -30,7 +31,7 @@ def main() -> int:
         print("error: no compiled core classes; run ./gradlew coreCheck", file=sys.stderr)
         return 1
 
-    classpath = ":".join(str(root) for root in roots)
+    classpath = os.pathsep.join(str(root) for root in roots)
     lines = [
         "# G1 provisional members (compiled classes)",
         "",

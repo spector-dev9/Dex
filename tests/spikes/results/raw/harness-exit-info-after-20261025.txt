@@ -1,0 +1,16 @@
+ACTIVITY MANAGER PROCESS EXIT INFO (dumpsys activity exit-info)
+Last Timestamp of Persistence Into Persistent Storage: 2026-10-25 11:16:13.807
+  package: io.github.spectordev9.opencode.spike.debug
+    Historical Process Exit for uid=10347
+        ApplicationExitInfo #0:
+          timestamp=2026-10-25 11:33:36.706 pid=22238 realUid=10347 packageUid=10347 definingUid=10347 user=0
+          process=io.github.spectordev9.opencode.spike.debug:nativepty reason=16 (PACKAGE UPDATED) subreason=0 (UNKNOWN) status=0
+          importance=400 pss=0.00 rss=0.00 description=stop io.github.spectordev9.opencode.spike.debug due to installPackageLI state=empty trace=null exitInfoExt=TranApplicationExitInfoExt{mRecentid=-1, mIsMainProcess=false, mVmsize=-1, mVmlock=-1, mVmHWM=-1, mVmRss=-1, mRssAnon=-1, mRssFile=-1, mRssShmem=-1, mVmSwap=-1, mWorkingState=-1, mSchedGroup=0, mOomAdj=-10000, mHostingType='service, mAlivetime=323446, mIsHiber=false, mHibertime=-1, mHiberReason='-1, mLruReason='cch-empty}
+        ApplicationExitInfo #1:
+          timestamp=2026-10-25 11:28:17.984 pid=15785 realUid=10347 packageUid=10347 definingUid=10347 user=0
+          process=io.github.spectordev9.opencode.spike.debug reason=4 (APP CRASH(EXCEPTION)) subreason=0 (UNKNOWN) status=0
+          importance=400 pss=0.00 rss=259MB description=crash state=empty trace=null exitInfoExt=TranApplicationExitInfoExt{mRecentid=0, mIsMainProcess=true, mVmsize=-1, mVmlock=-1, mVmHWM=-1, mVmRss=-1, mRssAnon=-1, mRssFile=-1, mRssShmem=-1, mVmSwap=-1, mWorkingState=-1, mSchedGroup=-1, mOomAdj=-1, mHostingType='-1, mAlivetime=-1, mIsHiber=false, mHibertime=-1, mHiberReason='-1, mLruReason='-1}
+        ApplicationExitInfo #2:
+          timestamp=2026-10-25 11:28:11.974 pid=15785 realUid=10347 packageUid=10347 definingUid=10347 user=0
+          process=io.github.spectordev9.opencode.spike.debug reason=4 (APP CRASH(EXCEPTION)) subreason=0 (UNKNOWN) status=0
+          importance=100 pss=0.00 rss=259MB description=crash state=empty trace=null exitInfoExt=TranApplicationExitInfoExt{mRecentid=0, mIsMainProcess=true, mVmsize=17986384, mVmlock=0, mVmHWM=-1, mVmRss=168396, mRssAnon=42956, mRssFile=112372, mRssShmem=13068, mVmSwap=60472, mWorkingState=13, mSchedGroup=3, mOomAdj=0, mHostingType='next-top-activity, mAlivetime=1032608, mIsHiber=false, mHibertime=-1, mHiberReason='-1, mLruReason='top-activity}

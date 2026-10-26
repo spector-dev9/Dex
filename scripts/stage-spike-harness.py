@@ -16,6 +16,7 @@ import hashlib
 import io
 import json
 import os
+import posixpath
 import shutil
 import subprocess
 import sys
@@ -125,41 +126,118 @@ def extract_deb(deb_path: str, wanted: tuple[str, ...], destination: str) -> dic
     return found
 
 
-def extract_alpine(archive_path: str, destination: str) -> None:
+def record_mode(modes: dict[str, int], path: str, mode: int) -> None:
+    """Remember an archive member's mode for the device archive.
+
+    Windows filesystem modes cannot represent the Alpine permission bits,
+    so the archive assembly overrides modes from this table.
+    """
+    modes[os.path.abspath(path)] = mode & 0o7777
+
+
+def posix_member_path(name: str) -> str:
+    """Normalize an archive member name to a relative posix path."""
+    cleaned = posixpath.normpath(name)
+    if cleaned in (".", "/"):
+        return ""
+    if cleaned.startswith(("/", "../")) or cleaned == "..":
+        fail(f"unsafe path in archive: {name!r}")
+    return cleaned
+
+
+def extract_archive(
+    archive_path: str,
+    destination: str,
+    *,
+    label: str,
+    symlinks: dict[str, str],
+    modes: dict[str, int],
+) -> None:
+    """Extract an Alpine archive member by member, without resolving links.
+
+    ``TarFile.extractall`` resolves each link target recursively and can hit
+    ``RecursionError`` on link-heavy Alpine archives (observed with Python
+    3.13 on Windows). Creating symbolic links on Windows also needs a
+    privilege the build user usually lacks. This extractor materializes
+    directories, regular files and hard links, and records symbolic links in
+    ``symlinks`` (rootfs-relative path -> link target) so that the archive
+    assembly can recreate them for the device.
+    """
     os.makedirs(destination, exist_ok=True)
+    root = os.path.realpath(destination)
     with tarfile.open(archive_path, "r:gz") as archive:
-        try:
-            archive.extractall(destination, filter="fully_trusted")
-        except TypeError:
-            archive.extractall(destination)
-
-
-def extract_alpine_runtime_package(archive_path: str, rootfs: str) -> None:
-    os.makedirs(rootfs, exist_ok=True)
-    root = os.path.realpath(rootfs)
-    with tarfile.open(archive_path, "r:gz") as archive:
-        members = []
-        for member in archive.getmembers():
-            name = member.name
-            parts = name.split("/")
-            if name.startswith("/") or ".." in parts:
-                fail(f"unsafe path in Alpine runtime package: {name}")
-            lexical_target = os.path.abspath(os.path.join(rootfs, name))
-            if lexical_target != root and not lexical_target.startswith(root + os.sep):
-                fail(f"Alpine runtime package escapes rootfs: {name}")
-            target = os.path.realpath(lexical_target)
+        for member in archive:
+            name = posix_member_path(member.name)
+            if not name:
+                if member.isdir():
+                    continue
+                fail(f"unexpected root member in {label}: {member.name!r}")
+            if "\\" in name:
+                fail(f"backslash path in {label}: {member.name!r}")
+            target = os.path.abspath(os.path.join(destination, *name.split("/")))
             if target != root and not target.startswith(root + os.sep):
-                fail(f"Alpine runtime package resolves outside rootfs: {name}")
-            if member.issym() or member.islnk():
-                if os.path.isabs(member.linkname):
-                    fail(f"absolute link in Alpine runtime package: {name}")
-                resolved = os.path.abspath(
-                    os.path.normpath(os.path.join(os.path.dirname(lexical_target), member.linkname))
+                fail(f"{label} member escapes the destination: {member.name!r}")
+            if member.isdir():
+                os.makedirs(target, exist_ok=True)
+                record_mode(modes, target, member.mode)
+            elif member.isfile():
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                source = archive.extractfile(member)
+                if source is None:
+                    fail(f"unreadable member in {label}: {member.name!r}")
+                with source, open(target, "wb") as output:
+                    shutil.copyfileobj(source, output)
+                record_mode(modes, target, member.mode)
+                symlinks.pop(name, None)
+            elif member.issym():
+                if os.path.lexists(target):
+                    if os.path.isdir(target):
+                        fail(f"{label} symlink conflicts with a directory: {member.name!r}")
+                    os.remove(target)
+                symlinks[name] = member.linkname
+            elif member.islnk():
+                link_target = os.path.abspath(
+                    os.path.join(destination, *member.linkname.split("/"))
                 )
-                if resolved != root and not resolved.startswith(root + os.sep):
-                    fail(f"Alpine runtime package link escapes rootfs: {name}")
-            members.append(member)
-        archive.extractall(rootfs, members=members, filter="data")
+                if link_target != root and not link_target.startswith(root + os.sep):
+                    fail(f"{label} hard link escapes the destination: {member.name!r}")
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                try:
+                    os.link(link_target, target)
+                except OSError as error:
+                    fail(f"hard link failed in {label}: {member.name!r}: {error}")
+                record_mode(modes, target, member.mode or modes.get(link_target, 0o644))
+            else:
+                fail(
+                    f"unsupported special file in {label}: {member.name!r} "
+                    f"(type {member.type!r})"
+                )
+
+
+def resolve_recorded_path(
+    guest_path: str,
+    *,
+    rootfs: str,
+    symlinks: dict[str, str],
+    label: str,
+) -> str:
+    """Resolve a rootfs-relative path through recorded links to a host path."""
+    current = posixpath.normpath(guest_path.lstrip("/"))
+    seen: set[str] = set()
+    while current in symlinks:
+        if current in seen:
+            fail(f"symbolic link loop resolving {label}: {guest_path}")
+        seen.add(current)
+        link_target = symlinks[current]
+        if link_target.startswith("/"):
+            current = posixpath.normpath(link_target.lstrip("/"))
+        else:
+            current = posixpath.normpath(
+                posixpath.join(posixpath.dirname(current), link_target)
+            )
+        if current == ".." or current.startswith("../"):
+            fail(f"symbolic link escapes the rootfs resolving {label}: {guest_path}")
+    return os.path.join(rootfs, *current.split("/"))
 
 
 def stage(
@@ -168,6 +246,8 @@ def stage(
     stage_dir: str,
     jni_dir: str,
     runtime_assets_dir: str,
+    modes: dict[str, int],
+    symlinks: dict[str, str],
 ) -> str:
     with open(manifest_path, encoding="utf-8") as handle:
         manifest = json.load(handle)
@@ -193,7 +273,9 @@ def stage(
             fail(f"required runtime file missing or empty: {source}")
         if name == manifest["binary"]:
             verify_pin(source, manifest["binarySha256"], "OpenCode executable")
-        shutil.copy2(source, os.path.join(runtime_destination, name))
+        destination = os.path.join(runtime_destination, name)
+        shutil.copy2(source, destination)
+        record_mode(modes, destination, 0o755 if name == manifest["binary"] else 0o644)
 
     deb_files = {
         "proot": (
@@ -218,6 +300,7 @@ def stage(
 
     for name in ("proot", "loader", "libtalloc.so.2", "libandroid-shmem.so"):
         os.chmod(android_libs[name], 0o755)
+        record_mode(modes, android_libs[name], 0o755)
 
     alpine = manifest["alpine"]
     alpine_archive = os.path.join(
@@ -227,37 +310,74 @@ def stage(
         fail(f"missing {alpine_archive}; rerun with --force")
     verify_pin(alpine_archive, alpine["sha256"], "Alpine minirootfs")
     rootfs = os.path.join(stage_dir, "rootfs")
-    extract_alpine(alpine_archive, rootfs)
+    extract_archive(
+        alpine_archive,
+        rootfs,
+        label="Alpine minirootfs",
+        symlinks=symlinks,
+        modes=modes,
+    )
 
     for spec in manifest["alpineRuntimePackages"]:
         package_archive = os.path.join(artifacts, os.path.basename(spec["url"]))
         verify_pin(package_archive, spec["sha256"], spec["name"])
-        extract_alpine_runtime_package(package_archive, rootfs)
+        extract_archive(
+            package_archive,
+            rootfs,
+            label=spec["name"],
+            symlinks=symlinks,
+            modes=modes,
+        )
 
     node_runtime = manifest["nodeRuntime"]
     for spec in node_runtime["packages"]:
         package_archive = os.path.join(artifacts, os.path.basename(spec["url"]))
         verify_pin(package_archive, spec["sha256"], spec["name"])
-        extract_alpine_runtime_package(package_archive, rootfs)
+        extract_archive(
+            package_archive,
+            rootfs,
+            label=spec["name"],
+            symlinks=symlinks,
+            modes=modes,
+        )
     node_path = os.path.join(rootfs, node_runtime["executable"])
     if not os.path.isfile(node_path):
         fail(f"pinned Alpine Node package did not install {node_runtime['executable']}")
     os.chmod(node_path, os.stat(node_path).st_mode | 0o111)
 
     for name in manifest["runtimeLibraries"]:
-        matches = []
-        for directory, _, files in os.walk(rootfs):
-            if name in files or os.path.islink(os.path.join(directory, name)):
-                matches.append(os.path.join(directory, name))
-        if len(matches) != 1 or not os.path.isfile(matches[0]):
-            fail(f"expected exactly one Alpine runtime library {name}")
-        shutil.copy2(matches[0], os.path.join(runtime_destination, name))
+        candidates: list[str] = []
+        for directory, _directories, files in os.walk(rootfs):
+            if name in files:
+                relative = os.path.relpath(os.path.join(directory, name), rootfs)
+                candidates.append(relative.replace(os.sep, "/"))
+        for guest in symlinks:
+            if posixpath.basename(guest) == name:
+                candidates.append(guest)
+        if len(candidates) != 1:
+            fail(f"expected exactly one Alpine runtime library {name}: {sorted(candidates)}")
+        source = resolve_recorded_path(
+            candidates[0],
+            rootfs=rootfs,
+            symlinks=symlinks,
+            label=name,
+        )
+        if not os.path.isfile(source):
+            fail(f"Alpine runtime library {name} does not resolve to a file: {source}")
+        destination = os.path.join(runtime_destination, name)
+        shutil.copy2(source, destination)
+        record_mode(modes, destination, modes.get(os.path.abspath(source), 0o644))
 
-    os.makedirs(jni_dir, exist_ok=True)
-    shutil.copy2(
-        os.path.join(rootfs, manifest["loader"]),
-        os.path.join(jni_dir, "libldmusl.so"),
+    loader_source = resolve_recorded_path(
+        manifest["loader"],
+        rootfs=rootfs,
+        symlinks=symlinks,
+        label="musl loader",
     )
+    if not os.path.isfile(loader_source):
+        fail(f"Alpine loader not found in the rootfs: {manifest['loader']}")
+    os.makedirs(jni_dir, exist_ok=True)
+    shutil.copy2(loader_source, os.path.join(jni_dir, "libldmusl.so"))
     shutil.copy2(os.path.join(stage_dir, "proot"), os.path.join(jni_dir, "libproot.so"))
     shutil.copy2(os.path.join(stage_dir, "loader"), os.path.join(jni_dir, "libproot_loader.so"))
     for name in ("libldmusl.so", "libproot.so", "libproot_loader.so"):
@@ -282,17 +402,52 @@ def stage(
     return stage_dir
 
 
-def create_archive(stage_dir: str, tar_path: str) -> None:
+def create_archive(
+    stage_dir: str,
+    tar_path: str,
+    modes: dict[str, int],
+    symlinks: dict[str, str],
+) -> None:
     os.makedirs(os.path.dirname(tar_path), exist_ok=True)
     partial = tar_path + ".part"
+
+    def apply_mode(
+        tarinfo: tarfile.TarInfo,
+        path: str | None = None,
+    ) -> tarfile.TarInfo:
+        name = tarinfo.name.replace("\\", "/")
+        if name.startswith("spike/"):
+            name = name[len("spike/"):]
+        recorded = modes.get(
+            os.path.abspath(os.path.join(stage_dir, *name.split("/")))
+        )
+        if recorded is not None:
+            tarinfo.mode = recorded
+        elif tarinfo.isdir():
+            tarinfo.mode = 0o755
+        elif tarinfo.isfile():
+            tarinfo.mode = 0o644
+        return tarinfo
+
     with tarfile.open(partial, "w:gz") as archive:
-        archive.add(stage_dir, arcname="spike")
+        archive.add(stage_dir, arcname="spike", filter=apply_mode)
+        # Symbolic links cannot be created on Windows without extra
+        # privileges, so the recorded members are recreated here, after the
+        # staged tree. The device extraction creates them once their parent
+        # directories exist; nothing extracts through a link.
+        for guest, linkname in sorted(symlinks.items()):
+            info = tarfile.TarInfo(f"spike/rootfs/{guest}")
+            info.type = tarfile.SYMTYPE
+            info.linkname = linkname
+            info.mode = 0o777
+            archive.addfile(info)
     os.replace(partial, tar_path)
     digest = sha256(tar_path)
     with open(tar_path + ".sha256", "w", encoding="utf-8") as handle:
         handle.write(f"{digest}  {os.path.basename(tar_path)}\n")
     print(f"wrote {tar_path}")
     print(f"sha-256 {digest}")
+    print(f"recreated {len(symlinks)} symbolic link members")
 
 
 def main() -> int:
@@ -310,14 +465,18 @@ def main() -> int:
     if not args.no_fetch:
         run_fetch(args.force)
 
+    modes: dict[str, int] = {}
+    symlinks: dict[str, str] = {}
     stage(
         args.manifest,
         args.artifacts,
         args.stage_dir,
         args.jni_dir,
         args.runtime_assets_dir,
+        modes,
+        symlinks,
     )
-    create_archive(args.stage_dir, args.tar)
+    create_archive(args.stage_dir, args.tar, modes, symlinks)
 
     print()
     print("Build the isolated harness:")

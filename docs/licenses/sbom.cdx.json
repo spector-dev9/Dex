@@ -1956,17 +1956,17 @@
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://packages.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.100_aarch64.deb"
+          "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/p/proot/proot_5.1.107.101_aarch64.deb"
         },
         {
           "type": "vcs",
-          "url": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.100.tar.gz"
+          "url": "https://github.com/termux/proot/archive/refs/tags/v5.1.107.101.tar.gz"
         }
       ],
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "06082d4425523a9a618ed2a096c344518c33bc05029395a4ad44ea526d1612b6"
+          "content": "a28355e9be257e1f87f4e9294b3118470d4fd7a5442fed8b278f4443c83407d7"
         }
       ],
       "licenses": [
@@ -1978,15 +1978,15 @@
       "properties": [
         {
           "name": "source:sha256",
-          "value": "c6e4f5a33e184d2c4fae1aee6180d1b3da8cfc67b51d4c65552ba4668ea7ff82"
+          "value": "41e55685788202b864647f5969a52a60408d6a6452f265919adde819afb26ef4"
         },
         {
           "name": "source:ref",
-          "value": "v5.1.107.100"
+          "value": "v5.1.107.101"
         }
       ],
       "type": "application",
-      "version": "5.1.107.100"
+      "version": "5.1.107.101"
     },
     {
       "externalReferences": [
@@ -2633,7 +2633,7 @@
       }
     ]
   },
-  "serialNumber": "urn:uuid:0f4f98cf-b19d-566d-a52c-4d5f19e410e4",
+  "serialNumber": "urn:uuid:b33e57f3-eecb-5270-9c88-2f392dc3ca3b",
   "specVersion": "1.5",
   "version": 1
 }

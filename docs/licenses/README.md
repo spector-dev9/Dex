@@ -16,7 +16,7 @@ and SEC-5.
 | JavaScriptCore/WebKit (inside Bun) | bundled | LGPL-2.0-only | Bun/WebKit | LGPL relink/source-offer review; Bun LICENSE |
 | tinycc (inside Bun) | bundled | LGPL-2.1-only | Bun/tinycc | LGPL relink/source-offer review; Bun LICENSE |
 | musl loader/libs | 1.2.5 | MIT | musl | Include notice |
-| PRoot | 5.1.107.100 | GPL-2.0-or-later | `termux/proot` | Ship license, source archive (pinned) or written offer |
+| PRoot | 5.1.107.101 | GPL-2.0-or-later | `termux/proot` | Ship license, source archive (pinned) or written offer |
 | libtalloc | 2.5.0 | LGPL-3.0-or-later | Samba talloc | LGPL relink/source-offer review |
 | libandroid-shmem | 0.7 | BSD-3-Clause | `termux/libandroid-shmem` | Include copyright and license |
 | Alpine minirootfs | 3.20.3 | mixed | Alpine release | Per-package notices; source offer for GPL/LGPL/MPL packages |

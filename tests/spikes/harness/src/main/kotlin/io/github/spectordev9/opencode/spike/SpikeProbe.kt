@@ -291,12 +291,14 @@ object SpikeProbe {
         prepareRuntime(context)
         val started = System.currentTimeMillis()
         val raw = try {
-            NativePtyProbe.instance.runProotShell(
+            NativePtyProbeClient.runProotShell(
+                context = context,
                 proot = proot.absolutePath,
                 loader = loader.absolutePath,
                 rootfs = rootfs.absolutePath,
                 runtimeRoot = root.absolutePath,
                 timeoutMillis = 60_000,
+                testInputBytes = false,
             )
         } catch (error: LinkageError) {
             return listOf(
@@ -331,6 +333,29 @@ object SpikeProbe {
             append("environmentMatch=$matches")
             if (!matches) append(" guest=$guestValues pty=$ptyValues")
         }
+        val inputStarted = System.currentTimeMillis()
+        val inputRaw = try {
+            NativePtyProbeClient.runProotShell(
+                context = context,
+                proot = proot.absolutePath,
+                loader = loader.absolutePath,
+                rootfs = rootfs.absolutePath,
+                runtimeRoot = root.absolutePath,
+                timeoutMillis = 60_000,
+                testInputBytes = true,
+            )
+        } catch (error: LinkageError) {
+            "exitCode=-1\n${error.javaClass.simpleName}: ${error.message}\n"
+        }
+        val inputOutput = inputRaw.substringAfter('\n', "")
+            .replace("\r\n", "\n")
+            .replace('\r', '\n')
+        val inputExitCode = inputRaw.lineSequence()
+            .firstOrNull()
+            ?.removePrefix("exitCode=")
+            ?.toIntOrNull()
+        val expectedInputBytes = "61 62 63 0a 7f 09 1b 1b 5b 41 03 1b 78"
+        val inputBytesMatch = inputOutput.replace(Regex("\\s+"), " ").contains(expectedInputBytes)
         return listOf(
             guest,
             ProbeRecord(
@@ -341,6 +366,17 @@ object SpikeProbe {
                 exitCode = exitCode,
                 durationMs = System.currentTimeMillis() - started,
                 stdout = normalized,
+            ),
+            ProbeRecord(
+                id = "TERM-5-pty-byte-roundtrip",
+                pass = inputExitCode == 0 && inputBytesMatch && inputOutput.contains("GUEST-PTY-OK"),
+                detail = "exit=$inputExitCode; Enter CR normalized to LF by ICRNL; " +
+                    "expectedBytes=$expectedInputBytes; byteRoundTrip=$inputBytesMatch; " +
+                    "scripted PTY injection only, not physical IME/key mapping",
+                command = listOf("forkpty", "PRoot", "scripted terminal byte sequence"),
+                exitCode = inputExitCode,
+                durationMs = System.currentTimeMillis() - inputStarted,
+                stdout = inputOutput,
             ),
         )
     }
@@ -357,7 +393,7 @@ object SpikeProbe {
             environment["P"].orEmpty().isNotBlank() &&
             NODE_VERSION_PATTERN.matches(environment["N"].orEmpty())
 
-    private fun rootfsFileExists(rootfs: File, relativePath: String): Boolean {
+    internal fun rootfsFileExists(rootfs: File, relativePath: String): Boolean {
         val root = rootfs.toPath().toAbsolutePath().normalize()
         var candidate = root.resolve(relativePath).normalize()
         repeat(16) {

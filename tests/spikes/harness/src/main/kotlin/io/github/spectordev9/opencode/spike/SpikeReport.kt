@@ -46,11 +46,7 @@ object SpikeReport {
 
     @Synchronized
     fun appendDiagnostic(context: Context, line: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appendDiagnosticToDownloads(context, line)
-        } else {
-            appendDiagnosticToLegacyDownloads(line)
-        }
+        HarnessCrashHandler.appendDiagnostic(context, line)
     }
 
     @Synchronized
@@ -71,7 +67,7 @@ object SpikeReport {
                     "S4/S5 host-side SSE and endpoint contract checks",
                     "S6 OpenCode 2.x contract test; no distributable 2.x artifact is available",
                     "S7 agent-task 19/20 background-survival acceptance; this APK measures one harness-service soak",
-                    "S8/TERM-5 terminal input acceptance on both Gboard and Samsung Keyboard",
+                    "TERM-5 real Gboard/Samsung Keyboard input acceptance; this APK only runs a scripted PTY byte round-trip",
                     "RT/STR/WS/TERM production-app and UI acceptance tests",
                     "SEC production security, second-UID, and release-manifest acceptance tests",
                     "S9 release, licensing, and distribution compliance",
@@ -153,43 +149,6 @@ object SpikeReport {
         val report = File(reportDirectory, filename)
         report.writeText(text, Charsets.UTF_8)
         return report.absolutePath
-    }
-
-    private fun appendDiagnosticToDownloads(context: Context, line: String) {
-        val resolver = context.contentResolver
-        val filename = "s1-server-diagnostics.log"
-        val relativePath = "${Environment.DIRECTORY_DOWNLOADS}/OpenCodeSpike"
-        val existingUri = resolver.query(
-            MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-            arrayOf(MediaStore.Downloads._ID),
-            "${MediaStore.Downloads.DISPLAY_NAME}=? AND ${MediaStore.Downloads.RELATIVE_PATH}=?",
-            arrayOf(filename, "$relativePath/"),
-            null,
-        )?.use { cursor -> cursor.firstUri() }
-        val uri = existingUri ?: resolver.insert(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, filename)
-                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
-                    put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
-                    put(MediaStore.Downloads.IS_PENDING, 0)
-                },
-            )
-            ?: error("Could not create diagnostics in Downloads/OpenCodeSpike")
-
-        resolver.openOutputStream(uri, "wa")?.bufferedWriter(Charsets.UTF_8)?.use {
-            it.appendLine(line)
-        } ?: error("Could not append diagnostics in Downloads/OpenCodeSpike")
-    }
-
-    @Suppress("DEPRECATION")
-    private fun appendDiagnosticToLegacyDownloads(line: String) {
-        val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val reportDirectory = File(directory, "OpenCodeSpike")
-        check(reportDirectory.exists() || reportDirectory.mkdirs()) {
-            "Could not create Downloads/OpenCodeSpike"
-        }
-        File(reportDirectory, "s1-server-diagnostics.log").appendText("$line\n", Charsets.UTF_8)
     }
 
     fun logEvent(id: String, detail: String) {

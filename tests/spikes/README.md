@@ -14,7 +14,7 @@ evidence.
 | S5 | Endpoint inventory, PTY, auth | Inventory committed to contract/ | **pass (host)** — 36/36 endpoints, PTY documented, Basic auth verified → [result](results/S5-endpoints-auth.md) |
 | S6 | Contract suite on 2.0.x | Pin 2.x only if every used endpoint passes | blocked — 2.x tags exist but no release assets/npm builds → [result](results/S6-2.x.md) |
 | S7 | Background survival, OEM savers | LC-2 met or per-OEM guidance | blocked (needs device) |
-| S8 | xterm.js vs native view | TERM-5 on Gboard + Samsung Keyboard | blocked (needs device) |
+| S8 | xterm.js vs native view | Gboard field-input test | **green (owner-reported)** — input/IME events recorded on Infinix X6870; native-terminal TERM-5 remains pending → [evidence](results/S8-ime-observations-20261025.md) |
 | S9 | Licensing and distribution | Written D1 decision + checklist | **accepted (D1)** — GitHub Releases + Obtainium first, Play deferred; SBOM/inventory done, LGPL/source-offer blockers open → [checklist](../../docs/licenses/README.md) |
 
 ## Open questions from Section 9

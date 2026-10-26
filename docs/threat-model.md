@@ -79,14 +79,15 @@ provider traffic is in scope only for v1.1.
   mock-provider prompt round trips. These establish repeatable feasibility
   on two devices, not Profile A/B comparison, production agent-shell wiring,
   or full Tier A/B/C coverage.
-- Both S7 background-survival records are failures against the probe's
-  30-minute minimum: Device 1 lasted approximately 13 minutes; Device 2
-  approximately 25 seconds. The probe says screen-off was not measured,
-  and the harness service is not an agent task. Investigate and rerun this
-  case; do not report LC-2 as passed.
-- Both S8 observations identify Gboard and record text changes but zero
-  key-down events; keyboard acceptance is explicitly not assessed. No
-  Samsung Keyboard run or paste/select/extra-key acceptance is evidenced.
+- The earlier S7 records show start-to-export intervals of approximately
+  13 minutes and 25 seconds, with a fresh service heartbeat and zero
+  service restarts at export. They do not prove service death, screen-off,
+  or active-agent survival. Keep S7/LC-2 pending until the redesigned
+  probe and active-agent Tier A/B/C runs provide admissible evidence.
+- Earlier S8 observations identify Gboard and record text changes but zero
+  key-down events, which is expected for a soft keyboard. A later Gboard
+  field-input run is owner-reported green; native-terminal TERM-5 remains
+  pending.
 - Evidence summaries: [`Device 1`](evidence/Device%201) and
   [`Device 2`](evidence/Test%202). They describe an isolated debug harness;
   their results do not constitute production-app or security acceptance.

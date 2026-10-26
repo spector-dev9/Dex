@@ -21,11 +21,16 @@ summaries (`docs/evidence/Device 1` and `docs/evidence/Test 2`) report S3
 guest-shell/native-PTY behavior with Node.js 20.15.1 and successful S1
 health/mock-provider flows on the same APK, on Android 16 arm64 devices
 with 4 KB pages. These are feasibility results, not the required device
-matrix or production-app acceptance. The exploratory S7 soak failed the
-30-minute minimum on both devices (about 13 minutes and 25 seconds); the
-reports do not verify that the screen stayed off or that an agent task
-survived. S2, representative Tier A/B/C coverage, a 16 KB-page device,
-full S7 and S8, S6's 2.x artifact decision, and S9 compliance remain open.
+matrix or production-app acceptance. Earlier S7 reports were exported
+about 13 minutes and 25 seconds after start, not at confirmed service
+death. A later 10-minute Infinix harness diagnostic reports 631,745 ms of
+service survival with zero restarts; the child remained alive at stop, while
+sparse samples were classified by the owner as Android scheduling behavior.
+It did not establish continuous screen-off or active-agent survival; see
+`tests/spikes/results/S7-soak-20261026-041939.md`. S2,
+representative Tier A/B/C coverage, a 16 KB-page device, S7 and
+native-terminal TERM-5, S6's 2.x artifact decision, and S9 compliance remain
+open. The Gboard field-input S8 test is owner-reported green.
 Do not start G0-dependent production service wiring or claim gate
 acceptance until these blockers clear.
 
@@ -48,21 +53,36 @@ start/stop probes. Its claimed S3 pass is invalid because output contained
 `node: not found` and literal `******` in place of the compared values.
 It records S8 text changes but no key-down events (expected for a soft IME). The report does not
 contain an archive hash, and does not cover a 16 KB-page device, the
-remaining tiers, named keyboard coverage or S7 background survival.
+remaining tiers, native-terminal TERM-5 or S7 background survival.
 That invalidated report is superseded for S3 by later reports summarized in
 `docs/evidence/Device 1` and `docs/evidence/Test 2`, which verify Node and
 matching guest/PTY values on two devices. Continue gathering the remaining
-tiers, named keyboard coverage, S7 survival and other device results before
+tiers, native-terminal TERM-5, S7 survival and other device results before
 freezing D4 or ratifying device-dependent thresholds.
 
 An isolated device harness now exists at `tests/spikes/harness/` and is
 excluded from normal builds (`-PspikeHarness=true`). It records device
 metadata, checks jniLibs ELF alignment, launches the loader/opencode
 entrypoint, runs a PRoot guest shell, compares the guest shell with a
-native `forkpty` session, exercises the `specialUse` foreground service
-and records IME input. One staged physical-device run is recorded in
+native `forkpty` session, exercises a timed `specialUse` foreground-service
+probe with a partial wake lock, separate alarm heartbeat and power-state
+telemetry, and records IME input. It remains a harness-service diagnostic;
+it does not stand in for an active agent task or S7/LC-2 acceptance. One
+staged physical-device run is recorded in
 `tests/spikes/results/S3-device-harness-20261024-staged.md`; it is
 partial feasibility evidence, not G0 acceptance.
+
+### Lifecycle requirements before S7 acceptance
+
+Production should hold a foreground service and partial wake lock only
+while an agent task is active, explain any battery-optimization exemption
+request, document OEM autostart/background controls (including Infinix and
+Nothing), and release resources when idle. On resume, reconcile process and
+session health, reconnect SSE from the last event ID, and re-fetch session
+state. PRoot/Node child-process survival under Android 12+ phantom-process
+killing is a separate risk and must not be inferred from service survival.
+The harness can diagnose CPU suspend versus service/process interruption;
+it does not implement these production lifecycle behaviors.
 
 ## Foundation status — what works and what is blocked
 
@@ -211,6 +231,10 @@ See `docs/architecture/g1-contracts.md`.
       Termux pool no longer serves the .98 deb (HTTP 404); regenerate
       the license inventory and SBOM. Host S1/S3 evidence predates this
       pin change.
+- [x] Update the PRoot pin from 5.1.107.100 to 5.1.107.101 on 2026-10-25
+      because the Termux pool no longer serves the .100 deb (HTTP 404);
+      regenerate the license inventory and SBOM. Evidence recorded before
+      this pin change used .100.
 - [x] Add harness actions for S1 loader launch, S3 PRoot guest shell,
       S7 `specialUse` foreground-service lifecycle, S8 IME input and a
       JSON report. They are implemented; the staged S1/S3/S7 device
@@ -320,7 +344,7 @@ infer completion of the following tests:
 | S2 runtime profiles | No comparable per-device cold start, idle PSS/RSS, 10k-file Git status, agent `npm test`, or thermal results for Profiles A and B. | Execute the prescribed workloads on Tier A/B and record repeated measurements before deciding D4. |
 | Tier coverage and RT-5 | Only Infinix X6870, Android 16, arm64-v8a, 4096-byte pages is represented. No Tier B/C or 16384-byte-page boot evidence exists. | Acquire and test the specified targets; include page size, ABI, thermal state, run count, packaged artifact hashes, and ELF alignment results. |
 | S7 / LC lifecycle | One-device foreground-service start/stop is present; background task survival, crash recovery, soak and thermal acceptance are absent. | Run the required duration/repetition on Tier A/B/C and classify failures from diagnostics. |
-| S8 / TERM-5 keyboard | Existing run records text changes through a soft IME; zero hardware key-down events is expected and is not a failure. Owner attestation does not establish IME identity or full test coverage. | Capture named Gboard and Samsung Keyboard runs with the harness's `InputConnection` counters, including extra keys, paste/select, and observed input events. |
+| S8 / TERM-5 keyboard | The owner-reported Gboard field-input test is green and records text, composing, IME-key, hardware-key, selection, and context-menu events. Its `keyboardAcceptance=assessed` label conflicts with the matching APK/source `not-assessed` string. | Keep S8 field-input green as owner-reported; separately verify native-terminal TERM-5 with Gboard. |
 | S6 / 2.x | No distributable OpenCode 2.x artifact is available to test. | Keep the 1.19.3 pin and run contract tests only when a distributable candidate exists. |
 
 Device rows in `docs/evidence/RESULTS.md` therefore remain `pending`.

@@ -20,6 +20,7 @@
             android:theme="@android:style/Theme.Material.Light" />
         <receiver
             android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            tools:ignore="MissingClass"
             tools:node="remove" />
     </application>
 </manifest>

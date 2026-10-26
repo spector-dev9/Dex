@@ -1,16 +1,22 @@
 package io.github.spectordev9.opencode.spike
 
 import android.Manifest
+import android.app.AlertDialog
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Typeface
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.util.Log
+import android.provider.Settings
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -28,9 +34,11 @@ class MainActivity : Activity() {
     private lateinit var soakView: TextView
     private var imeTextChanges = 0
     private var imeObservationNumber = 0
+    private var probesRunning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        HarnessCrashHandler.install(this)
         buildUi()
         refresh()
         requestNotificationPermission()
@@ -113,18 +121,23 @@ class MainActivity : Activity() {
         root.addView(button("Run PRoot guest shell (S3 partial)") {
             runProbes("guest-shell") { listOf(SpikeProbe.runGuestShell(this)) }
         })
-        root.addView(button("Compare guest shell with native forkpty (S3)") {
+        root.addView(button("Compare guest shell + PTY byte smoke (S3 / TERM-5 partial)") {
             runProbes("guest-forkpty") { SpikeProbe.runGuestPtyComparison(this) }
         })
 
-        root.addView(label("S7 foreground-service soak (single 30-minute exploratory run)"))
+        root.addView(label("S7 lifecycle + child-workload diagnostics (harness service only)"))
         soakView = monospace()
         root.addView(soakView)
-        root.addView(button("Start S7 30-minute background survival run") { startSpikeService() })
-        root.addView(button("Finish S7 run and record survival") { stopSpikeService() })
+        root.addView(button("Start S7 10-minute soak with child workload") {
+            confirmBatteryOptimizationForSoak(10)
+        })
+        root.addView(button("Start S7 30-minute soak with child workload") {
+            confirmBatteryOptimizationForSoak(30)
+        })
+        root.addView(button("Check S7 result") { finishSpikeService() })
 
         root.addView(label("S8 keyboard/IME probe"))
-        root.addView(label("Test with Gboard and Samsung Keyboard where available; use the extra-key row, hardware keys, paste and selection."))
+        root.addView(label("Select the keyboard to test; use its keys, paste and selection. Key events are recorded; typed text is not."))
         imeView = monospace().apply { text = "No input captured yet." }
         root.addView(imeView)
         imeField = ImeProbeEditText(this).apply {
@@ -144,9 +157,8 @@ class MainActivity : Activity() {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
                 override fun afterTextChanged(s: Editable?) {
-                    val text = s?.toString().orEmpty()
                     imeTextChanges++
-                    imeView.text = "${imeView.text}\ntext length=${text.length} tail=${text.takeLast(24)}"
+                    imeField.recordTextChanged(s?.length ?: 0)
                 }
             })
         }
@@ -190,12 +202,24 @@ class MainActivity : Activity() {
     }
 
     private fun refresh() {
-        deviceView.text = SpikeProbe.deviceInfo(this).entries.joinToString("\n") { "${it.key}: ${it.value}" }
-        runtimeView.text = "Runtime directory: ${SpikeProbe.runtimeDir(this)}\n" + SpikeProbe.runtimeSummary(this)
+        try {
+            deviceView.text = SpikeProbe.deviceInfo(this).entries.joinToString("\n") { "${it.key}: ${it.value}" }
+            runtimeView.text = "Runtime directory: ${SpikeProbe.runtimeDir(this)}\n" + SpikeProbe.runtimeSummary(this)
+        } catch (failure: Throwable) {
+            val detail = "Refresh failed: ${failure.javaClass.simpleName}: ${failure.message}"
+            Log.e(TAG, detail, failure)
+            statusView.text = detail
+        }
     }
 
     private fun runProbes(label: String, probe: () -> List<ProbeRecord>) {
+        if (probesRunning) {
+            statusView.text = "A probe is already running; wait for it to finish"
+            return
+        }
+        probesRunning = true
         statusView.text = "Running $label..."
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         executor.execute {
             val outcome = try {
                 probe()
@@ -205,6 +229,8 @@ class MainActivity : Activity() {
             outcome.forEach { SpikeReport.add(it) }
             runOnUiThread {
                 outcome.forEach(::append)
+                probesRunning = false
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 statusView.text = "$label finished"
                 refresh()
             }
@@ -236,8 +262,8 @@ class MainActivity : Activity() {
         records += ProbeRecord(
             id = "device-suite-summary",
             pass = records.isNotEmpty() && passed == records.size,
-            detail = "available S1/S3 probes: $passed/${records.size} passed; " +
-                "S7 30-minute soak and S8 keyboard observations are separate manual tests; " +
+            detail = "available S1/S3 and scripted TERM-5 partial probes: $passed/${records.size} passed; " +
+                "S7 10-minute quick diagnostic and S8 keyboard observations are separate manual tests; " +
                 "this isolated harness run is not G0 acceptance",
             durationMs = System.currentTimeMillis() - startedAt,
         )
@@ -259,9 +285,37 @@ class MainActivity : Activity() {
         resultsView.append("\n")
     }
 
-    private fun startSpikeService() {
+    private fun confirmBatteryOptimizationForSoak(minutes: Int) {
+        val powerManager = getSystemService(PowerManager::class.java)
+        if (powerManager.isIgnoringBatteryOptimizations(packageName)) {
+            startSpikeService(minutes)
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Battery optimization for S7")
+            .setMessage(
+                "S7 holds a partial wake lock only during this ${minutes}-minute harness diagnostic " +
+                    "and supervises a PRoot/Alpine child workload (child-process survival). " +
+                    "A temporary battery-optimization exemption can reduce OEM background restrictions. " +
+                    "It increases battery use; restore the setting after testing. Infinix and Nothing may " +
+                    "also require OEM autostart/background settings. You can run without the exemption, " +
+                    "but the report will record that state.",
+            )
+            .setPositiveButton("Open exemption settings") { _, _ ->
+                startActivity(
+                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                        .setData(Uri.parse("package:$packageName")),
+                )
+            }
+            .setNegativeButton("Run without exemption") { _, _ -> startSpikeService(minutes) }
+            .setNeutralButton("Cancel", null)
+            .show()
+    }
+
+    private fun startSpikeService(minutes: Int) {
         val intent = Intent(this, SpikeForegroundService::class.java)
             .setAction(SpikeForegroundService.ACTION_START_SOAK)
+            .putExtra(SpikeForegroundService.EXTRA_SOAK_MINUTES, minutes)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
@@ -270,30 +324,48 @@ class MainActivity : Activity() {
         val record = ProbeRecord(
             "S7-soak-start-requested",
             true,
-            "Start requested; background the app, turn the screen off, and return after at least 30 minutes to finish the run",
+            "${minutes}-minute soak with child workload requested. Keep a real agent task active for " +
+                "product acceptance; this isolated harness run does not satisfy the 30-minute LC-2 gate.",
         )
         SpikeReport.add(record)
         append(record)
-        statusView.text = "S7 30-minute run started"
+        statusView.text = "S7 ${minutes}-minute soak started"
         refreshSoakStatus()
     }
 
-    private fun stopSpikeService() {
-        SpikeForegroundService.completeSoak(this)?.let { record ->
-            SpikeReport.upsert(record)
-            append(record)
+    private fun finishSpikeService() {
+        val result = SpikeForegroundService.completeSoak(this)
+        if (result == null) {
+            statusView.text = "S7 result unavailable: the configured " +
+                "${SpikeForegroundService.minimumSoakMinutes(this)}-minute soak has not completed; " +
+                "the service remains active"
+            refreshSoakStatus()
+            return
+        }
+        SpikeReport.upsert(result)
+        append(result)
+        SpikeChildProcessProbe.stopAndAnalyze(this, "manual-stop")?.let {
+            SpikeReport.upsert(it)
+            append(it)
         }
         stopService(Intent(this, SpikeForegroundService::class.java))
-        val record = ProbeRecord("S7-soak-finish-requested", true, "Foreground service stop requested")
-        SpikeReport.add(record)
-        append(record)
-        statusView.text = "S7 run recorded and service stop requested"
+        statusView.text = "S7 completed result recorded"
         refreshSoakStatus()
     }
 
     private fun writeReport() {
+        if (SpikeForegroundService.isEarlyRunActive(this)) {
+            statusView.text = "Report export blocked until the S7 soak completes"
+            return
+        }
         recordImeObservation()
-        SpikeForegroundService.soakResult(this)?.let(SpikeReport::upsert)
+        SpikeForegroundService.completeSoak(this)?.let {
+            SpikeReport.upsert(it)
+            SpikeChildProcessProbe.stopAndAnalyze(this, "report-export")?.let { child ->
+                SpikeReport.upsert(child)
+            }
+            stopService(Intent(this, SpikeForegroundService::class.java))
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
             checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -316,6 +388,10 @@ class MainActivity : Activity() {
                 }
             }
         }
+    }
+
+    private companion object {
+        private const val TAG = "SpikeHarness"
     }
 
     private fun requestNotificationPermission() {
@@ -341,7 +417,8 @@ class MainActivity : Activity() {
             imeField.commitTextEvents > 0 ||
             imeField.composingTextEvents > 0 ||
             imeField.imeSendKeyEvents > 0 ||
-            imeField.hardwareKeyDownEvents > 0
+            imeField.hardwareKeyDownEvents > 0 ||
+            imeField.hardwareKeyUpEvents > 0
         if (!hasInput) return
         val ime = SpikeProbe.defaultInputMethod(this)
         val record = ProbeRecord(
@@ -349,6 +426,7 @@ class MainActivity : Activity() {
             pass = hasInput,
             detail = "textChanges=$imeTextChanges; finalTextLength=${imeField.text.length}; " +
                 "hardwareKeyDownEvents=${imeField.hardwareKeyDownEvents}; " +
+                "hardwareKeyUpEvents=${imeField.hardwareKeyUpEvents}; " +
                 "imeSendKeyEvents=${imeField.imeSendKeyEvents}; " +
                 "commitTextEvents=${imeField.commitTextEvents}; " +
                 "composingTextEvents=${imeField.composingTextEvents}; " +
@@ -358,6 +436,8 @@ class MainActivity : Activity() {
                 "selectionChanges=${imeField.selectionChanges}; " +
                 "contextMenuEvents=${imeField.contextMenuEvents}; " +
                 "lastEvent=${imeField.lastEvent}; defaultIme=$ime; " +
+                "eventTraceDropped=${imeField.eventTraceDroppedCount()}; " +
+                "eventTrace=${imeField.eventTraceSnapshot().joinToString(" | ")}; " +
                 "captureModel=InputConnection+TextWatcher+hardwareKey; " +
                 "keyboardAcceptance=not-assessed; input text omitted",
         )
