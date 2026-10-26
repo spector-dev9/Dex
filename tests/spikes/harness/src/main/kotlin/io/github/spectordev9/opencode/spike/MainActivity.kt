@@ -32,19 +32,15 @@ class MainActivity : Activity() {
     private lateinit var imeView: TextView
     private lateinit var imeField: ImeProbeEditText
     private lateinit var soakView: TextView
-    private lateinit var gateSummaryView: TextView
-    private val gateStatusViews = mutableMapOf<String, TextView>()
     private var imeTextChanges = 0
     private var imeObservationNumber = 0
     private var probesRunning = false
-    private var autoRunStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         HarnessCrashHandler.install(this)
         buildUi()
         refresh()
-        autoRunG0EvidenceSweep()
         requestNotificationPermission()
     }
 
@@ -78,15 +74,6 @@ class MainActivity : Activity() {
 
         root.addView(label("G0 acceptance checks"))
         root.addView(label("Run each available check separately. PASS requires acceptance evidence; partial probes never mark G0 green."))
-        gateSummaryView = label("G0: PENDING")
-        root.addView(gateSummaryView)
-        G0GateCatalog.checks.forEach { check ->
-            root.addView(button("${check.id} · ${check.title}") { runGateCheck(check) })
-            gateStatusViews[check.id] = monospace().apply {
-                text = "PENDING · ${check.requirement}"
-            }
-            root.addView(gateStatusViews.getValue(check.id))
-        }
 
         root.addView(button("Download and verify pinned runtime (large download)") {
             runProbes("runtime-download") {
@@ -217,72 +204,6 @@ class MainActivity : Activity() {
         setOnClickListener { onClick() }
     }
 
-    private fun runGateCheck(check: G0GateCheck) {
-        when (check.id) {
-            "S1-A" -> runProbes("${check.id} ${check.title}", {
-                listOf(SpikeProbe.runLoader(this)) + SpikeServerProbe.run(this)
-            }) { records ->
-                val passed = records.isNotEmpty() && records.all { it.pass }
-                setGateResult(
-                    check.id,
-                    if (passed) "partial" else "fail",
-                    if (passed) "Profile A harness probes passed; production acceptance and Profile B comparison remain open."
-                    else "Profile A harness probe failed; see individual result records.",
-                )
-            }
-            "S1-B" -> setGateResult(check.id, "blocked", "Profile B is not implemented; no Profile B device run is available.")
-            "S2-cold", "S2-rss", "S2-git", "S2-npm" -> setGateResult(
-                check.id,
-                "blocked",
-                "Profile A/B production measurements are unavailable in this isolated harness.",
-            )
-            "S3" -> runProbes(check.title, { SpikeProbe.runGuestPtyComparison(this) }) { records ->
-                val passed = records.isNotEmpty() && records.all { it.pass }
-                setGateResult(
-                    check.id,
-                    if (passed) "partial" else "fail",
-                    if (passed) "Guest shell/PTY probes passed; actual agent-bash comparison remains open."
-                    else "Guest shell/PTY probe failed; see individual result records.",
-                )
-            }
-            "S4" -> setGateResult(check.id, "blocked", "Requires host-side SSE/resync and STR-5 fault-injection checks; run the repository G0 suite and retain its output.")
-            "S5" -> setGateResult(check.id, "manual", "Complete the pinned API/PTY/auth endpoint inventory and commit the reconciliation evidence.")
-            "S6" -> setGateResult(check.id, "deferred", "No distributable OpenCode 2.x artifact is available. Keep 1.19.3 pinned and record this disposition.")
-            "S7-LC2" -> {
-                setGateResult(check.id, "partial", "Harness service soak is diagnostic only; keep a real agent task active with screen off for the acceptance run.")
-                confirmBatteryOptimizationForSoak(10)
-            }
-            "S8-TERM5" -> runProbes("TERM-5 scripted PTY partial", {
-                SpikeProbe.runGuestPtyComparison(this)
-            }) { records ->
-                val byteProbePassed = records.any { it.id == "TERM-5-pty-byte-roundtrip" && it.pass }
-                setGateResult(
-                    check.id,
-                    if (byteProbePassed) "partial" else "fail",
-                    if (byteProbePassed) "Scripted PTY bytes passed; verify actual Gboard input, paste/select, extra keys, resize, signals, and cleanup in the native terminal."
-                    else "Scripted PTY byte probe failed; see individual result records.",
-                )
-            }
-            "S9", "BASELINES", "D1", "D4", "D5" -> setGateResult(
-                check.id,
-                "manual",
-                check.requirement,
-            )
-        }
-    }
-
-    private fun setGateResult(id: String, status: String, detail: String) {
-        SpikeReport.setG0GateResult(id, status, detail)
-        gateStatusViews[id]?.text = "$status · $detail"
-        refreshGateSummary()
-    }
-
-    private fun refreshGateSummary() {
-        val results = G0GateCatalog.checks.mapNotNull { SpikeReport.g0GateResult(it.id) }
-        val allPassed = results.size == G0GateCatalog.checks.size && results.all { it.status == "pass" }
-        gateSummaryView.text = if (allPassed) "G0: GREEN" else "G0: NOT GREEN · ${results.count { it.status == "pass" }}/${G0GateCatalog.checks.size} accepted checks green"
-    }
-
     private fun refresh() {
         try {
             deviceView.text = SpikeProbe.deviceInfo(this).entries.joinToString("\n") { "${it.key}: ${it.value}" }
@@ -294,11 +215,7 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun runProbes(
-        label: String,
-        probe: () -> List<ProbeRecord>,
-        onComplete: ((List<ProbeRecord>) -> Unit)? = null,
-    ) {
+    private fun runProbes(label: String, probe: () -> List<ProbeRecord>) {
         if (probesRunning) {
             statusView.text = "A probe is already running; wait for it to finish"
             return
@@ -314,7 +231,6 @@ class MainActivity : Activity() {
             }
             outcome.forEach { SpikeReport.add(it) }
             runOnUiThread {
-                onComplete?.invoke(outcome)
                 outcome.forEach(::append)
                 probesRunning = false
                 window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

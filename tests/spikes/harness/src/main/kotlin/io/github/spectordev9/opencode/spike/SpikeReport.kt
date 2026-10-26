@@ -62,7 +62,6 @@ object SpikeReport {
 
     @Synchronized
     fun g0GateSnapshot(): Map<String, G0GateResult> = g0GateResults.toMap()
-    }
 
     @Synchronized
     fun appendDiagnostic(context: Context, line: String) {
