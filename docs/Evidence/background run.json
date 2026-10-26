@@ -1,0 +1,117 @@
+{
+  "spikeVersion": "0.1",
+  "generatedAt": "2026-10-26T14:26:43+05:30",
+  "scope": "Isolated pre-G0 device feasibility evidence; not production-app acceptance.",
+  "knownNotCovered": [
+    "S1 Profile A\/B comparison on the Infinix X6870",
+    "S2 Profile A\/B performance comparison; Profile B is not implemented",
+    "S4\/S5 host-side SSE and endpoint contract checks",
+    "S6 OpenCode 2.x contract test; no distributable 2.x artifact is available",
+    "S7 one 10-minute active-agent background-survival acceptance; this APK measures only a harness-service soak",
+    "TERM-5 real Gboard input acceptance; this APK only runs a scripted PTY byte round-trip",
+    "RT\/STR\/WS\/TERM production-app and UI acceptance tests",
+    "SEC production security, second-UID, and release-manifest acceptance tests",
+    "S9 release, licensing, and distribution compliance",
+    "16 KB-page-device boot (out of scope for v1) and optional post-G0 memory\/thermal checks"
+  ],
+  "device": {
+    "manufacturer": "INFINIX",
+    "model": "Infinix X6870",
+    "device": "Infinix-X6870",
+    "buildFingerprint": "Infinix\/X6870-IN\/Infinix-X6870:16\/BP2A.250605.031.A3\/301500017:user\/release-keys",
+    "androidRelease": "16",
+    "sdkInt": "36",
+    "supportedAbis": "arm64-v8a",
+    "supported64BitAbis": "arm64-v8a",
+    "buildTags": "release-keys",
+    "buildType": "user",
+    "pageSize": "4096",
+    "totalMemoryBytes": "5717118976",
+    "memoryClassMiB": "256",
+    "lowRamDevice": "false",
+    "ignoringBatteryOptimizations": "true",
+    "thermalStatusAtReport": "0",
+    "defaultInputMethod": "com.google.android.inputmethod.latin\/com.android.inputmethod.latin.LatinIME",
+    "applicationId": "io.github.spectordev9.opencode.spike.debug",
+    "appVersionName": "0.1.0-spike",
+    "appVersionCode": "1",
+    "apkSha256": "99874113ce308eb22e9b01fd706e7d0c5832e5af332eb29196411b08deec54df",
+    "dataDir": "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug",
+    "nativeLibraryDir": "\/data\/app\/~~hbtTkkCkJVAzXY7E31lLXA==\/io.github.spectordev9.opencode.spike.debug-6M4vNItGBZE10_TuUuEg4Q==\/lib\/arm64",
+    "extractNativeLibs": "true",
+    "externalFilesDir": "\/storage\/emulated\/0\/Android\/data\/io.github.spectordev9.opencode.spike.debug\/files",
+    "runtimeDir": "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike"
+  },
+  "results": [
+    {
+      "id": "S7-soak-start-requested",
+      "pass": true,
+      "detail": "10-minute soak with child workload requested. Keep a real agent task active for product acceptance; this isolated harness run does not satisfy the 10-minute LC-2 active-task gate.",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-service",
+      "pass": true,
+      "detail": "onCreate",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-child-process-start",
+      "pass": false,
+      "detail": "child workload not started: PRoot\/Alpine runtime is not staged (proot=\/data\/app\/~~hbtTkkCkJVAzXY7E31lLXA==\/io.github.spectordev9.opencode.spike.debug-6M4vNItGBZE10_TuUuEg4Q==\/lib\/arm64\/libproot.so; loader=\/data\/app\/~~hbtTkkCkJVAzXY7E31lLXA==\/io.github.spectordev9.opencode.spike.debug-6M4vNItGBZE10_TuUuEg4Q==\/lib\/arm64\/libproot_loader.so); tap Download and verify pinned runtime first",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-service",
+      "pass": true,
+      "detail": "startForeground onStartCommand startId=1",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "runtime-download",
+      "pass": false,
+      "detail": "SocketTimeoutException: timeout",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 648530,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-background-survival",
+      "pass": true,
+      "detail": "elapsedRealtimeMs=634480; minimumRequiredMs=600000; serviceHeartbeats=2; alarmHeartbeats=1; lastAlarmElapsedRealtimeMs=284771538; serviceRestarts=0; serviceHeartbeatFresh=true; partialWakeLockAcquired=true; isInteractive=true; isDeviceIdleMode=false; isPowerSaveMode=false; batteryOptimizationIgnored=true; interactiveSamples=2; nonInteractiveSamples=0; deviceIdleSamples=1; powerSaveSamples=0; thermalSamples=2; thermalBelowModerate=2; maximumThermalStatus=0; this is one 10-minute harness-service diagnostic of service and child-process survival; the G0 acceptance test needs one 10-minute active-agent run",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 634480,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S7-service",
+      "pass": true,
+      "detail": "onDestroy",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}
