@@ -1,5 +1,9 @@
 # S1 — Host smoke (partial)
 
+> Historical record. v1 G0 uses the Infinix X6870 only; references below to
+> Tier A/B/C, 16 KB-page devices, Samsung Keyboard, 30-minute/two-device runs
+> or 19/20 repeats are superseded by `docs/spec.md` and `docs/plan/phase-0.md`.
+
 Date: 2026-10-23. Host: Termux on Android 14 (API 36), arm64-v8a, 4 KB pages.
 **This is not the app sandbox.** Termux runs unconfined; targetSdk 36
 exec restrictions and W^X are not exercised.

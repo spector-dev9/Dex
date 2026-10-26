@@ -6,8 +6,9 @@ for those source documents or their detailed acceptance criteria.
 
 Status: `[x]` complete/green, `[~]` partial/in progress, `[ ]` open. Each
 reported result identifies whether it is host, harness, or device evidence. A
-passing isolated probe does not automatically promote a broader device or G0
-acceptance gate.
+passing isolated probe does not automatically promote a broader G0 acceptance
+gate. G0 runs on the owner's **Infinix X6870 only**; Tier A/B/C, 16 KB-page
+devices, Samsung Keyboard and other hardware are out of scope for v1.
 
 Run the repository's automatable G0 checks with `python3 scripts/run-g0-suite.py`;
 use `--host-only` for host checks or `--list` to inspect the suite. The runner
@@ -26,11 +27,11 @@ separately. Passing automated checks alone does not unblock G0.
 - [x] Document the Gboard report's `assessed`/APK `not-assessed` label
   discrepancy; retain it as a provenance note, not a failing test.
 - [x] Record the fixed-harness S1/S3 device suite: 10/10 available probes
-  passed on one Infinix X6870; this remains pre-G0 feasibility evidence, not
-  Tier A/B/C acceptance. See
+  passed on the Infinix X6870; this remains pre-G0 feasibility evidence, not
+  full G0 acceptance. See
   `tests/spikes/results/S1-S3-device-suite-20261025.md`.
-- [ ] Run native-terminal TERM-5 with Gboard and the formal S7 active-task
-  acceptance matrix; these are separate from the completed checks above.
+- [ ] Run native-terminal TERM-5 with Gboard and one 10-minute S7 active-task
+  run; these are separate from the completed checks above.
 
 ## 1. Decisions and project gates
 
@@ -39,7 +40,7 @@ separately. Passing automated checks alone does not unblock G0.
   reproducible builds, and defer Play; see `docs/adr/0001-distribution.md`.
 - [x] Keep OpenCode 1.19.3 as the current exact baseline; verify its manifest
   hash and refuse unknown major versions.
-- [ ] Complete G0: run S1-S9 as applicable, gather Tier A/B/C baselines, ratify
+- [ ] Complete G0: run S1-S9 on the Infinix X6870, record its baselines, ratify
   provisional thresholds, and freeze the decisions governed by `docs/spec.md`.
 - [ ] Resolve D4 runtime profile using the documented S1/S3/S2 decision rules;
   do not encode a default before the evidence is admissible.
@@ -114,17 +115,16 @@ separately. Passing automated checks alone does not unblock G0.
 - [ ] Treat alarm delivery as diagnostic only; do not assume Doze/OEM policy
   guarantees a fixed alarm cadence.
 - [x] Quick diagnostic auto-stops after 10 minutes and rejects early exports;
-  this is separate from the formal 30-minute acceptance run.
-- [ ] For formal acceptance, use monotonic elapsed time for the full 30-minute
-  active-task soak; never count start-to-export wall time as survival duration.
-- [ ] Run Tier A/B/C with screen off, 19 of 20 successful repeats per tier,
-  and record OEM settings, device/build identity, APK hash, ABI, page size,
-  thermal state, and all report artifacts.
-- [ ] Update S7/LC-2 only after active-task runs pass the specified criteria;
-  prior exports and the latest 10-minute service diagnostic do not satisfy
-  the 30-minute screen-off agent-task requirement.
-- [ ] Run separate LC-5 four-hour soak and LC-6 thermal/resource checks on
-  their required tiers; do not infer them from S7.
+  this is separate from the active-task acceptance run.
+- [ ] For formal acceptance, run one 10-minute active task with screen off and
+  use monotonic elapsed time; never count start-to-export wall time as
+  survival duration.
+- [ ] Record OEM settings, device/build identity, APK hash, ABI, page size,
+  thermal state, and all report artifacts for that single run.
+- [ ] Update S7/LC-2 only after the active-task run passes; the latest
+  10-minute service diagnostic does not satisfy the active-agent requirement.
+- [ ] LC-5 (4 h soak) and LC-6 (thermal) are optional post-G0 checks on the
+  same device; they do not block G0.
 
 ## 5. S8 keyboard observation and acceptance
 
@@ -141,17 +141,17 @@ separately. Passing automated checks alone does not unblock G0.
 - [x] `keyboardAcceptance=not-assessed` is intentional for this EditText-only
   probe and is not a failure. This run does not exercise the native PTY,
   ESC/Tab/Ctrl/Alt/arrow mapping, or the TERM-5 acceptance requirements.
-- [ ] Run the PTY-backed TERM-5 probe with Gboard and Samsung Keyboard for
-  text entry, Enter, Backspace, paste, and selection. Verify Esc, Tab, Ctrl-C,
-  Alt, and arrow byte sequences from the app-provided terminal extra-key row;
-  do not expect soft keyboards to provide Ctrl or Fn keys.
+- [ ] Run the PTY-backed TERM-5 probe with Gboard for text entry, Enter,
+  Backspace, paste, and selection. Verify Esc, Tab, Ctrl-C, Alt, and arrow
+  byte sequences from the app-provided terminal extra-key row; do not expect
+  soft keyboards to provide Ctrl or Fn keys.
 - [ ] Keep `keyboardAcceptance=not-assessed` until the PTY-backed terminal
-  probe is run and the exact byte mapping matches on both keyboards.
+  probe is run and the exact byte mapping matches with Gboard.
 - [x] Treat zero hardware `KeyEvent` key-downs from a soft IME as expected,
   not as a keyboard failure.
-- [ ] Complete TERM-5 on the native PTY with Gboard and Samsung Keyboard,
-  including IME input and paste/select, app-provided extra keys, resize,
-  signals, and cleanup. Fn is not a required key mapping.
+- [ ] Complete TERM-5 on the native PTY with Gboard, including IME input and
+  paste/select, app-provided extra keys, resize, signals, and cleanup. Fn is
+  not a required key mapping.
 
 ## 6. OpenCode client, UI, and session behavior
 
@@ -217,26 +217,25 @@ separately. Passing automated checks alone does not unblock G0.
 - [ ] Review exported diagnostic reports before sharing; they can contain
   device/build metadata, local paths, and session identifiers.
 
-## 9. Physical-device matrix and spike evidence
+## 9. Reference-device evidence and spikes
 
-- [ ] Complete S1 on Tier A/B/C with the official pinned artifact and accepted
-  app/runtime path; existing two-device results are feasibility evidence only.
-- [ ] Complete S2 Profile A/B measurements for cold start, RSS, 10k-file Git
-  status, npm test, device behavior, and thermals; apply the documented rules.
-- [~] S3 guest-shell/native-PTY behavior is verified by two isolated harness
-  summaries on Android 16/arm64/4 KB-page devices; production agent-shell,
-  representative tiers, and 16 KB-page coverage are open.
+- [ ] Complete S1 on the Infinix X6870 with the official pinned artifact and
+  accepted app/runtime path; existing results are feasibility evidence only.
+- [ ] Complete S2 Profile A/B measurements on the Infinix X6870 for cold
+  start, RSS, 10k-file Git status, npm test, device behavior, and thermals;
+  apply the documented rules.
+- [~] S3 guest-shell/native-PTY behavior is verified by isolated harness runs
+  on the Infinix X6870; production agent-shell comparison is open.
 - [x] S4 host SSE reconnect/resync and S5 host endpoint/auth contract evidence
   are recorded; app/UI and device acceptance remain separate.
 - [ ] Complete S6 only when a distributable 2.x artifact can be evaluated;
   retain the current 1.19.3 pin in the meantime.
 - [ ] Complete S9 legal, dependency, source-offer, signing, and reproducible
   build requirements before release.
-- [ ] Run the required 16 KB-page device tests, including RT-5 boot and
-  `execute_no_trans` scan; “16KB-ok” ELF alignment on a 4 KB-page device is
-  not 16 KB-device evidence.
-- [ ] For every device report record Android version, tier, ABI, page size,
-  thermal status, run count, APK hash, runtime source/location, and logs.
+- [ ] RT-5 boot on a 16 KB-page device is out of scope for v1; keep the CI
+  ELF-alignment check and revisit only if more hardware is supported.
+- [ ] For every report record Android version, ABI, page size, thermal
+  status, run count, APK hash, runtime source/location, and logs.
 - [ ] Promote evidence rows only by linking admissible reports in
   `docs/evidence/RESULTS.md`; preserve invalidated and historical reports as
   historical, not as passes.
@@ -251,8 +250,8 @@ separately. Passing automated checks alone does not unblock G0.
   runtime and native dependency.
 - [ ] Produce reproducible release builds, verify signing identity and
   upgrade/rollback behavior, and publish an installable signed artifact.
-- [ ] Validate release APK manifest/security checks and required supported
-  ABI/page-size device matrix before publication.
+- [ ] Validate release APK manifest/security checks and the supported
+  Infinix X6870 configuration before publication.
 - [ ] Document sideload/advanced-install and developer-verification guidance;
   monitor the policy rollout identified in the distribution ADR.
 - [ ] Publish release notes, runtime pins, SBOMs, notices, and source offers
@@ -266,7 +265,7 @@ separately. Passing automated checks alone does not unblock G0.
   reference, evidence link, status, and remaining acceptance item.
 - [ ] Threat-model residual risks are explicitly accepted or mitigated, with
   no unverified control described as implemented.
-- [ ] Required host tests, Android builds, CI checks, device-tier runs, and
+- [ ] Required host tests, Android builds, CI checks, reference-device runs, and
   release compliance checks pass on the exact candidate APK/runtime hashes.
 - [ ] No S7/S8 or other device row is promoted solely by host tests, harness
   scaffolding, export timing, or owner-reported results without supporting

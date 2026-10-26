@@ -1,5 +1,9 @@
 # S7 child-process survival smoke — 2026-10-25, staged runtime APK
 
+> Historical record. v1 G0 uses the Infinix X6870 only; references below to
+> Tier A/B/C, 16 KB-page devices, Samsung Keyboard, 30-minute/two-device runs
+> or 19/20 repeats are superseded by `docs/spec.md` and `docs/plan/phase-0.md`.
+
 Raw report: [`raw/spike-s7-smoke-20261025-111834.json`](raw/spike-s7-smoke-20261025-111834.json)
 Guest sample log: [`raw/s7-smoke-20261025-child-log.txt`](raw/s7-smoke-20261025-child-log.txt)
 

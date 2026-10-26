@@ -5,9 +5,9 @@ Status vocabulary:
 - `pending`: not started or no admissible run.
 - `partial-host`: host-side evidence only; does not satisfy a device or app requirement.
 - `emulator`: measured on an emulator in CI.
-- `measured`: measured on the required physical device tier.
+- `measured`: measured on the Infinix X6870 reference device.
 - `green-reported`: owner-reported probe/test passed; does not promote a
-  separate tier-matrix or G0 row by itself.
+  separate G0 row by itself.
 
 Every row starts as `pending`. A row may move only when its evidence is
 linked or appended; host spikes cannot promote device rows.
@@ -32,29 +32,32 @@ linked or appended; host spikes cannot promote device rows.
   cipher. They do not exercise Android Keystore hardware/software providers,
   device lifecycle, or production listener wiring.
 
-## Device matrix
+## Reference-device matrix
+
+**G0 reference hardware: Infinix X6870 only** (INFINIX, Android 16/API 36,
+arm64-v8a, 4 KB pages, 5.7 GB RAM, Gboard). Tier A/B/C, 16 KB-page devices,
+Samsung Keyboard and other hardware are out of scope for v1. Historical
+two-device records are retained below as feasibility evidence only.
 
 | Requirement | Scope | Status | Evidence | Blocker |
 | --- | --- | --- | --- | --- |
-| S1 | Tier A | pending | Two physical harness summaries ([Device 1](Device%201), [Device 2](Test%202)) each report OpenCode 1.19.3 loader, authenticated health, and two complete mock-provider prompt round trips. Both used the same APK SHA-256 `a5e0deb3ab7e6bf61983803a3a8ea3908d3aa064186d449f286d26e7105980b6`. | production app/runtime implementation and required tier-specific device matrix |
-| S1 | Tier B | pending | The two physical runs are Android 16 arm64 devices, but supplied memory/OS data do not establish the specified Tier B profile (6 GB, Android 13/14). See [Device 1](Device%201) and [Device 2](Test%202). | test on representative Tier B device and production app/runtime implementation |
-| S1 | Tier C | pending | none | production app/runtime implementation and remaining tiers |
-| S2 cold start | Profile A/B | pending | none | no app implementation; host spike is not admissible |
-| S2 idle RSS | Profile A/B | pending | none | no app implementation; host spike is not admissible |
-| S2 git status, 10k files | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S2 npm test | Profile A/B | pending | none | no app implementation; Profile B device evidence absent |
-| S3 | app sandbox + native PTY | pending | Both [Device 1](Device%201) and [Device 2](Test%202) summaries report `N=v20.15.1`, `GUEST-OK`, and matching native-PTY environment values on Android 16 arm64 devices with 4 KB pages. The 2026-10-26 report also passes the 11/11 harness suite on an Infinix X6870; see [raw report](spike-20261026-064348.json). | production agent-shell wiring, comparison against actual agent bash, representative device tiers, and a 16 KB-page device; isolated harness results are feasibility only |
+| S1 | Reference device | pending | The harness reports OpenCode 1.19.3 loader, authenticated health, and complete mock-provider prompt round trips on the Infinix X6870 (see [Device 1](Device%201) and the latest raw report). | production app/runtime implementation |
+| S2 cold start | Reference device, Profile A/B | pending | none | no app implementation; Profile B not implemented |
+| S2 idle RSS | Reference device, Profile A/B | pending | none | no app implementation; Profile B not implemented |
+| S2 git status, 10k files | Reference device, Profile A/B | pending | none | no app implementation; Profile B not implemented |
+| S2 npm test | Reference device, Profile A/B | pending | none | no app implementation; Profile B not implemented |
+| S3 | Reference device | pending | The Infinix X6870 reports `N=v20.15.1`, `GUEST-OK`, and matching native-PTY environment values; the latest report also passes the 11/11 harness suite. | production agent-shell wiring and comparison against actual agent bash |
 | S6 | OpenCode 2.0.x | pending | none | no 2.x distributable artifact |
-| S7 | Tier A/B/C | pending | Earlier Device 1/2 exports (782,647 ms and 25,237 ms) did not measure survival. The 2026-10-26 Infinix diagnostic passes the 10-minute service-survival check (631,745 ms, zero restarts); the child was alive at stop. The owner classifies sparse samples as Android scheduling behavior, not a process failure. This was not sustained screen-off or agent work; see [S7 diagnostic](../../tests/spikes/results/S7-soak-20261026-041939.md). | run a real agent task with screen off for 30 minutes; 19/20 runs per Tier A/B/C and OEM guidance |
-| S8 | IME field input | green-reported | The owner-reported [Infinix Gboard test](../../tests/spikes/results/S8-ime-observations-20261025.md) is green for field input. A separate [Hacker's Keyboard observation](../../tests/spikes/results/S8-hackers-keyboard-20261026.md) records two passing field observations with hardware/IME key events. Both are EditText-only observations with `keyboardAcceptance=not-assessed`; neither tests PTY byte mapping or establishes TERM-5. | PTY-backed terminal acceptance remains pending; test IME text/editing with Gboard and Samsung Keyboard, and verify Ctrl/Fn-capable keys through the app's terminal controls or an explicitly reported Hacker's Keyboard test. |
-| RT-1 | Tier A/B/C, offline | pending | none | installable app unavailable |
-| RT-2 | Tier A/B/C startup | pending | none | runtime implementation unavailable |
-| RT-5 | 16 KB-page device | pending | none | no 16 KB-page target available |
-| LC-2 | Tier A/B/C, 30 min background | pending | The 2026-10-26 run passes the 10-minute harness-service check and reports the child alive at stop; sparse guest samples are classified by the owner as Android scheduling behavior, not child-process failure. It is not a 30-minute active-agent run or continuous screen-off test. See [S7 diagnostic](../../tests/spikes/results/S7-soak-20261026-041939.md). | active-agent survival with screen off; 19/20 repeated runs per tier; OEM background restrictions |
-| LC-5 | Tier A/B, 4 h soak | pending | none | runtime implementation and device access |
-| LC-6 | Tier A/B thermal | pending | none | runtime implementation and device access |
-| TERM-5 | Native terminal input, Gboard | pending | The 2026-10-26 report passes three scripted PTY byte round-trips on one Infinix X6870, including text, Enter/ICRNL, Backspace, Tab, Esc, Up, Ctrl-C and Alt-x; this validates PTY byte transport only, not real IME mapping. See [raw report](spike-20261026-064348.json). | exercise the native terminal UI with Gboard and Samsung Keyboard, including paste/select, extra keys, resize, signals, and cleanup |
-| STR-5-live-device | Tier B, 500 drops | pending | host runs only | app/UI transport unavailable |
+| S7 | Reference device | pending | The 2026-10-26 diagnostic passes the 10-minute service-survival check (631,745 ms, zero restarts); the child was alive at stop. It was not an active-agent, screen-off run. | one real agent task with screen off for 10 minutes |
+| S8 | Gboard field input | green-reported | The owner-reported [Gboard test](../../tests/spikes/results/S8-ime-observations-20261025.md) is green for field input. It is EditText-only with `keyboardAcceptance=not-assessed`. | PTY-backed TERM-5 remains pending |
+| RT-1 | Reference device, offline | pending | none | installable app unavailable |
+| RT-2 | Reference device startup | pending | none | runtime implementation unavailable |
+| RT-5 | 16 KB-page device | out-of-scope | none | reference device has 4 KB pages; not a v1 gate |
+| LC-2 | Reference device, 10 min active task | pending | The 2026-10-26 diagnostic is a service check, not an active-agent run. See [S7 diagnostic](../../tests/spikes/results/S7-soak-20261026-041939.md). | one active-agent survival run with screen off |
+| LC-5 | Reference device, 4 h soak | optional | none | post-G0; not a G0 blocker |
+| LC-6 | Reference device thermal | optional | none | post-G0; not a G0 blocker |
+| TERM-5 | Native terminal input, Gboard | pending | The 2026-10-26 report passes three scripted PTY byte round-trips on the Infinix X6870, including text, Enter/ICRNL, Backspace, Tab, Esc, Up, Ctrl-C and Alt-x; this validates byte transport only. | exercise the native terminal UI with Gboard, including paste/select, extra keys, resize, signals, and cleanup |
+| STR-5-live-device | Reference device, 500 drops | pending | host runs only | app/UI transport unavailable |
 
 ## Notes
 
@@ -120,7 +123,7 @@ linked or appended; host spikes cannot promote device rows.
   PRoot guest-shell and native PTY passes are invalidated by the defect
   noted below. It records five S8 text changes but no
   key-down events. This remains partial harness evidence: S1 server and
-  prompt behavior, long-duration service survival, tier coverage, and
+  prompt behavior, long-duration service survival, reference-device coverage, and
   full S8 acceptance are still outstanding.
 - The runtime-download rerun at `spike-20261024-153116.json` records
   15/15 passing results on the same Infinix X6870 / Android 16 device.
@@ -131,10 +134,10 @@ linked or appended; host spikes cannot promote device rows.
   not a cold-network speed measurement. Loader and service lifecycle
   probes pass again. The S3 probes are
   invalidated by the same false-pass defect. S8 records seven text changes and zero key-down
-  events. This remains pre-G0 evidence on a 4 KB-page device; it does not
-  satisfy the device matrix, long-duration FGS test, or named keyboard
-  acceptance. The separate S1 diagnostics prove one mock prompt round
-  trip, but not the required tier/device matrix.
+  events. This remains pre-G0 evidence on the reference device; it does not
+  satisfy the full G0 evidence or named keyboard acceptance. The separate
+  S1 diagnostics prove one mock prompt round trip, but not the required
+  reference-device G0 evidence.
 - The later user-shared Infinix X6870 / Android 16 report is not admissible
   as an S3 pass: its guest output reports `node: not found` and contains
   literal `******` instead of the requested environment values, while the
@@ -156,7 +159,7 @@ linked or appended; host spikes cannot promote device rows.
   recorded health HTTP 200,
   successful session creation, accepted async prompt submission, and one
   mock-provider request. This single harness path is useful evidence but
-  does not close the full device matrix or G0.
+  does not close the reference-device G0 evidence.
 - The corrected physical report
   (`spike-20261025-003215.json`) first verified S3 on an Infinix X6870 /
   Android 16 / arm64 / 4 KB-page device: the guest reported `N=v20.15.1`
@@ -174,23 +177,24 @@ linked or appended; host spikes cannot promote device rows.
   prompt, and S3 guest Node/PTY checks. Each has two complete S1 mock
   round trips in the supplied diagnostics; Device 2 also has one truncated
   probe. Device 1's latest S7 soak ended at 782,647 ms (~13 minutes) and
-  Device 2's at 25,237 ms (~25 seconds), both below 1,800,000 ms. They
-  therefore fail the harness's 30-minute exploratory criterion. The
-  reports state `screenOff=not-measured`; this is not LC-2 acceptance.
+  Device 2's at 25,237 ms (~25 seconds). Those exploratory exports are
+  historical and outside the v1 gate; the reports state
+  `screenOff=not-measured`, so they are not LC-2 acceptance.
   Both S8 records identify Gboard, show text changes but zero key-down
   events, and mark keyboard acceptance not assessed. These results add
-  two-device feasibility data only; neither device is a 16 KB-page target,
-  and the runs do not establish the required tier matrix or G0.
+  historical two-device feasibility data only; Device 2 and 16 KB-page
+  targets are out of scope for v1, and the runs do not establish the full
+  reference-device G0 evidence.
 - G0 remains open; no acceptance value here freezes D4 or D5.
 - The user-reported [S1 server/mock smoke](../../tests/spikes/results/S1-server-mock-20261024.md)
   is green for two complete authenticated-health and mock-prompt runs. The
   logs omit device identity, Android version, APK hash, and subsequent S3
-  results, so the Tier A/B/C S1 rows remain pending and G0 is not promoted.
+  results, so the reference-device S1 rows remain pending and G0 is not promoted.
 - The reported [S8 Gboard test](../../tests/spikes/results/S8-ime-observations-20261025.md)
   is owner-reported green on an Infinix X6870. The APK hash matches the
   rebuilt harness, and `keyboardAcceptance=not-assessed` is intentional for
   this EditText-only observation. It does not test PTY-backed TERM-5 input,
-  extra-key mappings, or the both-keyboard requirement; native-terminal TERM-5
+  extra-key mappings, or the Gboard requirement; native-terminal TERM-5
   remains outstanding.
 - The fixed-harness S1/S3 suite on 2026-10-25
   ([results](../../tests/spikes/results/S1-S3-device-suite-20261025.md), raw
@@ -203,8 +207,7 @@ linked or appended; host spikes cannot promote device rows.
   closed the stream); the harness drain now tolerates teardown and the
   rerun records a clean shutdown with no leftover server processes. This is
   the same pre-G0 single-device feasibility class as the runs above; it
-  does not establish the Tier A/B/C matrix, long-duration or keyboard
-  acceptance, or G0.
+  does not establish the reference-device G0 evidence or keyboard acceptance.
 - The 2026-10-26 device report
   (`spike-20261026-064348.json`) passes the available S1/S3 and scripted
   TERM-5 partial suite 11/11 on an Infinix X6870 / Android 16 / arm64 /
@@ -213,9 +216,9 @@ linked or appended; host spikes cannot promote device rows.
   `6637e095c518af0f678626c23dd194a2a2d5ff133d90093eb4b391382eb5bfab`.
   The PTY test verifies the expected byte sequence with Enter translated
   from CR to LF by ICRNL, but does not exercise a physical keyboard or UI.
-  ELF load alignment is recorded, but this is not a 16 KB-page-device run.
-  The report is isolated pre-G0 feasibility evidence, not production or
-  tier-matrix acceptance.
+  ELF load alignment is recorded; 16 KB-page-device boot is out of scope for
+  v1. The report is isolated pre-G0 feasibility evidence, not production or
+  reference-device G0 acceptance.
 - The owner-supplied 2026-10-26 S7 report
   (`tests/spikes/results/S7-soak-20261026-041939.md`) records 631,745 ms of
   harness-service survival, six service heartbeats, zero restarts, and one

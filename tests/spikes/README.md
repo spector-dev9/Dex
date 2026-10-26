@@ -1,20 +1,21 @@
 # Phase 2 spikes (Section 6)
 
-Device-dependent spikes cannot run in this Termux workspace (no usable
-local Android APK toolchain or authorized device). Host-side experiments
-are labeled "partial" and do not replace app-sandbox or Tier A/B/C
-evidence.
+Device-dependent spikes run on the owner's **Infinix X6870 only** (Android
+16/API 36, arm64-v8a, 4 KB pages, 5.7 GB RAM, Gboard). Tier A/B/C, 16 KB-page
+devices, Samsung Keyboard and multi-device matrices are out of scope for v1.
+Host-side experiments are labeled "partial" and do not replace app-sandbox or
+reference-device G0 evidence.
 
 | ID | Question | Pass rule | Status |
 | --- | --- | --- | --- |
-| S1 | Profiles A and B on Tier A/B/C | 100% of Tier A/B start; if A fails any, default to B | **partial** — one physical device passed loader, authenticated health, and mock prompt; profile comparison and matrix remain open → [evidence](../../docs/evidence/RESULTS.md) |
+| S1 | Profiles A and B on the Infinix X6870 | Both profiles start; if A fails, default to B | **partial** — the device passed loader, authenticated health, and mock prompt; profile comparison remains open → [evidence](../../docs/evidence/RESULTS.md) |
 | S2 | A vs B performance | B rejected as default if >2.5x slower than A | **partial (host)** — both profiles start and complete a mock round trip; device/git/npm pending → [result](results/S2-host-profiles.md) |
-| S3 | Agent bash honors SHELL into guest | pwd/node -v/PATH identical; else default B | **partial** — corrected guest shell and native PTY match on one device; production agent shell and device matrix remain open → [evidence](../../docs/evidence/RESULTS.md) |
+| S3 | Agent bash honors SHELL into guest | pwd/node -v/PATH identical; else default B | **partial** — corrected guest shell and native PTY match on the Infinix X6870; production agent-shell comparison remains open → [evidence](../../docs/evidence/RESULTS.md) |
 | S4 | SSE semantics | Written resync algorithm; STR-5 passes | **pass (host, mock + real provider)** — heartbeat ≈10 s, reconnect new `server.connected`, directory scoping accepted, parser + 500-trial simulation pass, live 500-drop runs against a mock and a hosted model plus an authenticated 500-drop loop match the snapshot (p95 reconnect 59 ms); app/UI untested → [result](results/S4-sse.md) |
 | S5 | Endpoint inventory, PTY, auth | Inventory committed to contract/ | **pass (host)** — 36/36 endpoints, PTY documented, Basic auth verified → [result](results/S5-endpoints-auth.md) |
 | S6 | Contract suite on 2.0.x | Pin 2.x only if every used endpoint passes | blocked — 2.x tags exist but no release assets/npm builds → [result](results/S6-2.x.md) |
-| S7 | Background survival, OEM savers | LC-2 met or per-OEM guidance | blocked (needs device) |
-| S8 | xterm.js vs native view | Gboard field-input test | **green (owner-reported)** — input/IME events recorded on Infinix X6870; native-terminal TERM-5 remains pending → [evidence](results/S8-ime-observations-20261025.md) |
+| S7 | Background survival, OEM saver | One 10-minute active-task, screen-off run passes | blocked (needs active-agent run) |
+| S8 | Native terminal input | Gboard PTY-backed TERM-5 | **partial** — Gboard field input is green (owner-reported); native-terminal TERM-5 remains pending → [evidence](results/S8-ime-observations-20261025.md) |
 | S9 | Licensing and distribution | Written D1 decision + checklist | **accepted (D1)** — GitHub Releases + Obtainium first, Play deferred; SBOM/inventory done, LGPL/source-offer blockers open → [checklist](../../docs/licenses/README.md) |
 
 ## Open questions from Section 9
@@ -23,10 +24,10 @@ evidence.
    The server itself supports it — verified in S5.
 2. Agent bash location? **Host Android** in the legacy app
    (`SHELL=/system/bin/sh`). The isolated harness now verifies a guest
-   shell/native-PTY match on one device; production wiring and the device
-   matrix remain untested.
+   shell/native-PTY match on the Infinix X6870; production wiring remains
+   untested.
 3. PTY routes? **Documented in the pinned 1.19.3 `/doc`** (9 routes).
-4. Physical devices? Owner input needed.
+4. Physical devices? Resolved: the Infinix X6870 is the only v1 G0 target.
 5. Audience (sideload vs Play)? **Sideload first (D1 accepted)**; Play deferred.
 
 ## Reproduce
@@ -57,8 +58,9 @@ python3 scripts/stage-spike-harness.py
 
 See `harness/README.md` for install, staging and evidence instructions.
 The harness now runs the guest-shell/native-`forkpty` comparison and can
-collect a single exploratory 30-minute foreground-service soak. These
-remain partial feasibility checks; they are not full G0 acceptance.
+collect 10-minute and exploratory 30-minute foreground-service diagnostics.
+These remain partial feasibility checks; they are not full G0 acceptance.
+G0 needs one 10-minute **active-agent** run, not a harness-service soak.
 
 Runtime profile decision support: `docs/runtime-matrix.md`.
 

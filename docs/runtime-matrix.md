@@ -23,7 +23,7 @@ the musl loader; pinned Alpine `libgcc` and `libstdc++` packages provide the
 other ELF dependencies. Earlier host/device evidence recorded against the
 former community archive remains historical; the first official-package
 device harness rerun is recorded in `docs/evidence/RESULTS.md`, while full
-S1/S2 and tier coverage remain pending.
+S1/S2 coverage on the Infinix X6870 remains pending.
 
 PRoot was moved from 5.1.107.98 to 5.1.107.100 on 2026-10-24 because the
 Termux pool no longer serves the .98 deb (HTTP 404). The .100 deb and
@@ -86,17 +86,19 @@ Separate host evidence:
 - The SSE resync path passed 500 injected drops on the host, including
   an authenticated run (S4 pass, host; app/UI pending).
 
-## Device matrix
+## Reference-device matrix
 
-Every row below is pending. A host result cannot promote a row.
+G0 uses the owner's **Infinix X6870 only** (Android 16/API 36, arm64-v8a,
+4 KB pages, 5.7 GB RAM, Gboard). Tier A/B/C, 16 KB-page devices and other
+hardware are out of scope for v1. Every row below is pending. A host result
+cannot promote a row.
 
-| Tier | Required run | Status | Blocker |
+| Target | Required run | Status | Blocker |
 | --- | --- | --- | --- |
-| A | S1 A/B start, health, mock prompt; S2 cold/RSS/git/npm | pending | app runtime implementation and device access |
-| B | S1 A/B start, health, mock prompt; S2 cold/RSS/git/npm | pending | app runtime implementation and device access |
-| C | S1 start with deviations recorded; S2 as available | pending | app runtime implementation and device access |
-| A or B, 16 KB pages | RT-5 boot and `execute_no_trans` scan | pending | 16 KB-page device and app packaging |
-| App sandbox | `execute_no_trans` denials, jniLibs launch, native PTY | pending | app implementation and device access |
+| Infinix X6870 | S1 A/B start, health, mock prompt; S2 cold/RSS/git/npm | pending | app runtime implementation |
+| Infinix X6870 | S7 one 10-minute active-task, screen-off run | pending | app runtime implementation |
+| App sandbox (Infinix X6870) | `execute_no_trans` denials, jniLibs launch, native PTY | pending | app implementation |
+| 16 KB-page device | RT-5 boot and `execute_no_trans` scan | out-of-scope | not a v1 G0 target |
 
 Device evidence must record Android version, page size, ABI, thermal
 status, run count, and whether the server, loader and PRoot came from
@@ -104,8 +106,8 @@ status, run count, and whether the server, loader and PRoot came from
 
 ## Decision rules
 
-1. **S1:** A must start on 100% of Tier A/B devices. Tier C deviations
-   are documented. If A fails any Tier A/B device, B becomes the default.
+1. **S1:** Both profiles must start on the Infinix X6870. If A fails,
+   B becomes the default.
 2. **S3:** Compare `pwd`, `node -v` and `PATH` in the agent shell and the
    native PTY. They must be identical. If A cannot meet this, B becomes
    the default.
@@ -128,8 +130,8 @@ status, run count, and whether the server, loader and PRoot came from
   does Profile B require a copy/bind model that needs its own review?
 - Does native `forkpty` through PRoot give identical `stty size`, signals
   and cleanup under both profiles?
-- Which profile has acceptable thermal and background behavior on Tier
-  B/C after the server has been running for 30 minutes?
+- Which profile has acceptable background behavior on the Infinix X6870
+  during a single 10-minute active task with the screen off?
 
 ## Evidence index
 
@@ -138,6 +140,6 @@ status, run count, and whether the server, loader and PRoot came from
 - `tests/spikes/results/S3-shell.md`
 - `tests/spikes/results/S4-sse.md`
 - `tests/spikes/results/S5-endpoints-auth.md`
-- `docs/evidence/RESULTS.md` (authoritative pending device matrix)
+- `docs/evidence/RESULTS.md` (authoritative pending reference-device evidence)
 - `docs/audit/andcode-review.md` (Profile B reference only)
 - `docs/spec.md` D3/D4/D10 and Section 7.1/7.5

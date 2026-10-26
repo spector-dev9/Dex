@@ -381,8 +381,8 @@ class SpikeForegroundService : Service() {
                     "powerSaveSamples=${preferences.getInt(KEY_POWER_SAVE_SAMPLES, 0)}; " +
                     "thermalSamples=$thermalSamples; thermalBelowModerate=$belowModerate; " +
                     "maximumThermalStatus=$maxThermal; this is one ${minimumSoakMs / 60_000}-minute " +
-                    "harness-service diagnostic of service and child-process survival; the 30-minute " +
-                    "agent-task acceptance test needs a real agent workload and 19/20 per-tier runs",
+                    "harness-service diagnostic of service and child-process survival; the " +
+                    "G0 acceptance test needs one 10-minute active-agent run",
                 durationMs = elapsedMs,
             )
         }

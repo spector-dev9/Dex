@@ -1,5 +1,9 @@
 # S1/S3 device suite — 2026-10-25, fixed harness APK (Infinix X6870)
 
+> Historical record. v1 G0 uses the Infinix X6870 only; references below to
+> Tier A/B/C, 16 KB-page devices, Samsung Keyboard, 30-minute/two-device runs
+> or 19/20 repeats are superseded by `docs/spec.md` and `docs/plan/phase-0.md`.
+
 Raw report: [`raw/spike-device-suite-20261025-113641.json`](raw/spike-device-suite-20261025-113641.json)
 · SHA-256 `74fcff8edc48e3b14a9e5c44fe76c79c86aea7d1f8320c4bd515e011e4891dc0`
 (byte-identical copies pulled from `files/reports` and

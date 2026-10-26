@@ -1,3 +1,7 @@
+> Historical record. v1 G0 uses the Infinix X6870 only; references below to
+> Tier A/B/C, 16 KB-page devices, Samsung Keyboard, 30-minute/two-device runs
+> or 19/20 repeats are superseded by `docs/spec.md` and `docs/plan/phase-0.md`.
+
 test results device 1.log
 Device label: Device 1 (per request; supplied evidence identifies INFINIX Infinix X6870)
 Generated from supplied sources:

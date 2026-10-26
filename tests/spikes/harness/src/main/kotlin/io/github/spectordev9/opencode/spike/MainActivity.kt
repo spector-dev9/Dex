@@ -131,7 +131,7 @@ class MainActivity : Activity() {
         root.addView(button("Start S7 10-minute soak with child workload") {
             confirmBatteryOptimizationForSoak(10)
         })
-        root.addView(button("Start S7 30-minute soak with child workload") {
+        root.addView(button("Start S7 30-minute exploratory soak (not a G0 gate)") {
             confirmBatteryOptimizationForSoak(30)
         })
         root.addView(button("Check S7 result") { finishSpikeService() })
@@ -325,7 +325,7 @@ class MainActivity : Activity() {
             "S7-soak-start-requested",
             true,
             "${minutes}-minute soak with child workload requested. Keep a real agent task active for " +
-                "product acceptance; this isolated harness run does not satisfy the 30-minute LC-2 gate.",
+                "product acceptance; this isolated harness run does not satisfy the 10-minute LC-2 active-task gate.",
         )
         SpikeReport.add(record)
         append(record)

@@ -1,5 +1,9 @@
 # Harness failure log — 2026-10-25
 
+> Historical record. v1 G0 uses the Infinix X6870 only; references below to
+> Tier A/B/C, 16 KB-page devices, Samsung Keyboard, 30-minute/two-device runs
+> or 19/20 repeats are superseded by `docs/spec.md` and `docs/plan/phase-0.md`.
+
 Status: working failure record, not gate evidence. It records what failed
 during the 2026-10-25 S1/S3/S7 harness work, why it failed, what was fixed,
 and what remains unverified. Raw artifacts are under [`raw/`](raw/).

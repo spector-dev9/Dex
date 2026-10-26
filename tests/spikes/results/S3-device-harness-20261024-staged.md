@@ -1,5 +1,9 @@
 # S3/S1 device harness run — 2026-10-24, staged runtime APK
 
+> Historical record. v1 G0 uses the Infinix X6870 only; references below to
+> Tier A/B/C, 16 KB-page devices, Samsung Keyboard, 30-minute/two-device runs
+> or 19/20 repeats are superseded by `docs/spec.md` and `docs/plan/phase-0.md`.
+
 Raw report: [`raw/spike-device-20261024-034947.json`](raw/spike-device-20261024-034947.json)
 Confirmation run: [`raw/spike-device-20261024-042222.json`](raw/spike-device-20261024-042222.json)
 

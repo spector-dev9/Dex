@@ -307,8 +307,8 @@ object SpikeChildProcessProbe {
                 append("stderrTail=${tail(active.stderrFile)}; ")
             }
             append("this measures a PRoot/Alpine child workload supervised by the harness service " +
-                "on one device; it is feasibility evidence for LC-2, not the 30-minute " +
-                "agent-task acceptance test")
+                "on the Infinix X6870; it is feasibility evidence for LC-2, not the " +
+                "10-minute active-agent acceptance run")
         }
         return ProbeRecord(
             id = RECORD_ID,

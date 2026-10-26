@@ -1,5 +1,9 @@
 # S2 — Profile A/B host smoke
 
+> Historical record. v1 G0 uses the Infinix X6870 only; references below to
+> Tier A/B/C, 16 KB-page devices, Samsung Keyboard, 30-minute/two-device runs
+> or 19/20 repeats are superseded by `docs/spec.md` and `docs/plan/phase-0.md`.
+
 Date: 2026-10-23. Status: **partial (host only)** — both profiles
 start and complete a mock-provider prompt round trip. Device,
 git/npm and thermal comparisons are still required.

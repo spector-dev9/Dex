@@ -2,6 +2,12 @@
 
 **Version 0.1 (draft) · 23 Oct 2026**
 
+> **Superseded for G0 by `docs/spec.md` and `docs/plan/phase-0.md`.**
+> The v1 target is the owner's **Infinix X6870 only** (Android 16/API 36,
+> arm64-v8a, 4 KB pages, 5.7 GB RAM, Gboard). Tier A/B/C, 16 KB-page devices,
+> Samsung Keyboard, multi-device matrices and 19/20 repeat requirements in
+> this legacy blueprint are historical and do not block G0.
+
 Base repository: yuga-hashimoto/and-code (MIT licence). Reference only: spector-dev9/Test. This replaces the Capacitor-based plan in the original blueprint.
 
 ## 1. Decisions at a glance

@@ -1,3 +1,7 @@
+> Historical record. v1 G0 uses the Infinix X6870 only; references below to
+> Tier A/B/C, 16 KB-page devices, Samsung Keyboard, 30-minute/two-device runs
+> or 19/20 repeats are superseded by `docs/spec.md` and `docs/plan/phase-0.md`.
+
 test results device 2.log
 Generated from: spike-20261025-005523.json + s1-server-diagnostics.log*.txt
 Report generatedAt: 2026-10-25T00:55:23+05:30

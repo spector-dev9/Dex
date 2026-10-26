@@ -1,5 +1,10 @@
 # Environment audit — 2026-10-23
 
+> Historical audit. The v1 target is the owner's **Infinix X6870 only**
+> (Android 16/API 36, arm64-v8a, 4 KB pages, Gboard). 16 KB-page validation is
+> out of scope for v1 and does not block G0. See `docs/evidence/RESULTS.md` for
+> current device evidence.
+
 ## Host
 
 | Item | Value |
@@ -45,8 +50,9 @@
 2. **Device verification needs external access.** adb is installed but no
    authorized device is available to Termux, so device spikes (S1, S2, S7,
    S8) need a test device farm, a CI emulator, or manual installs.
-3. **16 KB-page validation is not possible here.** The host reports
-   4096-byte pages. RT-5 needs a 16 KB-page device or emulator.
+3. **16 KB-page validation is out of scope for v1.** The host and reference
+   device report 4096-byte pages. RT-5 is retained as a future-hardware check,
+   not a G0 blocker.
 4. **proot enables limited runtime experiments.** Upstream OpenCode can
    be exercised on the host under proot, but that does not validate the
    app sandbox, targetSdk 36 exec restrictions, or W^X. Treat results as
@@ -74,4 +80,5 @@
 - Android Kotlin compilation, APK assembly and signing on this host;
   build-tools 36.0.0 has no `split-select`.
 - Emulator/device boot, install, runtime start, thermal/background
-  behavior, keyboard/IME behavior, 16 KB-page boot.
+  behavior, and keyboard/IME behavior on the Infinix X6870. 16 KB-page boot is
+  out of scope for v1.

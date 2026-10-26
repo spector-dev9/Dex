@@ -70,12 +70,12 @@ CHECKS = (
 HOST_ONLY_CHECKS = CHECKS[:10]
 
 G0_BLOCKERS = (
-    "S1: complete Profile A/B and Tier A/B/C physical-device matrix, including a 16 KB-page device",
+    "S1: complete Profile A/B evidence on the Infinix X6870 reference device",
     "S2: Profile A/B performance comparison; Profile B is not implemented",
-    "S3: compare the production agent shell with the PTY on target devices",
+    "S3: compare the production agent shell with the PTY on the reference device",
     "S6: evaluate a distributable OpenCode 2.x artifact when one exists",
-    "S7/LC-2: real active-agent, screen-off 30-minute runs; at least 19/20 per required tier, or accepted OEM guidance",
-    "S8/TERM-5: native terminal UI with real IME input and app-provided control keys",
+    "S7/LC-2: one real active-agent, screen-off 10-minute run on the reference device",
+    "S8/TERM-5: native terminal UI with Gboard and app-provided control keys",
     "S9: complete licensing, dependency-closure, source-offer, and release-compliance evidence",
     "G0 decisions: ratify thresholds and freeze D1, D4, and D5 from admissible evidence",
 )

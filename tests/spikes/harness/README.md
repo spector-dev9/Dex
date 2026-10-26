@@ -1,7 +1,8 @@
 # Phase 2 device spike harness (isolated, pre-G0)
 
 This is a disposable debug app for the G0 device evidence described in
-`docs/plan/phase-0.md`. It is **not production wiring** and is excluded
+`docs/plan/phase-0.md`. G0 uses the owner's **Infinix X6870 only**; other
+devices and 16 KB-page targets are out of scope for v1. It is **not production wiring** and is excluded
 from normal builds. It must only be included with
 `-PspikeHarness=true`.
 
@@ -22,9 +23,9 @@ The harness currently covers:
   of guest `pwd`, `PATH` and `node -v`;
 - TERM-5 partial: a scripted native-PTY byte round-trip for text, Enter,
   Backspace, Tab, Esc, Up, Ctrl-C and Alt-x. This validates PTY byte transport,
-  not the physical Gboard/Samsung Keyboard mapping or production terminal UI;
-- S7 partial: a timed `specialUse` foreground-service diagnostic (10 or
-  30 minutes) with a partial wake lock held only during the run, service
+  not the physical Gboard mapping or production terminal UI;
+- S7 partial: a timed `specialUse` foreground-service diagnostic (10 minutes for
+  G0 evidence; 30 minutes exploratory only) with a partial wake lock held only during the run, service
   and wakeup-alarm heartbeat counters, monotonic elapsed time, screen/Doze/
   power-save samples, thermal samples, and battery-optimization state;
 - S7 partial: a child-process survival probe. A PRoot/Alpine guest workload
@@ -33,8 +34,8 @@ The harness currently covers:
   holds the screen off. The harness supervises the child from its service
   heartbeat and reports `S7-child-process-survival` with sample coverage,
   maximum sample gap, stall count, index continuity, liveness checks and
-  pre-kill exit code. Neither S7 probe is an active-agent task or the
-  30-minute, 19/20 acceptance test;
+  pre-kill exit code. Neither S7 probe is an active-agent task; the G0
+  acceptance run is one 10-minute active-agent, screen-off run;
 - S8 partial: keyboard/IME input observation in a text field using
   `InputConnection`, `TextWatcher` and hardware-key capture. The report
   records the selected IME and a bounded key/action/modifier event trace, but
@@ -80,21 +81,20 @@ first download is large; progress and failures are shown in the harness.
 PRoot entrypoints remain packaged native libraries and are never downloaded
 or executed from writable app storage.
 
-## Two-device test run
+## Reference-device test run
 
-Install the same staged APK on both devices and retain the exported report
-from each. Each report records the APK SHA-256 and device metadata so the
-results can be compared without conflating different builds or device tiers.
+Install the staged APK on the Infinix X6870 and retain the exported report.
+The report records the APK SHA-256 and device metadata. Other devices are out
+of scope for v1.
 
-On each device:
+On the device:
 
 1. Tap **Download and verify pinned runtime** and wait for success.
 2. Tap **Run all available device probes (S1/S3)**. This runs packaging,
   loader/version, authenticated mock prompt, guest shell, native-PTY
   environment and scripted byte-round-trip checks in sequence. Inspect each
   result; the summary is not a G0 verdict.
-3. For S7, start the 10-minute soak (or the 30-minute exploratory soak for
-  the LC-2 window) and choose whether to open Android's
+3. For S7, start the 10-minute soak and choose whether to open Android's
   battery-optimization exemption settings. The exemption is optional,
   increases battery use, and should be restored after testing. Both soaks
   also start the PRoot/Alpine child workload. Background the app, turn the
@@ -109,9 +109,8 @@ On each device:
   after it completes:
   `bash tests/spikes/scripts/capture-s7.sh <package> <output-dir>`.
   Its logcat output is limited to the device's retained ring buffer. Even
-  the 30-minute soak remains a harness-service diagnostic of service and
-  child survival, not the active agent-task test or the 19/20 per-tier
-  acceptance threshold.
+  the 10-minute soak remains a harness-service diagnostic of service and
+  child survival, not the active agent-task test.
 4. For S8, run the keyboard observation with Gboard. Try the extra-key row,
   hardware keys, paste and text selection, then tap **Record this keyboard's
   observation**. The report captures the IME identity and observed input;
@@ -119,10 +118,10 @@ On each device:
   keyboards normally deliver text through
    `InputConnection.commitText`/`setComposingText`, not `KeyEvent`, so a
    zero hardware `keyDownEvents` count is expected and is not a failure.
-5. Tap **Write JSON report** and provide the JSON from both devices. An
-  S7 harness pass does not promote S7/LC-2; acceptance still requires
-  active agent work, screen-off evidence, 19/20 repeats in Tier A/B/C,
-  and applicable OEM background settings.
+5. Tap **Write JSON report** and provide the JSON from the Infinix X6870.
+  An S7 harness pass does not promote S7/LC-2; acceptance still requires
+  one 10-minute active-agent, screen-off run and applicable OEM background
+  settings.
 
 This APK can collect only the device-side feasibility probes listed above.
 Profile A/B performance comparison, host SSE/contract checks, OpenCode 2.x
@@ -217,8 +216,8 @@ hashes, and whether the loader/PRoot came from `jniLibs`. Attach:
   `S7-child-process-survival` record. The guest sample file is at
   `<filesDir>/spike/rootfs/root/s7-child.log` (pull it with
   `adb shell run-as <package> cat files/spike/rootfs/root/s7-child.log`).
-  The separate LC-2 acceptance run remains 30 minutes with active agent
-  work;
+  The separate LC-2 acceptance run is one 10-minute active-agent,
+  screen-off run on the same device;
 5. for S8, the keyboard model and the IME text/key trace.
 
 ## Known limitations

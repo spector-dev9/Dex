@@ -206,36 +206,36 @@ opencode-mobile/
 
 | ID | Question | Pass rule |
 | --- | --- | --- |
-| S1 | Do Profiles A and B run the pinned musl binary on Tier A/B/C (Android 12 to 16, one 16 KB-page device)? Start, /global/health, one prompt round trip against a mock provider. | 100% of Tier A/B devices start. Tier C deviations documented. If A fails on any Tier A/B device, default to B. |
+| S1 | Do Profiles A and B run the pinned musl binary on the Infinix X6870? Start, /global/health, one prompt round trip against a mock provider. | Both profiles start on the reference device. If A fails, default to B. |
 | S2 | A versus B: cold start, idle RSS, git status on a 10k-file repo, npm test through the agent. | B becomes default only if A fails S1 or S3. B is rejected as default if it is more than 2.5x slower than A on git status or npm test. |
 | S3 | Does the agent's bash tool honor a SHELL override or config so its commands run in the guest? | pwd, node -v and PATH identical in agent shell and PTY. Otherwise default to B. |
 | S4 | SSE semantics: heartbeat cadence, reconnect, ordering, duplicates, directory scoping. | A written resync algorithm; STR-5 fault injection passes. |
 | S5 | Endpoint inventory: diff the pinned /doc against 4.1; PTY routes; --port and auth behavior; unix-socket support. | Inventory committed to contract/. |
 | S6 | Does the contract suite pass on OpenCode 2.0.x? | Pin 2.x only if every used endpoint passes or needs a thin shim; otherwise pin 1.x with a drift job. |
-| S7 | Background survival with child-process restrictions on and off; specialUse service; OEM battery savers (Samsung, Xiaomi, Oppo). | LC-2 met on all tiers, or per-OEM guidance shipped in diagnostics. |
+| S7 | Background survival with child-process restrictions on and off; specialUse service; OEM battery saver on the Infinix X6870. | LC-2 met on the reference device, or per-OEM guidance shipped in diagnostics. |
 | S8 | xterm.js versus a native terminal view for typing, extra keys, IME. | TERM-5 passes on Gboard; otherwise native view. |
 | S9 | Licensing and distribution: GPLv2 duties for PRoot, Alpine package licenses, Play executable-code policy, F-Droid source-build rules. | Written decision for D1; compliance checklist in docs/licenses. |
 
 ## 7. Acceptance criteria
 
-Reference devices: **Tier A** flagship, 8 GB or more, Android 15 or 16 (one with 16 KB pages); **Tier B** mid-range, 6 GB, Android 13 or 14; **Tier C** low-end, 4 GB, Android 12, aggressive OEM battery management. Percentiles are over at least 30 runs unless stated. After G0 ratification every threshold is release-blocking, and any performance metric may regress at most 10% against its recorded baseline.
+Reference device: **Infinix X6870** only (INFINIX, Android 16/API 36, arm64-v8a, 4 KB pages, 5.7 GB RAM, Gboard). This is the owner's development hardware and the sole G0 acceptance target. Tier A/B/C, 16 KB-page devices, Samsung Keyboard and any other hardware are out of scope for v1 and do not block G0. Numeric thresholds are recorded from this device; runs are single unless a row explicitly says otherwise. After G0 ratification every threshold is release-blocking, and any performance metric may regress at most 10% against its recorded baseline.
 
 ### 7.1 Runtime
 
 | ID | Requirement | Method | Threshold |
 | --- | --- | --- | --- |
-| RT-1 | Works without Termux, offline | Clean install on Tier A/B/C in airplane mode, GET /global/health | Healthy on 3 of 3 devices |
-| RT-2 | Startup | Cold (process dead to healthy), first run (extraction), warm (service alive to UI ready) | Cold at most 10 s on A/B and 20 s on C; first run at most 60 s; warm at most 2 s (p95) |
+| RT-1 | Works without Termux, offline | Clean install on the reference device in airplane mode, GET /global/health | Healthy on the reference device |
+| RT-2 | Startup | Cold (process dead to healthy), first run (extraction), warm (service alive to UI ready) | Cold at most 20 s; first run at most 60 s; warm at most 2 s (p95) on the reference device |
 | RT-3 | Integrity and version | Artifact hashes against manifest at start; health version against pin | 100% match, otherwise refuse to start |
 | RT-4 | No exec from writable dirs | Full E2E suite, scan logcat | 0 avc denials for execute\_no\_trans |
-| RT-5 | 16 KB pages | llvm-readelf alignment check in CI; boot on a 16 KB-page device | All LOAD segments aligned to 16384 or more; boots |
+| RT-5 | 16 KB pages | Out of scope for v1: the reference device has 4 KB pages. Keep the CI ELF-alignment check. | Not a G0/G1 blocker until a 16 KB-page device is supported |
 
 ### 7.2 Streaming
 
 | ID | Requirement | Method | Threshold |
 | --- | --- | --- | --- |
 | STR-1 | No polling while connected | Gateway request counter over a 10 min session | 0 periodic message-list requests; only on resync |
-| STR-2 | Event-to-paint latency | Trace gateway receive to frame commit on Tier B | p95 at most 150 ms, p99 at most 300 ms |
+| STR-2 | Event-to-paint latency | Trace gateway receive to frame commit on the reference device | p95 at most 150 ms, p99 at most 300 ms |
 | STR-3 | Smoothness | Macrobenchmark during a 60 s streamed reply with markdown and code | At most 5% janky frames |
 | STR-4 | Cancel | Tap Stop to idle state | p95 at most 1 s; zero deltas after abort is acknowledged |
 | STR-5 | Recovery | 500 fault-injected SSE drops | Reconnect within 3 s; final transcript equals GET /session/:id/message; no duplicate or missing parts |
@@ -259,18 +259,18 @@ Reference devices: **Tier A** flagship, 8 GB or more, Android 15 or 16 (one with
 | TERM-2 | Signals and cleanup | Ctrl-C on a foreground job; close the session | Terminates within 500 ms (p95); exit status shown; 0 orphan processes |
 | TERM-3 | Resize | 20 random rotations and resizes, compare stty size | Always matches |
 | TERM-4 | Flood | yes piped to head -c 500M | Echo latency p95 at most 100 ms; memory growth at most 30 MB (scrollback bounded, default 10,000 lines) |
-| TERM-5 | Input | Extra-key row (Esc, Tab, Ctrl, Alt, arrows), hardware keyboard, Gboard | Typing test passes with Gboard, else D10 fallback |
+| TERM-5 | Input | Extra-key row (Esc, Tab, Ctrl, Alt, arrows) and Gboard | Typing and extra-key test passes with Gboard, else D10 fallback |
 
 ### 7.5 Lifecycle and performance
 
 | ID | Requirement | Method | Threshold |
 | --- | --- | --- | --- |
 | LC-1 | Rotation | 100 rotations during a streamed reply | No lost or duplicated content; no new server process |
-| LC-2 | Background task | Screen off, 30 min, agent task running, Tier A/B/C | Completes in at least 19 of 20 runs per device; failures classified in diagnostics |
+| LC-2 | Background task | Screen off, 10 min, agent task running, reference device | One run completes the full 10 min; failures classified in diagnostics |
 | LC-3 | Crash recovery | SIGKILL the server 50 times | Healthy within 10 s (p95); sessions intact; exactly one listener; crash-loop breaker after 5 failures in 5 min |
 | LC-4 | Idle cost | Backgrounded, no busy session | Idle-running CPU at most 1% average over 10 min; server stops after the idle timeout; process-tree CPU is 0 afterward |
-| LC-5 | Memory | 4 h soak on Tier A/B | PSS slope at most 5 MB/h after warm-up; 0 low-memory kills; peak within baseline plus 10% |
-| LC-6 | Thermal | 30 min agent session | Thermal status below MODERATE for at least 90% of samples on Tier A/B; recorded in release notes |
+| LC-5 | Memory | Post-G0 4 h soak on the reference device (optional) | PSS slope at most 5 MB/h after warm-up; 0 low-memory kills; peak within baseline plus 10% |
+| LC-6 | Thermal | Post-G0 30 min agent session on the reference device (optional) | Thermal status below MODERATE for at least 90% of samples; recorded in release notes |
 
 ### 7.6 Security
 
@@ -292,7 +292,7 @@ Reference devices: **Tier A** flagship, 8 GB or more, Android 15 or 16 (one with
 | REL-3 | Signing | apksigner verify in CI | v2 and v3 signatures valid; separate .debug applicationId |
 | REL-4 | Compatibility | Contract suite against the pinned OpenAPI; nightly drift job against latest upstream | 100% of used endpoints validate; drift opens an issue |
 | QA-1 | Code quality | Coverage and lint | At least 80% line coverage in workspace, gateway, supervisor, security; 0 lint warnings; every existing test dispositioned (ported or replaced, with reason) |
-| QA-2 | Devices | Nightly E2E on at least 3 physical devices | Release requires all green |
+| QA-2 | Devices | Nightly E2E on the reference device | Release requires green |
 
 ### 7.8 Regression map for known limitations
 
@@ -313,10 +313,10 @@ Reference devices: **Tier A** flagship, 8 GB or more, Android 15 or 16 (one with
 
 | Gate | Exit criteria |
 | --- | --- |
-| G0 (end of Phase 2) | S1 to S9 complete; baselines recorded on Tier A/B/C; section 7 thresholds ratified; D1, D4, D5 frozen |
-| G1 (backend foundation) | RT-1 to RT-5, SEC-1, SEC-2, STR-1, STR-5, LC-3, WS-1, WS-2 pass headless on devices |
+| G0 (end of Phase 2) | S1 to S9 complete on the Infinix X6870 reference device; its baselines recorded; section 7 thresholds ratified; D1, D4, D5 frozen |
+| G1 (backend foundation) | RT-1 to RT-4, SEC-1, SEC-2, STR-1, STR-5, LC-3, WS-1, WS-2 pass headless on the reference device |
 | G2 (application rebuild) | UI runs entirely on the bridge; Capacitor removed; regression map complete |
-| G3 (validation) | All of section 7 passes on Tier A/B/C, including the 4 h soak |
+| G3 (validation) | All of section 7 passes on the reference device; LC-5/LC-6 may be deferred as post-v1 optional checks |
 | G4 (release) | REL-1 to REL-4, SEC-3, SEC-5 pass; signed artifacts; install and upgrade docs published |
 
 ## 9. Risks and open questions
@@ -327,11 +327,11 @@ Reference devices: **Tier A** flagship, 8 GB or more, Android 15 or 16 (one with
 | OEM background killing | S7, LC-2, per-OEM diagnostics guidance |
 | Upstream API churn (v1 to v2) | D5 pin, contract suite, nightly drift job |
 | GPL and package licensing | docs/licenses, source offer, SEC-5 |
-| Kernel and seccomp variance across devices | D2 minimum SDK, S1 matrix, RT-4 |
+| Kernel and seccomp variance across devices | Only the reference device is supported for v1; RT-4 on that device |
 | Heat and battery from an always-on server | D11 idle shutdown, LC-4, LC-6 |
 | Prompt-injected or hostile-repo agent actions | Permission prompts always visible (SEC-4); no auto-approve default |
 
-Open questions to answer from code or devices before G0: (1) Does LocalServerManager pass OPENCODE\_SERVER\_PASSWORD today? (2) Where does the agent's bash tool run today, host or guest? (3) Does the pinned version expose PTY routes? (4) Which physical devices are actually available for Tier A/B/C? (5) Is the target audience sideload users, Play users, or both?
+Open questions to answer from code or devices before G0: (1) Does LocalServerManager pass OPENCODE\_SERVER\_PASSWORD today? (2) Where does the agent's bash tool run today, host or guest? (3) Does the pinned version expose PTY routes? (4) Resolved: the G0 reference device is the Infinix X6870 only. (5) Is the target audience sideload users, Play users, or both?
 
 ## Sources
 
