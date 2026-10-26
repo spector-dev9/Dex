@@ -87,6 +87,12 @@ private enum class AppTab(val label: String) {
     Terminal("Terminal"),
 }
 
+private data class VerificationTest(
+    val id: String,
+    val title: String,
+    val summary: String,
+)
+
 @Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun OpenCodeShell(
@@ -163,6 +169,23 @@ private fun ChatHome(
     onOpenTerminal: () -> Unit,
 ) {
     var selectedMode by remember { mutableStateOf("Build") }
+    var selectedTest by remember { mutableStateOf("S1") }
+    val tests = listOf(
+        VerificationTest("S1", "S1", "Loader, health, and mock-provider prompt"),
+        VerificationTest("S2-cold", "S2 cold start", "Cold launch and profile-a startup"),
+        VerificationTest("S2-rss", "S2 idle RSS", "Idle memory footprint under load"),
+        VerificationTest("S2-git", "S2 git status", "10k-file git status check"),
+        VerificationTest("S2-npm", "S2 npm test", "npm validation on device"),
+        VerificationTest("S3", "S3", "Guest shell and native PTY match"),
+        VerificationTest("S6", "S6", "OpenCode 2.x contract check"),
+        VerificationTest("S7", "S7", "Background survival and service soak"),
+        VerificationTest("S8", "S8", "Gboard field-input test"),
+        VerificationTest("RT-1", "RT-1", "Offline installability"),
+        VerificationTest("RT-2", "RT-2", "Reference-device startup"),
+        VerificationTest("LC-2", "LC-2", "10-minute active-agent run"),
+        VerificationTest("TERM-5", "TERM-5", "Native terminal input with Gboard"),
+        VerificationTest("STR-5", "STR-5", "Live-device drop test"),
+    )
 
     Column(
         modifier = modifier
@@ -260,6 +283,46 @@ private fun ChatHome(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        HorizontalDivider(color = Color(0xFFD7D6CC))
+        Text("Verification checklist", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        val rows = tests.chunked(2)
+        rows.forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                row.forEach { test ->
+                    val isSelected = selectedTest == test.id
+                    OutlinedButton(
+                        onClick = { selectedTest = test.id },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isSelected) Color(0xFFE7F3EE) else Color(0xFFFFFEFA),
+                            contentColor = Ink,
+                        ),
+                    ) {
+                        Text(test.title)
+                    }
+                }
+                if (row.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+
+        val selectedSummary = tests.firstOrNull { it.id == selectedTest }?.summary ?: "Select a test to verify."
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFFEAF0EE),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Selected test", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(selectedTest, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(selectedSummary, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
 
         HorizontalDivider(color = Color(0xFFD7D6CC))
         Text("Workspace tools", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
