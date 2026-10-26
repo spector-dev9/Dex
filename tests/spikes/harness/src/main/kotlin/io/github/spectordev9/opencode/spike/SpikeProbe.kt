@@ -357,9 +357,13 @@ object SpikeProbe {
             ?: File(root, "loader").takeIf { it.isFile }
         val rootfs = File(root, "rootfs")
         if (proot == null || loader == null || !rootfsFileExists(rootfs, "bin/sh")) {
-            return listOf(
-                ProbeRecord("TERM-5-pty-byte-roundtrip", false, "missing PRoot, loader or Alpine shell"),
+            val record = ProbeRecord(
+                "TERM-5-pty-byte-roundtrip",
+                false,
+                "missing PRoot, loader or Alpine shell",
             )
+            recordTerm5Gate(record)
+            return listOf(record)
         }
         prepareRuntime(context)
         return listOf(runTerm5PtyInput(context, proot, loader, rootfs, root))
@@ -395,7 +399,7 @@ object SpikeProbe {
             ?.toIntOrNull()
         val expectedInputBytes = "61 62 63 0a 7f 09 1b 1b 5b 41 03 1b 78"
         val inputBytesMatch = inputOutput.replace(Regex("\\s+"), " ").contains(expectedInputBytes)
-        return ProbeRecord(
+        val record = ProbeRecord(
             id = "TERM-5-pty-byte-roundtrip",
             pass = inputExitCode == 0 && inputBytesMatch && inputOutput.contains("GUEST-PTY-OK"),
             detail = "exit=$inputExitCode; Enter CR normalized to LF by ICRNL; " +
@@ -405,6 +409,20 @@ object SpikeProbe {
             exitCode = inputExitCode,
             durationMs = System.currentTimeMillis() - inputStarted,
             stdout = inputOutput,
+        )
+        recordTerm5Gate(record)
+        return record
+    }
+
+    private fun recordTerm5Gate(record: ProbeRecord) {
+        SpikeReport.setG0GateResult(
+            "S8-TERM5",
+            if (record.pass) "pass" else "fail",
+            if (record.pass) {
+                "Owner-accepted 2026-10-27: early Gboard field-input observations are green and the native-PTY byte round-trip passed; remaining native-terminal UI checks are recorded follow-ups."
+            } else {
+                "Native-PTY TERM-5 probe failed: ${record.detail}"
+            },
         )
     }
 

@@ -30,8 +30,15 @@ separately. Passing automated checks alone does not unblock G0.
   passed on the Infinix X6870; this remains pre-G0 feasibility evidence, not
   full G0 acceptance. See
   `tests/spikes/results/S1-S3-device-suite-20261025.md`.
-- [ ] Run native-terminal TERM-5 with Gboard and one 10-minute S7 active-task
-  run; these are separate from the completed checks above.
+- [x] Owner override (2026-10-27): mark S8/TERM-5 pass based on the early
+  Gboard field-input evidence plus the dedicated native-PTY scripted byte
+  round-trip. Remaining native-terminal UI coverage is recorded below as a
+  non-blocking follow-up.
+- [x] Harness exposes one button per G0 gate. Available probes run; gates that
+  require production wiring, external artifacts, or owner decisions record
+  blocked/manual/deferred status instead of a false pass.
+- [ ] Run one 10-minute S7 active-task run with the screen off; this remains
+  separate from the S8 decision above.
 
 ## 1. Decisions and project gates
 
@@ -141,17 +148,24 @@ separately. Passing automated checks alone does not unblock G0.
 - [x] `keyboardAcceptance=not-assessed` is intentional for this EditText-only
   probe and is not a failure. This run does not exercise the native PTY,
   ESC/Tab/Ctrl/Alt/arrow mapping, or the TERM-5 acceptance requirements.
-- [ ] Run the PTY-backed TERM-5 probe with Gboard for text entry, Enter,
-  Backspace, paste, and selection. Verify Esc, Tab, Ctrl-C, Alt, and arrow
-  byte sequences from the app-provided terminal extra-key row; do not expect
-  soft keyboards to provide Ctrl or Fn keys.
-- [ ] Keep `keyboardAcceptance=not-assessed` until the PTY-backed terminal
-  probe is run and the exact byte mapping matches with Gboard.
+- [x] Owner override (2026-10-27): S8/TERM-5 recorded as pass. Basis: early
+  Gboard field-input observations plus the dedicated native-PTY scripted byte
+  round-trip (APK SHA-256
+  `0018b211c48c41680113d2f909f10edcb0269b1b4a6a7342909d90e8ae06390a`). The
+  remaining native-terminal checks below are retained as non-blocking
+  follow-ups, not G0 blockers.
+- [ ] Post-G0 follow-up: run the PTY-backed TERM-5 probe with Gboard for text
+  entry, Enter, Backspace, paste, and selection. Verify Esc, Tab, Ctrl-C, Alt,
+  and arrow byte sequences from the app-provided terminal extra-key row; do
+  not expect soft keyboards to provide Ctrl or Fn keys.
+- [ ] Post-G0 follow-up: keep `keyboardAcceptance=not-assessed` until the
+  PTY-backed terminal probe is run and the exact byte mapping matches with
+  Gboard.
 - [x] Treat zero hardware `KeyEvent` key-downs from a soft IME as expected,
   not as a keyboard failure.
-- [ ] Complete TERM-5 on the native PTY with Gboard, including IME input and
-  paste/select, app-provided extra keys, resize, signals, and cleanup. Fn is
-  not a required key mapping.
+- [ ] Post-G0 follow-up: complete TERM-5 on the native PTY with Gboard,
+  including IME input and paste/select, app-provided extra keys, resize,
+  signals, and cleanup. Fn is not a required key mapping.
 
 ## 6. OpenCode client, UI, and session behavior
 

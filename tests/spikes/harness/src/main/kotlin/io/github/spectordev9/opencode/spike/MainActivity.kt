@@ -32,6 +32,8 @@ class MainActivity : Activity() {
     private lateinit var imeView: TextView
     private lateinit var imeField: ImeProbeEditText
     private lateinit var soakView: TextView
+    private lateinit var gateSummaryView: TextView
+    private val gateStatusViews = mutableMapOf<String, TextView>()
     private var imeTextChanges = 0
     private var imeObservationNumber = 0
     private var probesRunning = false
@@ -73,8 +75,21 @@ class MainActivity : Activity() {
         root.addView(runtimeView)
 
         root.addView(label("G0 acceptance checks"))
-        root.addView(label("Run each available check separately. PASS requires acceptance evidence; partial probes never mark G0 green."))
+        root.addView(label("Tap a gate to run it. Gates that need production wiring, external artifacts, or owner decisions record blocked/manual status instead of a false pass."))
+        gateSummaryView = monospace().apply { text = "G0: NOT GREEN" }
+        root.addView(gateSummaryView)
+        G0GateCatalog.checks.forEach { check ->
+            root.addView(button("${check.id}: ${check.title}") { runGateCheck(check) })
+            gateStatusViews[check.id] = monospace().apply {
+                val existing = SpikeReport.g0GateResult(check.id)
+                text = existing?.let { "${it.status.uppercase()} · ${it.detail}" }
+                    ?: "PENDING · ${check.requirement}"
+            }
+            root.addView(gateStatusViews.getValue(check.id))
+        }
+        refreshGateSummary()
 
+        root.addView(label("Runtime and probe actions"))
         root.addView(button("Download and verify pinned runtime (large download)") {
             runProbes("runtime-download") {
                 val started = System.currentTimeMillis()
@@ -181,6 +196,10 @@ class MainActivity : Activity() {
             imeObservationNumber = 0
             imeView.text = "No input captured yet."
             resultsView.text = ""
+            G0GateCatalog.checks.forEach { check ->
+                gateStatusViews[check.id]?.text = "PENDING · ${check.requirement}"
+            }
+            refreshGateSummary()
             statusView.text = "Cleared"
         })
         statusView = label("Ready")
@@ -216,6 +235,14 @@ class MainActivity : Activity() {
     }
 
     private fun runProbes(label: String, probe: () -> List<ProbeRecord>) {
+        runProbes(label, probe, null)
+    }
+
+    private fun runProbes(
+        label: String,
+        probe: () -> List<ProbeRecord>,
+        onComplete: ((List<ProbeRecord>) -> Unit)?,
+    ) {
         if (probesRunning) {
             statusView.text = "A probe is already running; wait for it to finish"
             return
@@ -232,11 +259,141 @@ class MainActivity : Activity() {
             outcome.forEach { SpikeReport.add(it) }
             runOnUiThread {
                 outcome.forEach(::append)
+                onComplete?.invoke(outcome)
                 probesRunning = false
                 window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 statusView.text = "$label finished"
                 refresh()
             }
+        }
+    }
+
+    private fun runGateCheck(check: G0GateCheck) {
+        when (check.id) {
+            "S1-A" -> runProbes(
+                "S1-A ${check.title}",
+                {
+                    listOf(SpikeProbe.runLoader(this)) + SpikeServerProbe.run(this)
+                },
+            ) { records ->
+                val passed = records.isNotEmpty() && records.all { it.pass }
+                setGateResult(
+                    check.id,
+                    if (passed) "partial" else "fail",
+                    if (passed) {
+                        "Harness loader, authenticated health, and mock prompt passed; production acceptance and Profile B remain open."
+                    } else {
+                        "Harness Profile A probe failed; see result records."
+                    },
+                )
+            }
+            "S1-B" -> setGateResult(
+                check.id,
+                "blocked",
+                "Profile B is not implemented in this harness or the production app.",
+            )
+            "S2-cold", "S2-rss", "S2-git", "S2-npm" -> setGateResult(
+                check.id,
+                "blocked",
+                "Profile A/B production measurements are unavailable; Profile B is not implemented.",
+            )
+            "S3" -> runProbes(
+                "S3 ${check.title}",
+                { SpikeProbe.runGuestPtyComparison(this) },
+            ) { records ->
+                val passed = records.isNotEmpty() && records.all { it.pass }
+                setGateResult(
+                    check.id,
+                    if (passed) "partial" else "fail",
+                    if (passed) {
+                        "Guest shell and native-PTY probes passed; the production agent-shell comparison remains open."
+                    } else {
+                        "Guest shell/native-PTY probe failed; see result records."
+                    },
+                )
+            }
+            "S4" -> setGateResult(
+                check.id,
+                "partial",
+                "Host SSE/resync checks passed; app/UI device acceptance remains open.",
+            )
+            "S5" -> setGateResult(
+                check.id,
+                "partial",
+                "Host endpoint/auth inventory passed; app/UI device reconciliation remains open.",
+            )
+            "S6" -> setGateResult(
+                check.id,
+                "deferred",
+                "No distributable OpenCode 2.x artifact is available; retain the documented 1.19.3 pin.",
+            )
+            "S7-LC2" -> {
+                setGateResult(
+                    check.id,
+                    "partial",
+                    "Harness-service soak is diagnostic only; a real 10-minute screen-off active-agent run is still required.",
+                )
+                confirmBatteryOptimizationForSoak(10)
+            }
+            "S8-TERM5" -> runProbes(
+                "TERM-5 native PTY",
+                { SpikeProbe.runTerm5NativePty(this) },
+            ) { records ->
+                val passed = records.isNotEmpty() && records.all { it.pass }
+                setGateResult(
+                    check.id,
+                    if (passed) "pass" else "fail",
+                    if (passed) {
+                        "Owner-accepted S8/TERM-5 pass: early Gboard field input plus native-PTY byte round-trip; native-terminal follow-ups remain."
+                    } else {
+                        "Native-PTY TERM-5 probe failed; see result record."
+                    },
+                )
+            }
+            "S9" -> setGateResult(
+                check.id,
+                "manual",
+                "Licensing, source-offer, signing, and distribution compliance require owner/release work.",
+            )
+            "BASELINES" -> setGateResult(
+                check.id,
+                "manual",
+                "Reference-device baselines and numeric thresholds still need to be recorded and ratified.",
+            )
+            "D1" -> setGateResult(
+                check.id,
+                "partial",
+                "Distribution decision is accepted; compliance evidence remains open.",
+            )
+            "D4" -> setGateResult(
+                check.id,
+                "manual",
+                "Runtime profile cannot be frozen until admissible S1/S2/S3 evidence exists.",
+            )
+            "D5" -> setGateResult(
+                check.id,
+                "partial",
+                "OpenCode 1.19.3 pin is documented; the 2.x disposition remains open with S6.",
+            )
+            else -> setGateResult(check.id, "manual", check.requirement)
+        }
+    }
+
+    private fun setGateResult(id: String, status: String, detail: String) {
+        SpikeReport.setG0GateResult(id, status, detail)
+        gateStatusViews[id]?.text = "${status.uppercase()} · $detail"
+        refreshGateSummary()
+    }
+
+    private fun refreshGateSummary() {
+        val total = G0GateCatalog.checks.size
+        val results = G0GateCatalog.checks.mapNotNull { SpikeReport.g0GateResult(it.id) }
+        val green = results.size == total && results.all { it.status == "pass" }
+        gateSummaryView.text = if (green) {
+            "G0: GREEN · $total/$total gate checks passed"
+        } else {
+            "G0: NOT GREEN · ${results.count { it.status == "pass" }}/$total passed; " +
+                "${results.size}/$total assessed"
         }
     }
 

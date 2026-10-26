@@ -28,9 +28,12 @@ death. A later 10-minute Infinix harness diagnostic reports 631,745 ms of
 service survival with zero restarts; the child remained alive at stop, while
 sparse samples were classified by the owner as Android scheduling behavior.
 It did not establish continuous screen-off or active-agent survival; see
-`tests/spikes/results/S7-soak-20261026-041939.md`. S2, S7 (single 10-minute active-task run), native-terminal TERM-5 (Gboard),
-S6's 2.x artifact decision, and S9 compliance remain open on the reference
-device. The Gboard field-input S8 test is owner-reported green.
+`tests/spikes/results/S7-soak-20261026-041939.md`. S2, S7 (single 10-minute
+active-task run), S6's 2.x artifact decision, and S9 compliance remain open on
+the reference device. S8/TERM-5 was owner-accepted as pass on 2026-10-27 based
+on early Gboard field-input evidence plus the dedicated native-PTY scripted
+byte round-trip; remaining native-terminal UI coverage is a non-blocking
+follow-up.
 Do not start G0-dependent production service wiring or claim gate
 acceptance until these blockers clear.
 
@@ -52,12 +55,11 @@ records successful official-version loader and basic foreground-service
 start/stop probes. Its claimed S3 pass is invalid because output contained
 `node: not found` and literal `******` in place of the compared values.
 It records S8 text changes but no key-down events (expected for a soft IME). The report does not
-contain an archive hash, and does not cover native-terminal TERM-5 or the
-S7 active-task run.
+contain an archive hash, and does not cover the S7 active-task run.
 That invalidated report is superseded for S3 by later runs on the Infinix
-X6870, which verify Node and matching guest/PTY values. Continue with the
-native-terminal TERM-5 Gboard probe and the single 10-minute active-task S7
-run before freezing D4 or ratifying device-dependent thresholds.
+X6870, which verify Node and matching guest/PTY values. S8/TERM-5 was
+owner-accepted as pass on 2026-10-27; continue with the single 10-minute
+active-task S7 run before freezing D4 or ratifying device-dependent thresholds.
 
 An isolated device harness now exists at `tests/spikes/harness/` and is
 excluded from normal builds (`-PspikeHarness=true`). It records device
@@ -101,9 +103,10 @@ it does not implement these production lifecycle behaviors.
 
 - One-device harness evidence now passes the loader `--version`, guest
   shell, native PTY and foreground-service start/stop probes. Full S1
-  server/prompt coverage, S2 comparisons, the 10-minute active-task S7
-  run and Gboard TERM-5 acceptance remain pending; the run does not
-  promote acceptance rows.
+  server/prompt coverage, S2 comparisons and the 10-minute active-task S7
+  run remain pending; the run does not promote acceptance rows. S8/TERM-5 is
+  owner-accepted as pass, with native-terminal coverage retained as a
+  non-blocking follow-up.
 - Runtime packaging/supervision, authenticated ephemeral loopback
   lifecycle, production Kotlin HTTP/SSE gateway, native workspace
   operations and native interactive PTY are not implemented.
@@ -260,8 +263,11 @@ See `docs/architecture/g1-contracts.md`.
       v1 G0 scope); the 10-minute harness-service diagnostic on the Infinix
       X6870 passed. A single 10-minute active-task run remains open.
 - [ ] Complete S1 and S2 on the Infinix X6870, the production
-      agent-shell comparison, Gboard TERM-5 acceptance, and the single
-      10-minute agent-task S7 run.
+      agent-shell comparison, and the single 10-minute agent-task S7 run.
+- [x] Owner override (2026-10-27): accept S8/TERM-5 as pass based on early
+      Gboard field-input evidence plus the dedicated native-PTY scripted
+      byte round-trip; native-terminal coverage remains a non-blocking
+      follow-up.
 
 ## Phase 0 exit criteria
 
@@ -284,7 +290,7 @@ See `docs/architecture/g1-contracts.md`.
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
 | S7 | partial (10-minute harness-service diagnostic passed; active-task run pending) | `docs/evidence/Device 1`, `docs/evidence/RESULTS.md` |
-| S8 | partial (Gboard field input green-reported; PTY-backed TERM-5 pending) | `docs/evidence/Device 1`, `docs/evidence/RESULTS.md` |
+| S8 | pass (owner override 2026-10-27: early Gboard field input green + scripted native-PTY round-trip; native-terminal follow-up) | `docs/evidence/Device 1`, `docs/evidence/RESULTS.md` |
 | S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes
@@ -344,7 +350,7 @@ infer completion of the following tests:
 | S2 runtime profiles | No comparable cold start, idle PSS/RSS, 10k-file Git status, agent `npm test`, or thermal results for Profiles A and B. | Execute the prescribed workloads on the Infinix X6870 and record measurements before deciding D4. |
 | Other hardware and RT-5 | Out of scope for v1. The Infinix X6870 is the only supported G0 target; RT-5 boot remains out of scope because it has 4 KB pages. | Keep the CI ELF-alignment check; revisit only if more hardware is supported. |
 | S7 / LC lifecycle | One-device foreground-service start/stop is present; active-task survival and crash recovery are absent. | Run one 10-minute active-task, screen-off run on the Infinix X6870 and classify failures from diagnostics. |
-| S8 / TERM-5 keyboard | The owner-reported Gboard field-input test is green and records text, composing, IME-key, hardware-key, selection, and context-menu events. Its `keyboardAcceptance=assessed` label conflicts with the matching APK/source `not-assessed` string. | Keep S8 field-input green as owner-reported; separately verify native-terminal TERM-5 with Gboard only. |
+| S8 / TERM-5 keyboard | Owner override on 2026-10-27 accepted S8/TERM-5 as pass using the green Gboard field-input reports plus the dedicated scripted native-PTY byte round-trip. Native-terminal TERM-5 coverage is still absent. | Treat native-terminal TERM-5 coverage as a non-blocking post-G0 follow-up. |
 | S6 / 2.x | No distributable OpenCode 2.x artifact is available to test. | Keep the 1.19.3 pin and run contract tests only when a distributable candidate exists. |
 
 Device rows in `docs/evidence/RESULTS.md` therefore remain `pending`.
