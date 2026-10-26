@@ -45,6 +45,7 @@ Read-only upstream:
 Current branch: main
 
 Recent commits:
+  98fab93 docs: add working context handoff
   8429bda docs: narrow v1 G0 to reference device and Gboard
   4d35a17 fix(spike): guard IME trace before initialization
   a0fac19 feat(app): add native OpenCode shell and refresh device evidence
@@ -57,7 +58,7 @@ Important state:
 - The working tree is clean relative to origin/main.
 - The crash fix touched only:
   tests/spikes/harness/src/main/kotlin/io/github/spectordev9/opencode/spike/ImeProbeEditText.kt
-- This context.txt lives outside the repository and is not pushed to GitHub.
+- This context.txt is tracked at the repository root and pushed to origin/main.
 - Do not force-push. Preserve the current history.
 
 If a clone is shallow and push fails with "remote unpack failed" or
