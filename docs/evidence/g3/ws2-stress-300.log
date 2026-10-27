@@ -1,0 +1,31 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as configuration cache cannot be reused because the set of Gradle properties has changed: the value of 'workspaceAtomicWriteRuns' was changed.
+> Task :core:common-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:common-api:compileKotlin UP-TO-DATE
+> Task :core:common-api:compileJava NO-SOURCE
+> Task :core:common-api:processResources NO-SOURCE
+> Task :core:common-api:classes UP-TO-DATE
+> Task :core:common-api:jar UP-TO-DATE
+> Task :core:workspace:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:workspace-api:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:workspace-api:compileKotlin UP-TO-DATE
+> Task :core:workspace-api:compileJava NO-SOURCE
+> Task :core:workspace:compileKotlin UP-TO-DATE
+> Task :core:workspace:compileJava NO-SOURCE
+> Task :core:workspace:processResources NO-SOURCE
+> Task :core:workspace:classes UP-TO-DATE
+> Task :core:workspace:jar UP-TO-DATE
+> Task :core:workspace:compileTestKotlin UP-TO-DATE
+> Task :core:workspace:compileTestJava NO-SOURCE
+> Task :core:workspace:processTestResources NO-SOURCE
+> Task :core:workspace:testClasses UP-TO-DATE
+> Task :core:workspace-api:processResources NO-SOURCE
+> Task :core:workspace-api:classes UP-TO-DATE
+> Task :core:workspace-api:jar UP-TO-DATE
+> Task :core:workspace:workspaceAtomicWriteStress
+PASS: 300 SIGKILL interruptions; payload sizes 1024..52428800 bytes
+
+BUILD SUCCESSFUL in 2m 40s
+8 actionable tasks: 1 executed, 7 up-to-date
+Configuration cache entry stored.
