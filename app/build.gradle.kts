@@ -57,6 +57,7 @@ dependencies {
     implementation(project(":core:git-api"))
     implementation(project(":core:opencode-client"))
     implementation(project(":core:runtime-api"))
+    implementation(project(":core:runtime"))
     implementation(project(":core:security"))
     implementation(project(":core:security-api"))
     implementation(project(":core:supervisor-api"))
