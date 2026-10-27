@@ -21,6 +21,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.Base64
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.Date
 import java.util.Locale
 import org.json.JSONArray
@@ -80,7 +81,7 @@ class MainActivity : Activity() {
         statusView.text = "running"
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         Thread {
-            val results = mutableListOf<Result>()
+            val results = CopyOnWriteArrayList<Result>()
             val routes = listOf("/global/health", "/doc", "/project", "/session", "/pty", "/event")
             val encodedDirectory = URLEncoder.encode(directory, StandardCharsets.UTF_8.name())
             val cases = listOf(
