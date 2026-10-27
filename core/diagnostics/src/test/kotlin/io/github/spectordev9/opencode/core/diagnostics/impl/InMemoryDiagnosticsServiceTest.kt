@@ -40,7 +40,7 @@ class InMemoryDiagnosticsServiceTest {
         val service = service(capacity = 2)
 
         repeat(3) { index ->
-            service.record(event(index))
+            service.record(event(index.toLong()))
         }
 
         val report = (service.export() as ApiResult.Success<DiagnosticReport>).value
@@ -52,7 +52,7 @@ class InMemoryDiagnosticsServiceTest {
     fun `export reports supplied version metadata`() = runBlocking {
         val service = service()
 
-        service.record(event(1))
+        service.record(event(1L))
 
         val report = (service.export() as ApiResult.Success<DiagnosticReport>).value
         assertEquals("9.9.9", report.appVersion)
