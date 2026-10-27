@@ -1,13 +1,21 @@
 # G1 core contracts and runtime boundary
 
-Status: core contracts and the minimal Compose Android shell compile. An
-app-local unit-test harness contains fake service ports and a partial bridge
-handler for contract-level tests only; none of those fakes are wired into
-the app runtime. The `core:runtime` JVM module validates the pinned manifest
-and installed file layout, and provides archive SHA-256 verification. The
-installer does not yet wire those checks into an atomic installation flow or
-verify extracted files at startup. Platform process launch, production bridge
-handling, and JNI are also not yet implemented.
+Status: G1 implementation is in progress (owner direction 2026-10-27).
+Core contracts and the minimal Compose Android shell compile. The app now
+has an injectable production bridge handler for runtime, workspace, Git and
+terminal commands, with app unit coverage against service fakes. The
+app-local fake service harness remains test-only and is not device evidence.
+The `core:runtime` JVM module validates the pinned manifest and installed
+file layout, and provides archive SHA-256 verification. The installer does
+not yet wire those checks into an atomic installation flow or verify
+extracted files at startup. Android process launch, runtime supervision,
+gateway composition, diagnostics storage, JNI `forkpty`, command payload
+DTOs, and bridge JSON serialization are still not implemented.
+
+G0 is not green. The owner has directed G1-G2 work to proceed while the
+open G0 blockers (S1-B/S2/S3 production evidence, S6 2.x artifact, S9
+compliance, baselines, D4) stay tracked as release blockers. D4 remains
+provisional until its evidence clears.
 
 The TypeScript bridge contract is retained as a parity fixture only. It is
 not part of the Android UI or runtime architecture. Its envelope is
@@ -150,20 +158,25 @@ Command arguments and event payloads are JSON-compatible maps in G1.
 Per-command DTOs and the JSON adapter belong to the implementation phase;
 they must not change the envelope shapes above.
 
-## Deferred until after G0
+## G1 implementation backlog
 
-- App service wiring, foreground service, and Compose feature screens.
-- JSON serialization and per-command payload DTOs.
-- OkHttp/SSE gateway implementation and Basic-auth wiring.
-- Android Keystore, log scrubbing and diagnostics storage.
-- Native loader/PRoot process management and JNI `forkpty`.
-- Dependency verification, release signing and dependency locking.
-- Comprehensive contract tests against every fake service and bridge command.
+- [~] Injectable app bridge handler for runtime, workspace, Git and terminal
+      commands; session and settings commands remain open.
+- [ ] Runtime installer integration and Android process launcher.
+- [ ] Server supervisor with authenticated health, backoff, crash-loop
+      breaker, and process-tree termination.
+- [ ] Production gateway composition using `OpenCodeHttpClient` and
+      `SecureLoopbackAuth`, including SSE reconnect/resync.
+- [ ] Diagnostics storage/export and production log scrubbing.
+- [ ] JSON serialization and per-command payload DTOs.
+- [ ] Foreground-service lifecycle and recovery behavior.
+- [ ] Native loader/PRoot process management and JNI `forkpty`.
+- [ ] G1 device acceptance (RT-1..RT-4, SEC-1/2, STR-1/5, LC-3, WS-1/2).
+- [ ] Dependency verification, release signing and dependency locking.
+- [ ] Comprehensive contract tests against every bridge command.
 
-The app-local fake services and partial handler are test fixtures, not
-production implementations or device-acceptance evidence. The supported
-command subset is intentionally incomplete until G0 freezes the runtime,
-transport, and version decisions.
+The app-local fake services remain test fixtures, not production
+implementations or device-acceptance evidence.
 
 The TypeScript bridge is retained only as a protocol-parity fixture during
 the scaffold phase. It is not an Android UI or a WebView transport; the

@@ -17,8 +17,9 @@ separately. Passing automated checks alone does not unblock G0.
 
 ## Current Test Status
 
-- [x] Gated spike APK assembles successfully; latest reported APK SHA-256 is
-  `b07762bd4b598b7f07ecccbbce28e5f43d94a5649ab12d7da48c04ccfc9bca5b`.
+- [x] Gated spike APK assembles successfully; latest CI APK SHA-256 is
+  `d0daff1709397c02135fe550adddcfc46d5e14065b50dd55024b195ef69fd184`
+  (commit `e082fd9`, run `40419321443`).
 - [x] S1 authenticated-health and mock-provider smoke: two user-reported runs
   passed; see `tests/spikes/results/S1-server-mock-20261024.md`.
 - [x] S8 Gboard field-input test: owner-reported green with text, IME,
@@ -37,8 +38,12 @@ separately. Passing automated checks alone does not unblock G0.
 - [x] Harness exposes one button per G0 gate. Available probes run; gates that
   require production wiring, external artifacts, or owner decisions record
   blocked/manual/deferred status instead of a false pass.
-- [ ] Run one 10-minute S7 active-task run with the screen off; this remains
-  separate from the S8 decision above.
+- [x] Owner override (2026-10-27): accept S7/LC-2 as pass. The 10-minute
+  Infinix service/child survival diagnostic completed; sparse child sampling
+  is classified as a platform background-execution limitation, not a product
+  failure.
+- [ ] Post-G0 follow-up: run one real 10-minute active-agent task with the
+  screen off; this does not block G0 after the owner override.
 
 ## 1. Decisions and project gates
 
@@ -53,8 +58,9 @@ separately. Passing automated checks alone does not unblock G0.
   do not encode a default before the evidence is admissible.
 - [ ] Resolve the S6 2.x artifact check when a distributable artifact exists;
   do not change the current 1.19.3 pin based on an unavailable artifact.
-- [ ] Keep production runtime/service wiring gated until G0 is complete; use
-  only isolated disposable/debug harnesses for pre-G0 feasibility evidence.
+- [~] Owner direction (2026-10-27): proceed with G1-G2 implementation while
+  the open G0 blockers remain release blockers. G1 work is tracked in
+  `docs/plan/phase-1.md`; G2 in `docs/plan/phase-2.md`.
 - [ ] Resolve discrepancies between the legacy root `plan.md` decision IDs and
   `docs/spec.md`; use the latter for G0 decisions and avoid conflating IDs.
 
@@ -67,10 +73,13 @@ separately. Passing automated checks alone does not unblock G0.
   direction with the architecture checker.
 - [x] Preserve host tests for the bridge parser, reconnect/resync logic,
   runtime artifacts, workspace guards, and bounded file reads.
-- [ ] Complete remaining G1 device acceptance: RT-1..RT-5, SEC-1/2, STR-1/5,
-  LC-3, and WS-1/2 as specified in the phase plan.
-- [ ] Add production service wiring only after applicable G0 gates; keep test
-  fakes and the partial bridge handler clearly test-only.
+- [~] G1 implementation started: an injectable app bridge handler now covers
+  runtime, workspace, Git and terminal commands. Runtime launcher, supervisor,
+  gateway, diagnostics and payload DTOs remain open.
+- [ ] Complete G1 device acceptance: RT-1..RT-4, SEC-1/2, STR-1/5, LC-3, and
+  WS-1/2 as specified in `docs/plan/phase-1.md`. RT-5 is out of scope for v1.
+- [ ] Keep test fakes and test-only harnesses clearly separate from production
+  composition and device-acceptance evidence.
 - [ ] Finish the strangler migration in order: models/client, runtime,
   workspace/security/terminal, then retire legacy paths.
 - [ ] Maintain the `upstream` remote and record adaptations in `docs/UPSTREAM.md`.
@@ -104,32 +113,36 @@ separately. Passing automated checks alone does not unblock G0.
 
 ## 4. S7 lifecycle and device acceptance
 
-- [~] The isolated harness has a 10-minute quick foreground-service diagnostic,
-  partial wake lock, separate alarm heartbeat, and power-state telemetry;
-  validate it on devices as a diagnostic only.
+- [x] The isolated harness has a 10-minute quick foreground-service diagnostic,
+  partial wake lock, separate alarm heartbeat, and power-state telemetry; it
+  has been validated on the Infinix X6870 as a diagnostic only.
 - [~] The 2026-10-26 Infinix diagnostic records 631,745 ms service survival
   and zero restarts; the child remained alive at manual stop. The owner
   classifies sparse samples (31/62, with two gaps over 25 seconds) as Android
   scheduling behavior, not child-process failure. It was not a continuous
   screen-off agent task. See `tests/spikes/results/S7-soak-20261026-041939.md`.
-- [ ] Confirm S7 represents an active agent task with screen off, not an idle
-  foreground service. Idle freeze/suspend is not a failure by itself.
-- [ ] For each run capture monotonic `elapsedRealtime`, alarm heartbeat,
+- [ ] Post-G0 follow-up: confirm S7 represents an active agent task with
+  screen off, not an idle foreground service. Idle freeze/suspend is not a
+  failure by itself.
+- [x] For each run capture monotonic `elapsedRealtime`, alarm heartbeat,
   service heartbeat/restarts, `isInteractive`, `isDeviceIdleMode`,
   `isPowerSaveMode`, and battery-optimization exemption state.
-- [ ] Capture `dumpsys activity services`, `dumpsys deviceidle`, and logcat
-  evidence for `am_kill`, `lmkd`, and fatal process errors.
-- [ ] Treat alarm delivery as diagnostic only; do not assume Doze/OEM policy
+- [ ] Post-G0 follow-up: capture `dumpsys activity services`,
+  `dumpsys deviceidle`, and logcat evidence for `am_kill`, `lmkd`, and fatal
+  process errors.
+- [x] Treat alarm delivery as diagnostic only; do not assume Doze/OEM policy
   guarantees a fixed alarm cadence.
 - [x] Quick diagnostic auto-stops after 10 minutes and rejects early exports;
   this is separate from the active-task acceptance run.
-- [ ] For formal acceptance, run one 10-minute active task with screen off and
-  use monotonic elapsed time; never count start-to-export wall time as
-  survival duration.
-- [ ] Record OEM settings, device/build identity, APK hash, ABI, page size,
+- [ ] Post-G0 follow-up: for formal active-agent acceptance, run one
+  10-minute active task with screen off and use monotonic elapsed time; never
+  count start-to-export wall time as survival duration.
+- [x] Record OEM settings, device/build identity, APK hash, ABI, page size,
   thermal state, and all report artifacts for that single run.
-- [ ] Update S7/LC-2 only after the active-task run passes; the latest
-  10-minute service diagnostic does not satisfy the active-agent requirement.
+- [x] Owner override (2026-10-27): S7/LC-2 recorded as pass. The 10-minute
+  service diagnostic completed with the child alive at stop; sparse child
+  sampling is accepted as a platform background-execution limitation. A real
+  active-agent run remains a post-G0 follow-up.
 - [ ] LC-5 (4 h soak) and LC-6 (thermal) are optional post-G0 checks on the
   same device; they do not block G0.
 
@@ -195,8 +208,8 @@ separately. Passing automated checks alone does not unblock G0.
   atomic-write stress, and sparse 1 GiB bounded-range test.
 - [ ] Measure workspace memory/latency budgets on target devices and validate
   durability and file-operation matrices on required target filesystems.
-- [ ] Wire WorkspaceService to the app only after applicable G0 approval;
-  test hostile paths, symlinks, conflicts, interruption, and restore flows.
+- [ ] Wire WorkspaceService through the production composition root; test
+  hostile paths, symlinks, conflicts, interruption, and restore flows.
 - [ ] Implement guest Git as the single source of truth and measure status on
   the specified 5,000-file repository before considering JGit.
 - [ ] Implement native `forkpty`/PtyService with bounded scrollback and session
@@ -282,5 +295,5 @@ separately. Passing automated checks alone does not unblock G0.
 - [ ] Required host tests, Android builds, CI checks, reference-device runs, and
   release compliance checks pass on the exact candidate APK/runtime hashes.
 - [ ] No S7/S8 or other device row is promoted solely by host tests, harness
-  scaffolding, export timing, or owner-reported results without supporting
-  device evidence.
+  scaffolding, export timing, or owner reports without supporting device
+  evidence; explicit owner overrides must cite that evidence.

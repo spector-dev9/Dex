@@ -1,6 +1,6 @@
 # Phase 0 plan — repository setup, audit, feasibility
 
-Status: **Phase 0 evidence audit complete. Phase 2 in progress. G0 is blocked on the single Infinix X6870 reference device.**
+Status: **Phase 0 evidence audit complete. G0 remains partially open on the single Infinix X6870 reference device; the owner has directed G1-G2 implementation to proceed while the open G0 blockers are tracked and must clear before release.**
 
 Decision IDs in this document follow `docs/spec.md`: D1 is distribution,
 D4 is the runtime profile, and D5 is the OpenCode version pin. The older
@@ -27,13 +27,15 @@ about 13 minutes and 25 seconds after start, not at confirmed service
 death. A later 10-minute Infinix harness diagnostic reports 631,745 ms of
 service survival with zero restarts; the child remained alive at stop, while
 sparse samples were classified by the owner as Android scheduling behavior.
-It did not establish continuous screen-off or active-agent survival; see
-`tests/spikes/results/S7-soak-20261026-041939.md`. S2, S7 (single 10-minute
-active-task run), S6's 2.x artifact decision, and S9 compliance remain open on
-the reference device. S8/TERM-5 was owner-accepted as pass on 2026-10-27 based
-on early Gboard field-input evidence plus the dedicated native-PTY scripted
-byte round-trip; remaining native-terminal UI coverage is a non-blocking
-follow-up.
+The 2026-10-27 Infinix report repeated the pattern: the service survived and
+the child was alive at stop, but child sampling covered only 14/74 expected
+samples; the owner accepts this as a platform background-execution limit.
+S7/LC-2 is therefore owner-accepted as pass, with a real active-agent run
+retained as a post-G0 follow-up. S2, S6's 2.x artifact decision, and S9
+compliance remain open on the reference device. S8/TERM-5 was owner-accepted
+as pass on 2026-10-27 based on early Gboard field-input evidence plus the
+dedicated native-PTY scripted byte round-trip; remaining native-terminal UI
+coverage is a non-blocking follow-up.
 Do not start G0-dependent production service wiring or claim gate
 acceptance until these blockers clear.
 
@@ -57,9 +59,10 @@ start/stop probes. Its claimed S3 pass is invalid because output contained
 It records S8 text changes but no key-down events (expected for a soft IME). The report does not
 contain an archive hash, and does not cover the S7 active-task run.
 That invalidated report is superseded for S3 by later runs on the Infinix
-X6870, which verify Node and matching guest/PTY values. S8/TERM-5 was
-owner-accepted as pass on 2026-10-27; continue with the single 10-minute
-active-task S7 run before freezing D4 or ratifying device-dependent thresholds.
+X6870, which verify Node and matching guest/PTY values. S8/TERM-5 and
+S7/LC-2 were owner-accepted as pass on 2026-10-27; a real active-agent S7 run
+remains a post-G0 follow-up. Continue with S1-B/S2/S3 production evidence
+before freezing D4 or ratifying device-dependent thresholds.
 
 An isolated device harness now exists at `tests/spikes/harness/` and is
 excluded from normal builds (`-PspikeHarness=true`). It records device
@@ -68,8 +71,8 @@ entrypoint, runs a PRoot guest shell, compares the guest shell with a
 native `forkpty` session, exercises a timed `specialUse` foreground-service
 probe with a partial wake lock, separate alarm heartbeat and power-state
 telemetry, and records IME input. It remains a harness-service diagnostic;
-it does not stand in for an active agent task or S7/LC-2 acceptance. One
-staged physical-device run is recorded in
+S7/LC-2 is owner-accepted from that diagnostic, while a real active-agent run
+remains a post-G0 follow-up. One staged physical-device run is recorded in
 `tests/spikes/results/S3-device-harness-20261024-staged.md`; it is
 partial feasibility evidence, not G0 acceptance.
 
@@ -103,10 +106,10 @@ it does not implement these production lifecycle behaviors.
 
 - One-device harness evidence now passes the loader `--version`, guest
   shell, native PTY and foreground-service start/stop probes. Full S1
-  server/prompt coverage, S2 comparisons and the 10-minute active-task S7
-  run remain pending; the run does not promote acceptance rows. S8/TERM-5 is
-  owner-accepted as pass, with native-terminal coverage retained as a
-  non-blocking follow-up.
+  server/prompt coverage and S2 comparisons remain pending; the run does not
+  promote acceptance rows. S7/LC-2 and S8/TERM-5 are owner-accepted as pass,
+  with active-agent and native-terminal coverage retained as non-blocking
+  follow-ups.
 - Runtime packaging/supervision, authenticated ephemeral loopback
   lifecycle, production Kotlin HTTP/SSE gateway, native workspace
   operations and native interactive PTY are not implemented.
@@ -173,7 +176,7 @@ it does not implement these production lifecycle behaviors.
   PRoot dynamically links libtalloc. Open blockers: Bun LGPL object-file/source-offer review and
   verification of the dependency closure against the built binary.
 
-## Target layout (contracts now; implementations after G0)
+## Target layout (contracts stable; G1 implementations in progress)
 
 ```
 ui/
@@ -186,7 +189,8 @@ ui/
    ├─ resync.ts              STR-5 resync algorithm (done)
    ├─ client.ts              authenticated SSE client (done)
    └─ *.test.ts              30 tests total with contract suite
-app/                         Kotlin app shell, Gradle KTS, WebView only
+app/                         Kotlin app shell, Gradle KTS, Jetpack Compose;
+                             G1 service composition and bridge handler
 core/                        ten `*-api` interface modules (contracts compile;
                              runtime, supervisor, gateway, workspace, git,
                              terminal, security, diagnostics, bridge, common)
@@ -196,8 +200,9 @@ docs/runtime-matrix.md      done; D4 decision at G0
 .github/workflows/           ci, android-debug, drift
 ```
 
-Interfaces only at first. Implementations land only after G0 freezes
-D1 (distribution), D4 (runtime profile) and D5 (version pin).
+Contracts remain stable while G1 production implementations land. G0 is
+not green; the owner has directed G1-G2 to proceed, and the open G0 items
+remain release blockers. D4 stays provisional until its evidence clears.
 
 ## G1 interface scaffold (2026-10-23)
 
@@ -213,14 +218,16 @@ D1 (distribution), D4 (runtime profile) and D5 (version pin).
 - [x] Compiled-class reflection parity for commands, errors, timeouts and
       event topics; `@RequiresG0` markers and `SupervisorConfig`.
 - [x] Minimal Android app shell; debug/release assembly in CI.
-- [ ] Production bridge handler, fake service implementations and command
-      payload DTOs (after G0). A test-only fake-services/partial-handler
-      harness and focused unit tests exist; they are not production wiring
-      or device-acceptance evidence.
-- [ ] G1 acceptance (RT-1..RT-5, SEC-1/2, STR-1/5, LC-3, WS-1/2) on
-      devices.
+- [~] Production bridge handler and service composition started on
+      2026-10-27: the app now has an injectable handler for runtime,
+      workspace, Git and terminal commands. Runtime launcher, supervisor,
+      gateway, diagnostics and command payload DTOs still need production
+      implementations; the fake-services harness remains test-only.
+- [ ] G1 acceptance (RT-1..RT-4, SEC-1/2, STR-1/5, LC-3, WS-1/2) on
+      devices. G1 is tracked in `docs/plan/phase-1.md`; RT-5 is out of
+      scope for v1.
 
-See `docs/architecture/g1-contracts.md`.
+See `docs/architecture/g1-contracts.md` and `docs/plan/phase-1.md`.
 
 ## Phase 2 device harness scaffold (2026-10-24)
 
@@ -261,9 +268,13 @@ See `docs/architecture/g1-contracts.md`.
       devices; see `docs/evidence/Device 1` and `docs/evidence/Test 2`.
 - [x] Run the exploratory S7 soak on two devices (historical, outside the
       v1 G0 scope); the 10-minute harness-service diagnostic on the Infinix
-      X6870 passed. A single 10-minute active-task run remains open.
-- [ ] Complete S1 and S2 on the Infinix X6870, the production
-      agent-shell comparison, and the single 10-minute agent-task S7 run.
+      X6870 passed.
+- [x] Owner override (2026-10-27): accept S7/LC-2 as pass. The 10-minute
+      Infinix service/child survival diagnostic completed; sparse child
+      sampling is a platform background-execution limitation. A real
+      active-agent run remains a post-G0 follow-up.
+- [ ] Complete S1 and S2 on the Infinix X6870 and the production
+      agent-shell comparison.
 - [x] Owner override (2026-10-27): accept S8/TERM-5 as pass based on early
       Gboard field-input evidence plus the dedicated native-PTY scripted
       byte round-trip; native-terminal coverage remains a non-blocking
@@ -289,7 +300,7 @@ See `docs/architecture/g1-contracts.md`.
 | S4 | pass (host, mock + real provider); app/UI pending | `tests/spikes/results/S4-sse.md` |
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
-| S7 | partial (10-minute harness-service diagnostic passed; active-task run pending) | `docs/evidence/Device 1`, `docs/evidence/RESULTS.md` |
+| S7 | pass (owner override 2026-10-27: 10-minute Infinix service/child diagnostic; sparse child sampling accepted as platform limit; active-agent run is a post-G0 follow-up) | `docs/evidence/Device 1`, `docs/evidence/RESULTS.md`, `docs/project-checklist.md` |
 | S8 | pass (owner override 2026-10-27: early Gboard field input green + scripted native-PTY round-trip; native-terminal follow-up) | `docs/evidence/Device 1`, `docs/evidence/RESULTS.md` |
 | S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
@@ -334,8 +345,11 @@ See `docs/architecture/g1-contracts.md`.
    thresholds from measured device baselines, and record the final gate
    decision. D1 is already accepted and D5 is pinned for the current
    baseline.
-6. **After G0:** begin production service wiring and command DTOs; then
-   validate app/UI bridge abort/reconnect behavior and event-to-paint.
+6. **G1-G2 transition (owner direction 2026-10-27):** begin production
+   service composition and the bridge handler now; track the still-open G0
+   blockers (S1-B/S2/S3 production evidence, S6 2.x artifact, S9 compliance,
+   baselines, D4) as release blockers rather than pausing G1-G2. See
+   `docs/plan/phase-1.md` and `docs/plan/phase-2.md`.
 
 ## Outstanding device evidence
 
@@ -349,7 +363,7 @@ infer completion of the following tests:
 | S1 authenticated server and prompt | The report proves loader execution, not authenticated `/global/health` or a mock-provider prompt round trip on a physical target. | Run the harness's authenticated-server action on the Infinix X6870 and preserve the report and APK/artifact hashes. |
 | S2 runtime profiles | No comparable cold start, idle PSS/RSS, 10k-file Git status, agent `npm test`, or thermal results for Profiles A and B. | Execute the prescribed workloads on the Infinix X6870 and record measurements before deciding D4. |
 | Other hardware and RT-5 | Out of scope for v1. The Infinix X6870 is the only supported G0 target; RT-5 boot remains out of scope because it has 4 KB pages. | Keep the CI ELF-alignment check; revisit only if more hardware is supported. |
-| S7 / LC lifecycle | One-device foreground-service start/stop is present; active-task survival and crash recovery are absent. | Run one 10-minute active-task, screen-off run on the Infinix X6870 and classify failures from diagnostics. |
+| S7 / LC lifecycle | Owner override on 2026-10-27 accepted S7/LC-2 as pass from the 10-minute Infinix service/child diagnostic; sparse child sampling is classified as a platform background-execution limit. A real active-agent run is absent. | Treat the active-agent run as a non-blocking post-G0 follow-up; keep production lifecycle and crash recovery under G1/LC-3. |
 | S8 / TERM-5 keyboard | Owner override on 2026-10-27 accepted S8/TERM-5 as pass using the green Gboard field-input reports plus the dedicated scripted native-PTY byte round-trip. Native-terminal TERM-5 coverage is still absent. | Treat native-terminal TERM-5 coverage as a non-blocking post-G0 follow-up. |
 | S6 / 2.x | No distributable OpenCode 2.x artifact is available to test. | Keep the 1.19.3 pin and run contract tests only when a distributable candidate exists. |
 

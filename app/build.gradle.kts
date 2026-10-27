@@ -50,8 +50,17 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core:terminal-api"))
+    implementation(project(":core:bridge-api"))
+    implementation(project(":core:common-api"))
+    implementation(project(":core:diagnostics-api"))
+    implementation(project(":core:gateway-api"))
+    implementation(project(":core:git-api"))
+    implementation(project(":core:runtime-api"))
     implementation(project(":core:security"))
+    implementation(project(":core:security-api"))
+    implementation(project(":core:supervisor-api"))
+    implementation(project(":core:terminal-api"))
+    implementation(project(":core:workspace-api"))
 
     testImplementation(project(":core:bridge-api"))
     testImplementation(project(":core:common-api"))

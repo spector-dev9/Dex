@@ -503,6 +503,7 @@ class MainActivity : Activity() {
             return
         }
         SpikeReport.upsert(result)
+        applyS7OwnerOverride(result)
         append(result)
         SpikeChildProcessProbe.stopAndAnalyze(this, "manual-stop")?.let {
             SpikeReport.upsert(it)
@@ -513,6 +514,15 @@ class MainActivity : Activity() {
         refreshSoakStatus()
     }
 
+    private fun applyS7OwnerOverride(record: ProbeRecord) {
+        if (record.id != "S7-background-survival" || !record.pass) return
+        setGateResult(
+            "S7-LC2",
+            "pass",
+            "Owner override 2026-10-27: S7/LC-2 accepted as pass. The 10-minute Infinix service/child survival diagnostic completed; sparse child sampling is a platform background-execution limitation, not a product failure. A real active-agent run remains a post-G0 follow-up.",
+        )
+    }
+
     private fun writeReport() {
         if (SpikeForegroundService.isEarlyRunActive(this)) {
             statusView.text = "Report export blocked until the S7 soak completes"
@@ -521,6 +531,7 @@ class MainActivity : Activity() {
         recordImeObservation()
         SpikeForegroundService.completeSoak(this)?.let {
             SpikeReport.upsert(it)
+            applyS7OwnerOverride(it)
             SpikeChildProcessProbe.stopAndAnalyze(this, "report-export")?.let { child ->
                 SpikeReport.upsert(child)
             }
