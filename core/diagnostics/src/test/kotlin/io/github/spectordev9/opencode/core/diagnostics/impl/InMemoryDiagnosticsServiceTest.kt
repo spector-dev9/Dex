@@ -58,7 +58,7 @@ class InMemoryDiagnosticsServiceTest {
         assertEquals("9.9.9", report.appVersion)
         assertEquals("1.0.0", report.runtimeVersion)
         assertEquals("1.19.3", report.openCodeVersion)
-        assertEquals(42, report.generatedAtEpochMillis)
+        assertEquals(42L, report.generatedAtEpochMillis)
     }
 
     private fun service(capacity: Int = 10): InMemoryDiagnosticsService = InMemoryDiagnosticsService(
