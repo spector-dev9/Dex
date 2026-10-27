@@ -6,11 +6,14 @@ has an injectable production bridge handler for runtime, workspace, Git and
 terminal commands, with app unit coverage against service fakes. The
 app-local fake service harness remains test-only and is not device evidence.
 The `core:runtime` JVM module validates the pinned manifest and installed
-file layout, and provides archive SHA-256 verification. The installer does
-not yet wire those checks into an atomic installation flow or verify
-extracted files at startup. Android process launch, runtime supervision,
-gateway composition, diagnostics storage, JNI `forkpty`, command payload
-DTOs, and bridge JSON serialization are still not implemented.
+file layout. Its installer verifies both the archive and extracted
+executable SHA-256 values, extracts into a staging directory, and publishes
+with an atomic move. The `core:supervisor` JVM module now implements health
+polling, backoff, crash-loop breaking, stop/restart, and state reporting
+behind a `ServerLauncher` port. Android process launch, production launcher
+and authenticated-health composition, gateway composition, diagnostics
+storage, JNI `forkpty`, command payload DTOs, and bridge JSON serialization
+are still not implemented.
 
 G0 is not green. The owner has directed G1-G2 work to proceed while the
 open G0 blockers (S1-B/S2/S3 production evidence, S6 2.x artifact, S9
@@ -32,6 +35,7 @@ All source lives under `io.github.spectordev9.opencode.core.<module>`.
 | `core:runtime-api` | runtime state, verified artifacts, process spawning | `common-api` |
 | `core:runtime` | manifest and runtime file validation; platform launcher port | `common-api`, `runtime-api` |
 | `core:supervisor-api` | loopback server lifecycle, health and backoff | `common-api` |
+| `core:supervisor` | process supervision, health polling, backoff, crash-loop breaker | `common-api`, `runtime-api`, `supervisor-api` |
 | `core:gateway-api` | typed HTTP operations, SSE events, health | `common-api` |
 | `core:workspace-api` | path-scoped list/read/write/mkdir/rename/trash | `common-api` |
 | `core:git-api` | guest Git status/diff/network/commit | `common-api` |
@@ -62,7 +66,7 @@ independent of service implementation details.
 Rules checked by `scripts/check-architecture.py`:
 
 - exactly ten contract `core/*-api` modules plus `model`, `opencode-client`,
-  and `runtime` are included;
+  `runtime`, and `supervisor` are included;
 - `common-api` has no project dependency and no core imports;
 - implementation modules depend only on their relevant core contracts;
 - `runtime-api` remains free of implementation and serialization dependencies;
@@ -163,8 +167,9 @@ they must not change the envelope shapes above.
 - [~] Injectable app bridge handler for runtime, workspace, Git and terminal
       commands; session and settings commands remain open.
 - [ ] Runtime installer integration and Android process launcher.
-- [ ] Server supervisor with authenticated health, backoff, crash-loop
-      breaker, and process-tree termination.
+- [~] Server supervisor with backoff, crash-loop breaker, stop/restart and
+      state reporting; production launcher, authenticated health and
+      process-tree termination remain open.
 - [ ] Production gateway composition using `OpenCodeHttpClient` and
       `SecureLoopbackAuth`, including SSE reconnect/resync.
 - [ ] Diagnostics storage/export and production log scrubbing.

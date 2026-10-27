@@ -28,6 +28,7 @@ include(
     ":core:runtime-api",
     ":core:security",
     ":core:security-api",
+    ":core:supervisor",
     ":core:supervisor-api",
     ":core:terminal-api",
     ":core:workspace",

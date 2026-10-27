@@ -39,9 +39,11 @@ constructed with real or fake ports without changing call sites.
 
 ### M1 — runtime install and launch
 
-- [ ] Make runtime installation atomic: verify archive and executable
-      hashes, install into a staging directory, fsync, then move into place.
-- [ ] Verify extracted files and the pinned version at startup.
+- [~] Make runtime installation atomic: archive and executable hashes and
+      staging/atomic move are implemented; fsync durability remains open.
+- [~] Verify extracted files and the pinned version at startup; executable
+      digest and manifest layout are checked, but full extracted-tree
+      verification remains open.
 - [ ] Implement the Android process launcher using packaged native
       entrypoints; do not execute from writable storage.
 - [ ] Wire the pinned manifest and runtime assets into the app build.
@@ -54,11 +56,12 @@ headlessly, with hash and version mismatches refused.
 
 ### M2 — server supervision and lifecycle
 
-- [ ] Implement server start, authenticated health, stop and restart with
-      the `SupervisorConfig` timeouts and backoff.
+- [~] Implement server start, health, stop and restart with the
+      `SupervisorConfig` timeouts and backoff; JVM supervisor and tests are
+      implemented, production launcher and authenticated health remain open.
 - [ ] Add exactly-one-listener enforcement and process-tree termination.
-- [ ] Implement restart backoff and the crash-loop breaker (five failures in
-      five minutes by default).
+- [~] Implement restart backoff and the crash-loop breaker (five failures in
+      five minutes by default); JVM implementation and tests are in place.
 - [ ] Implement SIGKILL recovery for LC-3: healthy within 10 s p95, sessions
       intact, exactly one listener.
 - [ ] Add foreground-service and wake-lock ownership only while an agent task
