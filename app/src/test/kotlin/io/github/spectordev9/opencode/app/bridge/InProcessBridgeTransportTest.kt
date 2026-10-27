@@ -21,8 +21,9 @@ class InProcessBridgeTransportTest {
     fun `routes commands to the handler and publishes results`() = runBlocking {
         val transport = InProcessBridgeTransport(
             scope = this,
-            handler = BridgeCommandHandler { command ->
-                ResultEnvelope.Ok(command.id, mapOf("accepted" to true))
+            handler = object : BridgeCommandHandler {
+                override suspend fun handle(command: CommandEnvelope): ResultEnvelope =
+                    ResultEnvelope.Ok(command.id, mapOf("accepted" to true))
             },
         )
         val received = CompletableDeferred<ResultEnvelope>()
@@ -40,7 +41,10 @@ class InProcessBridgeTransportTest {
     fun `turns unexpected handler failures into an upstream error`() = runBlocking {
         val transport = InProcessBridgeTransport(
             scope = this,
-            handler = BridgeCommandHandler { error("handler exploded") },
+            handler = object : BridgeCommandHandler {
+                override suspend fun handle(command: CommandEnvelope): ResultEnvelope =
+                    error("handler exploded")
+            },
         )
         val received = CompletableDeferred<ResultEnvelope>()
         transport.subscribe { message ->
@@ -57,7 +61,10 @@ class InProcessBridgeTransportTest {
     fun `publishes events to all subscribers despite a broken subscriber`() = runBlocking {
         val transport = InProcessBridgeTransport(
             scope = this,
-            handler = BridgeCommandHandler { command -> ResultEnvelope.Ok(command.id, Unit) },
+            handler = object : BridgeCommandHandler {
+                override suspend fun handle(command: CommandEnvelope): ResultEnvelope =
+                    ResultEnvelope.Ok(command.id, Unit)
+            },
         )
         val received = CompletableDeferred<BridgeMessage>()
         transport.subscribe { error("broken subscriber") }
@@ -80,7 +87,10 @@ class InProcessBridgeTransportTest {
     fun `stops delivery and rejects sends after close`() = runBlocking {
         val transport = InProcessBridgeTransport(
             scope = this,
-            handler = BridgeCommandHandler { command -> ResultEnvelope.Ok(command.id, Unit) },
+            handler = object : BridgeCommandHandler {
+                override suspend fun handle(command: CommandEnvelope): ResultEnvelope =
+                    ResultEnvelope.Ok(command.id, Unit)
+            },
         )
         var delivered = 0
         transport.subscribe { delivered += 1 }
