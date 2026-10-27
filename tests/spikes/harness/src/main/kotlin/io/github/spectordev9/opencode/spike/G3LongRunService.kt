@@ -57,6 +57,14 @@ class G3LongRunService : Service() {
                             writeStatus("LC-4", message, true, null)
                         }
                     }
+                    ACTION_WS2 -> {
+                        val runs = intent?.getIntExtra(EXTRA_RUNS, 1000) ?: 1000
+                        updateNotification("WS-2 running $runs atomic-write kills")
+                        G3WorkspaceChecks.runWs2(this, runs) { message ->
+                            updateNotification(message)
+                            writeStatus("WS-2", message, true, null)
+                        }
+                    }
                     else -> null
                 }
             } catch (t: Throwable) {
@@ -139,6 +147,7 @@ class G3LongRunService : Service() {
     companion object {
         const val ACTION_LC3 = "g3.lc3"
         const val ACTION_LC4 = "g3.lc4"
+        const val ACTION_WS2 = "g3.ws2"
         const val EXTRA_RUNS = "runs"
         const val EXTRA_MINUTES = "minutes"
         private const val CHANNEL_ID = "g3-long-run"

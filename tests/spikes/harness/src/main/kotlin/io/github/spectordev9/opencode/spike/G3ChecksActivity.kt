@@ -67,15 +67,17 @@ class G3ChecksActivity : Activity() {
                 val version = SpikeRuntimeInstaller.install(this) { message, done, total ->
                     ui { progressView.text = "$message $done/$total" }
                 }
-                ui { progressView.text = "runtime $version installed and verified" }
-                refreshRuntime()
+                ui {
+                    progressView.text = "runtime $version installed and verified"
+                    refreshRuntime()
+                }
             }
         }
         addButton(root, "WS-2 quick: 100 atomic-write kills") {
             runCheck("WS-2 quick") { G3WorkspaceChecks.runWs2(this, 100, ::progress) }
         }
-        addButton(root, "WS-2 full: 1000 atomic-write kills") {
-            runCheck("WS-2 full") { G3WorkspaceChecks.runWs2(this, 1000, ::progress) }
+        addButton(root, "WS-2 full: 1000 atomic-write kills (background)") {
+            startLongRun(G3LongRunService.ACTION_WS2, 1000, 0)
         }
         addButton(root, "WS-3: 50 conflict checks") {
             runCheck("WS-3") { G3WorkspaceChecks.runWs3(this, 50, ::progress) }
