@@ -1,0 +1,19 @@
+{
+  "runtimeDir": "/data/data/com.termux/files/home/mkd/remote-check/runtime/artifacts/opencode-1.19.3",
+  "files": [
+    {
+      "name": "opencode",
+      "present": true,
+      "size": 195014520,
+      "loadAlign": [
+        65536,
+        65536,
+        65536
+      ]
+    }
+  ],
+  "minimumAlignment": 65536,
+  "pass": true,
+  "binarySha256": "37c7de554c2ba7bf456e4fe6faf7705141b0ccb3a7b1dd6e1046d52cd8269ecd",
+  "expectedBinarySha256": "37c7de554c2ba7bf456e4fe6faf7705141b0ccb3a7b1dd6e1046d52cd8269ecd"
+}

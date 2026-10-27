@@ -1,0 +1,13 @@
+timestamp_utc: 2026-10-27T11:33:04Z
+adb_device: 10.110.54.54:39667
+model: Infinix X6870
+android_release: 16
+sdk: 36
+abi: arm64-v8a
+page_size: 4096
+hardware: mt6878
+mem_total: MemTotal:        5583124 kB
+data_free: /dev/block/dm-83 105G  23G   81G  23% /data/user/0
+uptime:  17:03:04 up 4 days,  9:42,  0 users,  load average: 19.60, 19.41, 20.29
+package: package:io.github.spectordev9.opencode uid:10375
+installed:     versionCode=1 minSdk=26 targetSdk=36     versionName=unspecified     lastUpdateTime=2026-10-27 15:55:10       firstInstallTime=2026-10-27 15:55:10 

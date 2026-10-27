@@ -1,0 +1,537 @@
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5396116K used,   187008K free,     1692K buffers
+ Swap:  4187336K total,  2381320K used,  1806016K free,   787596K cached
+800%cpu 138%user   4%nice  81%sys 554%idle   0%iow  19%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5379020K used,   204104K free,     1692K buffers
+ Swap:  4187336K total,  2381064K used,  1806272K free,   787772K cached
+800%cpu 151%user   0%nice  48%sys 577%idle   1%iow  19%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5378492K used,   204632K free,     1692K buffers
+ Swap:  4187336K total,  2381064K used,  1806272K free,   787784K cached
+800%cpu 145%user   0%nice  42%sys 590%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5379164K used,   203960K free,     1692K buffers
+ Swap:  4187336K total,  2381064K used,  1806272K free,   788076K cached
+800%cpu 161%user   2%nice  49%sys 566%idle   1%iow  18%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5393308K used,   189816K free,     1704K buffers
+ Swap:  4187336K total,  2377736K used,  1809600K free,   799412K cached
+800%cpu 156%user   0%nice  67%sys 541%idle  12%iow  18%irq   6%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5393192K used,   189932K free,     1704K buffers
+ Swap:  4187336K total,  2376712K used,  1810624K free,   801552K cached
+800%cpu 151%user   1%nice  58%sys 561%idle   5%iow  19%irq   5%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5401072K used,   182052K free,     1712K buffers
+ Swap:  4187336K total,  2366984K used,  1820352K free,   801544K cached
+800%cpu 140%user   1%nice  36%sys 602%idle   0%iow  18%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5401064K used,   182060K free,     1712K buffers
+ Swap:  4187336K total,  2366984K used,  1820352K free,   801568K cached
+800%cpu 144%user   1%nice  53%sys 579%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5401876K used,   181248K free,     1716K buffers
+ Swap:  4187336K total,  2366984K used,  1820352K free,   802568K cached
+800%cpu 152%user   1%nice  47%sys 576%idle   0%iow  20%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5402320K used,   180804K free,     1716K buffers
+ Swap:  4187336K total,  2366728K used,  1820608K free,   802832K cached
+800%cpu 148%user   1%nice  48%sys 580%idle   1%iow  18%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5402368K used,   180756K free,     1716K buffers
+ Swap:  4187336K total,  2366728K used,  1820608K free,   802856K cached
+800%cpu 148%user   0%nice  46%sys 583%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5538000K used,    45124K free,     1656K buffers
+ Swap:  4187336K total,  2174172K used,  2013164K free,   787724K cached
+800%cpu 179%user   0%nice 148%sys 450%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 208M 124M S  0.0   3.8   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5529764K used,    53360K free,     1656K buffers
+ Swap:  4187336K total,  2173660K used,  2013676K free,   788380K cached
+800%cpu 155%user   2%nice  53%sys 567%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5531264K used,    51860K free,     1656K buffers
+ Swap:  4187336K total,  2173148K used,  2014188K free,   788544K cached
+800%cpu 147%user   0%nice  58%sys 572%idle   1%iow  18%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5535996K used,    47128K free,     1672K buffers
+ Swap:  4187336K total,  2169308K used,  2018028K free,   792308K cached
+800%cpu 151%user   7%nice  67%sys 549%idle   4%iow  18%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5528996K used,    54128K free,     1672K buffers
+ Swap:  4187336K total,  2168796K used,  2018540K free,   792656K cached
+800%cpu 157%user   2%nice  50%sys 569%idle   1%iow  17%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5529416K used,    53708K free,     1672K buffers
+ Swap:  4187336K total,  2168796K used,  2018540K free,   792816K cached
+800%cpu 142%user   0%nice  42%sys 593%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5529536K used,    53588K free,     1672K buffers
+ Swap:  4187336K total,  2168796K used,  2018540K free,   792828K cached
+800%cpu 151%user   0%nice  47%sys 580%idle   0%iow  18%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5529912K used,    53212K free,     1672K buffers
+ Swap:  4187336K total,  2168796K used,  2018540K free,   792832K cached
+800%cpu 152%user   1%nice  51%sys 573%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5530308K used,    52816K free,     1672K buffers
+ Swap:  4187336K total,  2168540K used,  2018796K free,   793228K cached
+800%cpu 150%user   0%nice  49%sys 577%idle   1%iow  19%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5531544K used,    51580K free,     1672K buffers
+ Swap:  4187336K total,  2168540K used,  2018796K free,   793224K cached
+800%cpu 145%user   0%nice  44%sys 587%idle   1%iow  19%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5533044K used,    50080K free,     1680K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   793412K cached
+800%cpu 150%user   1%nice  42%sys 586%idle   1%iow  17%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5532564K used,    50560K free,     1680K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   793408K cached
+800%cpu 147%user   0%nice  47%sys 583%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5532896K used,    50228K free,     1680K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   793428K cached
+800%cpu 152%user   0%nice  45%sys 581%idle   0%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5533044K used,    50080K free,     1680K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   793552K cached
+800%cpu 141%user   1%nice  49%sys 586%idle   1%iow  18%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5534112K used,    49012K free,     1680K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   793752K cached
+800%cpu 148%user   0%nice  41%sys 588%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5535552K used,    47572K free,     1680K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   793876K cached
+800%cpu 144%user   0%nice  40%sys 594%idle   1%iow  18%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5536616K used,    46508K free,     1680K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   795392K cached
+800%cpu 149%user   1%nice  43%sys 584%idle   1%iow  18%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5549348K used,    33776K free,     1680K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   795968K cached
+800%cpu 144%user   0%nice  55%sys 578%idle   1%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5546316K used,    36808K free,     1688K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   795968K cached
+800%cpu 146%user   2%nice  38%sys 591%idle   1%iow  18%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5546112K used,    37012K free,     1688K buffers
+ Swap:  4187336K total,  2168284K used,  2019052K free,   795968K cached
+800%cpu 151%user   0%nice  44%sys 583%idle   0%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5546796K used,    36328K free,     1692K buffers
+ Swap:  4187336K total,  2166748K used,  2020588K free,   796496K cached
+800%cpu 151%user   3%nice  40%sys 583%idle   2%iow  18%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5549012K used,    34112K free,     1692K buffers
+ Swap:  4187336K total,  2166236K used,  2021100K free,   797572K cached
+800%cpu 146%user   2%nice  42%sys 587%idle   1%iow  18%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  2.0   3.7   0:03.05 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5550352K used,    32772K free,     1692K buffers
+ Swap:  4187336K total,  2166236K used,  2021100K free,   797812K cached
+800%cpu 144%user   0%nice  51%sys 583%idle   0%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.07 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5551384K used,    31740K free,     1696K buffers
+ Swap:  4187336K total,  2165724K used,  2021612K free,   798268K cached
+800%cpu 147%user   0%nice  52%sys 576%idle   3%iow  19%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.07 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5554360K used,    28764K free,     1696K buffers
+ Swap:  4187336K total,  2165724K used,  2021612K free,   801424K cached
+800%cpu 148%user   0%nice  46%sys 577%idle   6%iow  19%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.07 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5554112K used,    29012K free,     1704K buffers
+ Swap:  4187336K total,  2165724K used,  2021612K free,   801752K cached
+800%cpu 146%user   1%nice  43%sys 585%idle   1%iow  20%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  0.0   3.7   0:03.07 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5549240K used,    33884K free,     1712K buffers
+ Swap:  4187336K total,  2194552K used,  1992784K free,   817192K cached
+800%cpu 173%user   1%nice  83%sys 499%idle  19%iow  20%irq   5%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  1.0   3.7   0:03.07 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5563420K used,    19704K free,     1580K buffers
+ Swap:  4187336K total,  2251736K used,  1935600K free,   829160K cached
+800%cpu 299%user  22%nice 334%sys  84%idle  27%iow  27%irq   7%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 207M 123M S  2.0   3.7   0:03.08 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5566864K used,    16260K free,     1516K buffers
+ Swap:  4187336K total,  2273824K used,  1913512K free,   830968K cached
+800%cpu 251%user  13%nice 173%sys 305%idle  27%iow  26%irq   5%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 199M 119M S  0.0   3.6   0:03.10 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5553428K used,    29696K free,     1372K buffers
+ Swap:  4187336K total,  2273748K used,  1913588K free,   813388K cached
+800%cpu 233%user  11%nice 143%sys 356%idle  29%iow  22%irq   6%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 198M 118M S  0.0   3.6   0:03.10 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5469612K used,   113512K free,     1364K buffers
+ Swap:  4187336K total,  2280364K used,  1906972K free,   804668K cached
+800%cpu 241%user   6%nice 126%sys 375%idle  22%iow  23%irq   7%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 197M 118M S  1.0   3.6   0:03.10 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5488352K used,    94772K free,     1364K buffers
+ Swap:  4187336K total,  2282412K used,  1904924K free,   801260K cached
+800%cpu 216%user   3%nice 151%sys 397%idle   1%iow  29%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 196M 118M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5473424K used,   109700K free,     1364K buffers
+ Swap:  4187336K total,  2285972K used,  1901364K free,   799508K cached
+800%cpu 184%user   1%nice 122%sys 463%idle   2%iow  25%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 196M 117M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5474000K used,   109124K free,     1388K buffers
+ Swap:  4187336K total,  2285204K used,  1902132K free,   799772K cached
+800%cpu 156%user   2%nice  77%sys 535%idle   2%iow  24%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 117M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5474796K used,   108328K free,     1396K buffers
+ Swap:  4187336K total,  2284948K used,  1902388K free,   801084K cached
+800%cpu 149%user   2%nice  70%sys 549%idle   1%iow  24%irq   5%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 117M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5460184K used,   122940K free,     1408K buffers
+ Swap:  4187336K total,  2295992K used,  1891344K free,   799308K cached
+800%cpu 142%user   0%nice  77%sys 549%idle   2%iow  26%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 117M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5460060K used,   123064K free,     1408K buffers
+ Swap:  4187336K total,  2295992K used,  1891344K free,   799312K cached
+800%cpu 142%user   0%nice  67%sys 562%idle   0%iow  25%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5447696K used,   135428K free,     1420K buffers
+ Swap:  4187336K total,  2310528K used,  1876808K free,   799072K cached
+800%cpu 147%user   2%nice  86%sys 536%idle   1%iow  25%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5447492K used,   135632K free,     1420K buffers
+ Swap:  4187336K total,  2310272K used,  1877064K free,   799188K cached
+800%cpu 147%user   0%nice  66%sys 558%idle   1%iow  24%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5448956K used,   134168K free,     1420K buffers
+ Swap:  4187336K total,  2310272K used,  1877064K free,   799192K cached
+800%cpu 150%user   0%nice  50%sys 573%idle   0%iow  24%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5449428K used,   133696K free,     1420K buffers
+ Swap:  4187336K total,  2310016K used,  1877320K free,   799188K cached
+800%cpu 145%user   0%nice  62%sys 566%idle   0%iow  24%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5449152K used,   133972K free,     1420K buffers
+ Swap:  4187336K total,  2310016K used,  1877320K free,   799188K cached
+800%cpu 143%user   3%nice  63%sys 562%idle   1%iow  24%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5437960K used,   145164K free,     1432K buffers
+ Swap:  4187336K total,  2323548K used,  1863788K free,   800896K cached
+800%cpu 183%user   0%nice 101%sys 488%idle   3%iow  22%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5476072K used,   107052K free,     1432K buffers
+ Swap:  4187336K total,  2295132K used,  1892204K free,   801100K cached
+800%cpu 227%user   3%nice 141%sys 391%idle   1%iow  33%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S  0.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5486920K used,    96204K free,     1472K buffers
+ Swap:  4187336K total,  2280796K used,  1906540K free,   814904K cached
+800%cpu 209%user  18%nice 139%sys 395%idle   9%iow  27%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 195M 116M S 58.0   3.5   0:03.11 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5486656K used,    96468K free,     1472K buffers
+ Swap:  4187336K total,  2286868K used,  1900468K free,   814656K cached
+800%cpu 150%user   0%nice  62%sys 559%idle   0%iow  25%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 214M 128M S  5.0   3.9   0:03.69 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5484760K used,    98364K free,     1472K buffers
+ Swap:  4187336K total,  2288148K used,  1899188K free,   814612K cached
+800%cpu 140%user   3%nice  66%sys 565%idle   0%iow  23%irq   3%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 213M 127M S  0.0   3.9   0:03.74 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5505280K used,    77844K free,     1508K buffers
+ Swap:  4187336K total,  2303096K used,  1884240K free,   828672K cached
+800%cpu 174%user   6%nice 151%sys 430%idle  10%iow  25%irq   4%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 213M 127M S  0.0   3.9   0:03.74 io.github.spectordev9.opencode
+
+
+
+Tasks: 1 total,   0 running,   1 sleeping,   0 stopped,   0 zombie
+  Mem:  5583124K total,  5522232K used,    60892K free,     1536K buffers
+ Swap:  4187336K total,  2311372K used,  1875964K free,   879208K cached
+800%cpu 183%user  22%nice 129%sys 408%idle  30%iow  23%irq   5%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+23183 u0_a375      10 -10  17G 213M 127M S  0.0   3.9   0:03.74 io.github.spectordev9.opencode

@@ -1,0 +1,170 @@
+{
+  "label": "g3-host-auth",
+  "port": 50771,
+  "passwordConfigured": true,
+  "runtimeVersion": "1.19.3",
+  "startedAt": "2026-10-27T11:44:08Z",
+  "health": {
+    "healthy": true,
+    "seconds": 4.572,
+    "status": 200
+  },
+  "authMatrix": {
+    "health": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "doc": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "project": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "session": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "pty": {
+      "noAuth": 401,
+      "basicOpencode": 200,
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    },
+    "event": {
+      "noAuth": 401,
+      "basicOpencode": "error:TimeoutError",
+      "basicEmptyUser": 401,
+      "bearer": 401,
+      "wrongPassword": 401
+    }
+  },
+  "doc": {
+    "status": 200,
+    "path": "/data/data/com.termux/files/home/mkd/remote-check/contract/openapi/opencode-g3-host-auth.json"
+  },
+  "sse": {
+    "first": {
+      "chunks": [
+        {
+          "at": 0.011,
+          "bytes": 321,
+          "text": "HTTP/1.1 200 OK\r\nCache-Control: no-cache, no-transform\r\nX-Content-Type-Options: nosniff\r\nContent-Type: text/event-stream\r\nVary: Origin\r\nx-accel-buffering: no\r\nDate: Tue, 27 Oct 2026 11:44:21 GMT\r\nTransfer-Encoding: chunked\r\n\r\n59\r\ndata: {\"id\":\"evt_17d2cf8da001JYHV0YyBfAutgZ\",\"type\":\"server.connected\",\"properties\":{}}\n\n\r\n"
+        },
+        {
+          "at": 10.013,
+          "bytes": 95,
+          "text": "59\r\ndata: {\"id\":\"evt_17d2d1fec001AsB0T38g7mJg82\",\"type\":\"server.heartbeat\",\"properties\":{}}\n\n\r\n"
+        }
+      ],
+      "closedByServer": false,
+      "timedOut": true,
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Type": "text/event-stream",
+        "Vary": "Origin",
+        "x-accel-buffering": "no",
+        "Date": "Tue, 27 Oct 2026 11:44:21 GMT",
+        "Transfer-Encoding": "chunked"
+      },
+      "bodyBytes": 190,
+      "eventTypes": [
+        "server.connected",
+        "server.heartbeat"
+      ],
+      "dataLines": [
+        "{\"id\":\"evt_17d2cf8da001JYHV0YyBfAutgZ\",\"type\":\"server.connected\",\"properties\":{}}",
+        "{\"id\":\"evt_17d2d1fec001AsB0T38g7mJg82\",\"type\":\"server.heartbeat\",\"properties\":{}}"
+      ],
+      "elapsed": 12.02,
+      "totalBytes": 416,
+      "path": "/data/data/com.termux/files/home/mkd/remote-check/tests/spikes/results/raw/g3-host-auth-event.sse"
+    },
+    "reconnect": {
+      "chunks": [
+        {
+          "at": 0.005,
+          "bytes": 321,
+          "text": "HTTP/1.1 200 OK\r\nCache-Control: no-cache, no-transform\r\nX-Content-Type-Options: nosniff\r\nContent-Type: text/event-stream\r\nVary: Origin\r\nx-accel-buffering: no\r\nDate: Tue, 27 Oct 2026 11:44:34 GMT\r\nTransfer-Encoding: chunked\r\n\r\n59\r\ndata: {\"id\":\"evt_17d2d2bb30011orJSomsW800fK\",\"type\":\"server.connected\",\"properties\":{}}\n\n\r\n"
+        }
+      ],
+      "closedByServer": false,
+      "timedOut": true,
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Type": "text/event-stream",
+        "Vary": "Origin",
+        "x-accel-buffering": "no",
+        "Date": "Tue, 27 Oct 2026 11:44:34 GMT",
+        "Transfer-Encoding": "chunked"
+      },
+      "bodyBytes": 95,
+      "eventTypes": [
+        "server.connected"
+      ],
+      "dataLines": [
+        "{\"id\":\"evt_17d2d2bb30011orJSomsW800fK\",\"type\":\"server.connected\",\"properties\":{}}"
+      ],
+      "elapsed": 6.017,
+      "totalBytes": 321,
+      "path": "/data/data/com.termux/files/home/mkd/remote-check/tests/spikes/results/raw/g3-host-auth-event-reconnect.sse"
+    },
+    "directoryScoped": {
+      "chunks": [
+        {
+          "at": 0.005,
+          "bytes": 321,
+          "text": "HTTP/1.1 200 OK\r\nCache-Control: no-cache, no-transform\r\nX-Content-Type-Options: nosniff\r\nContent-Type: text/event-stream\r\nVary: Origin\r\nx-accel-buffering: no\r\nDate: Tue, 27 Oct 2026 11:44:39 GMT\r\nTransfer-Encoding: chunked\r\n\r\n59\r\ndata: {\"id\":\"evt_17d2d4339001uoSV5iz29KcXnC\",\"type\":\"server.connected\",\"properties\":{}}\n\n\r\n"
+        },
+        {
+          "at": 10.01,
+          "bytes": 95,
+          "text": "59\r\ndata: {\"id\":\"evt_17d2d6a4f001m0h7ZpgFHKumDv\",\"type\":\"server.heartbeat\",\"properties\":{}}\n\n\r\n"
+        }
+      ],
+      "closedByServer": false,
+      "timedOut": true,
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, no-transform",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Type": "text/event-stream",
+        "Vary": "Origin",
+        "x-accel-buffering": "no",
+        "Date": "Tue, 27 Oct 2026 11:44:39 GMT",
+        "Transfer-Encoding": "chunked"
+      },
+      "bodyBytes": 190,
+      "eventTypes": [
+        "server.connected",
+        "server.heartbeat"
+      ],
+      "dataLines": [
+        "{\"id\":\"evt_17d2d4339001uoSV5iz29KcXnC\",\"type\":\"server.connected\",\"properties\":{}}",
+        "{\"id\":\"evt_17d2d6a4f001m0h7ZpgFHKumDv\",\"type\":\"server.heartbeat\",\"properties\":{}}"
+      ],
+      "elapsed": 12.017,
+      "totalBytes": 416,
+      "path": "/data/data/com.termux/files/home/mkd/remote-check/tests/spikes/results/raw/g3-host-auth-event-scoped.sse"
+    },
+    "reconnectDeliveredNewConnectedEvent": true
+  }
+}

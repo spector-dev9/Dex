@@ -54,6 +54,14 @@ jobs:
           python3 scripts/build-inventory.py
           git diff --exit-code -- contract/endpoints.json
 
+      - name: App runtime manifest matches the pinned runtime
+        run: |
+          python3 scripts/check-app-manifest.py
+          python3 -m unittest tests/security/test_app_manifest.py
+
+      - name: G3 acceptance tracker is valid
+        run: python3 scripts/check-g3-status.py
+
   kotlin:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -75,11 +83,25 @@ jobs:
       - name: Fetch pinned Alpine Node test artifacts
         run: python3 scripts/fetch-runtime.py --alpine-node
 
+      - name: Verify runtime hashes and ELF alignment
+        run: |
+          command -v readelf >/dev/null || sudo apt-get install -y binutils
+          python3 scripts/verify-runtime.py
+
       - name: Compile and verify core contracts
         run: ./gradlew --no-daemon -PskipApp=true coreCheck
 
       - name: Verify provisional-member annotations
         run: python3 scripts/check-provisional.py
+
+      - name: Upload G3 host test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: g3-host-test-reports
+          path: |
+            core/*/build/test-results/test/*.xml
+            core/*/build/reports/tests/test
+          if-no-files-found: warn
 
       - name: Upload provisional contracts
         uses: actions/upload-artifact@v4

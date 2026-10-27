@@ -1,0 +1,21 @@
+timestamp=2026-10-27T11:44:10.992Z level=INFO run=11a470f6 message=loading path=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/home/.config/opencode/config.json
+timestamp=2026-10-27T11:44:11.047Z level=INFO run=11a470f6 message=loading path=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/home/.config/opencode/opencode.json
+timestamp=2026-10-27T11:44:11.065Z level=INFO run=11a470f6 message=loading path=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/home/.config/opencode/opencode.jsonc
+opencode server listening on http://127.0.0.1:50771
+timestamp=2026-10-27T11:44:15.623Z level=INFO run=11a470f6 message="creating instance" directory=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/workspace
+timestamp=2026-10-27T11:44:15.626Z level=INFO run=11a470f6 message=fromDirectory directory=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/workspace
+timestamp=2026-10-27T11:44:15.798Z level=INFO run=11a470f6 message=bootstrapping directory=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/workspace
+timestamp=2026-10-27T11:44:15.810Z level=INFO run=11a470f6 message=loading path=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/home/.config/opencode/config.json
+timestamp=2026-10-27T11:44:15.811Z level=INFO run=11a470f6 message=loading path=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/home/.config/opencode/opencode.json
+timestamp=2026-10-27T11:44:15.832Z level=INFO run=11a470f6 message=loading path=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/home/.config/opencode/opencode.jsonc
+timestamp=2026-10-27T11:44:16.597Z level=INFO run=11a470f6 message="all LSPs are disabled"
+timestamp=2026-10-27T11:44:16.599Z level=INFO run=11a470f6 message="all formatters are disabled"
+timestamp=2026-10-27T11:44:16.599Z level=INFO run=11a470f6 message=init
+timestamp=2026-10-27T11:44:17.139Z level=INFO run=11a470f6 message="downloading ripgrep" url=https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-aarch64-unknown-linux-gnu.tar.gz
+timestamp=2026-10-27T11:44:17.186Z level=INFO run=11a470f6 message="booting location services" directory=/data/data/com.termux/files/home/mkd/remote-check/runtime/tmp/workspace workspaceID=undefined
+timestamp=2026-10-27T11:44:17.208Z level=INFO run=11a470f6 message="project copy refresh started" projectID=global
+timestamp=2026-10-27T11:44:17.211Z level=INFO run=11a470f6 message="project copy refresh done" projectID=global updated=[] removed=[]
+timestamp=2026-10-27T11:44:18.206Z level=INFO run=11a470f6 message="event connected"
+timestamp=2026-10-27T11:44:21.722Z level=INFO run=11a470f6 message="event connected"
+timestamp=2026-10-27T11:44:34.739Z level=INFO run=11a470f6 message="event connected"
+timestamp=2026-10-27T11:44:40.760Z level=INFO run=11a470f6 message="event connected"
