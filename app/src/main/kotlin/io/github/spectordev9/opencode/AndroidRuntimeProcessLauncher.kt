@@ -3,8 +3,6 @@ package io.github.spectordev9.opencode
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.runtime.ManagedProcess
 import io.github.spectordev9.opencode.core.runtime.ProcessSpec
-import kotlin.system.ProcessBuilder
-import kotlin.system.runCpsContinuation
 
 /**
  * Android‑specific implementation of [RuntimeProcessLauncher].
