@@ -1,7 +1,6 @@
 package io.github.spectordev9.opencode.spike
 
 import android.content.Context
-import android.os.Process
 import java.io.File
 import java.io.FileOutputStream
 import java.net.ServerSocket
@@ -13,7 +12,7 @@ class G3ServerSession(
     val port: Int = DEFAULT_PORT,
     val secret: String = DEFAULT_SECRET,
 ) {
-    private var process: Process? = null
+    private var process: java.lang.Process? = null
     private var outputThread: Thread? = null
     private var pid: Int? = null
     private val logFile: File = G3Support.g3Dir(context, "server").resolve("server.log")
@@ -157,7 +156,7 @@ class G3ServerSession(
     fun kill() {
         val currentPid = pid
         if (currentPid != null && currentPid > 0) {
-            runCatching { Process.killProcess(currentPid) }
+            runCatching { android.os.Process.killProcess(currentPid) }
         }
         process?.destroyForcibly()
         runCatching { process?.waitFor(5, TimeUnit.SECONDS) }
