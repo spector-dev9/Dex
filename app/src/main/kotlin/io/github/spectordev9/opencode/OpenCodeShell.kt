@@ -44,6 +44,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,8 +98,12 @@ private data class VerificationTest(
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun OpenCodeShell(
     ptyService: PtyService? = null,
+    runtimeStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.runtime.RuntimeState>? = null,
+    serverStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.supervisor.ServerState>? = null,
     onOpenLicenses: () -> Unit,
 ) {
+    val runtimeState = runtimeStateFlow?.collectAsState()?.value
+    val serverState = serverStateFlow?.collectAsState()?.value
     var selectedTab by remember { mutableStateOf(AppTab.Chat) }
 
     MaterialTheme(
@@ -153,6 +158,8 @@ fun OpenCodeShell(
                 AppTab.Chat -> ChatHome(
                     modifier = Modifier.padding(padding),
                     onOpenTerminal = { selectedTab = AppTab.Terminal },
+                    runtimeState = runtimeState,
+                    serverState = serverState,
                 )
                 AppTab.Terminal -> TerminalScreen(
                     modifier = Modifier.padding(padding),
@@ -167,7 +174,10 @@ fun OpenCodeShell(
 private fun ChatHome(
     modifier: Modifier = Modifier,
     onOpenTerminal: () -> Unit,
+    runtimeState: io.github.spectordev9.opencode.core.runtime.RuntimeState?,
+    serverState: io.github.spectordev9.opencode.core.supervisor.ServerState?,
 ) {
+    val banner = runtimeBanner(runtimeState, serverState)
     var selectedMode by remember { mutableStateOf("Build") }
     var selectedTest by remember { mutableStateOf("S1") }
     val tests = listOf(
@@ -207,23 +217,26 @@ private fun ChatHome(
 
         Surface(
             shape = RoundedCornerShape(8.dp),
-            color = Color(0xFFE4EEE7),
+            color = banner.container,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("RUNTIME OFFLINE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("Sessions and tools are unavailable", fontSize = 13.sp)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(banner.label, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(banner.detail, fontSize = 13.sp)
                 }
                 Box(
                     Modifier
                         .padding(top = 3.dp)
                         .sizeIn(minWidth = 8.dp, minHeight = 8.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(Clay),
+                        .background(banner.dotColor),
                 )
             }
         }
@@ -581,3 +594,83 @@ private fun RowScope.KeyButton(label: String, enabled: Boolean, onClick: () -> U
 }
 
 private const val MAX_TERMINAL_CHARS = 24_000
+
+/** Chat-home banner state derived from the runtime and supervisor flows. */
+private data class RuntimeBanner(
+    val label: String,
+    val detail: String,
+    val dotColor: Color,
+    val container: Color,
+)
+
+private fun runtimeBanner(
+    runtimeState: io.github.spectordev9.opencode.core.runtime.RuntimeState?,
+    serverState: io.github.spectordev9.opencode.core.supervisor.ServerState?,
+): RuntimeBanner {
+    val offline = RuntimeBanner(
+        label = "RUNTIME OFFLINE",
+        detail = "Sessions and tools are unavailable",
+        dotColor = Clay,
+        container = Color(0xFFE4EEE7),
+    )
+    return when {
+        runtimeState == null -> offline
+        runtimeState.status == io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.ABSENT
+            -> offline
+        runtimeState.status == io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.INSTALLING
+            -> RuntimeBanner(
+                label = "RUNTIME INSTALLING",
+                detail = runtimeState.reason ?: "Pinned runtime is being verified and installed",
+                dotColor = Citrus,
+                container = Color(0xFFE4EEE7),
+            )
+        runtimeState.status == io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED
+            -> RuntimeBanner(
+                label = "RUNTIME FAILED",
+                detail = runtimeState.reason ?: "Runtime installation or verification failed",
+                dotColor = Color(0xFFB3261E),
+                container = Color(0xFFF6E7E4),
+            )
+        else -> {
+            val endpoint = serverState?.endpoint
+            when (serverState?.status) {
+                io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY ->
+                    RuntimeBanner(
+                        label = "RUNTIME ONLINE",
+                        detail = buildString {
+                            if (endpoint != null) append("${endpoint.host}:${endpoint.port}")
+                            append(" · supervised opencode server")
+                            serverState.version?.takeIf { it.isNotBlank() }?.let { append(" · v$it") }
+                        },
+                        dotColor = Moss,
+                        container = Color(0xFFE7F3EE),
+                    )
+                io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.STARTING,
+                io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.BACKOFF,
+                io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.CRASH_LOOP,
+                ->
+                    RuntimeBanner(
+                        label = "SERVER RECOVERING",
+                        detail = serverState.reason
+                            ?: "Supervised server is starting or retrying on loopback",
+                        dotColor = Citrus,
+                        container = Color(0xFFE4EEE7),
+                    )
+                io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.DEGRADED ->
+                    RuntimeBanner(
+                        label = "SERVER DEGRADED",
+                        detail = serverState.reason ?: "Supervised server is degraded",
+                        dotColor = Citrus,
+                        container = Color(0xFFE4EEE7),
+                    )
+                else ->
+                    RuntimeBanner(
+                        label = "SERVER STOPPED",
+                        detail = "Runtime is ready; the supervised server is not running",
+                        dotColor = Clay,
+                        container = Color(0xFFE4EEE7),
+                    )
+            }
+        }
+    }
+}
