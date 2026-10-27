@@ -1,0 +1,42 @@
+# LC-4 device runs, 2026-10-27 (reference device Infinix X6870, adb serial 1402931585025241)
+
+## Attempt 1 — polluted by on-device status polling (excluded from pass/fail judgement)
+
+Method: `run-as` polls of `files/g3/long-run.json` while the idle soak was
+running. The polls run as the app UID; total-UID method here (harness samples
+the server process tree only, so attribution of the inflation is uncertain),
+but the run was discarded as non-canonical.
+
+Raw record (`run-as io.github.spectordev9.opencode.spike.debug cat files/g3/long-run.json`):
+
+```json
+{"id":"LC-4","message":"idleMinutes=10 samples=119 avgCpu=5.698% maxCpu=13.78% stoppedAfterIdle=true postStopTicks=0 idleTimeout=10min default","running":false,"updatedAt":1793116760***,"pass":false,"detail":"idleMinutes=10 samples=119 avgCpu=5.698% maxCpu=13.78% stoppedAfterIdle=true postStopTicks=0 idleTimeout=10min default","durationMs":606913}
+```
+
+(attempt 1 record truncated mid-timestamp when first captured; detail field
+is authoritative)
+
+## Attempt 2 — canonical, zero interaction from start to finish
+
+Method: harness started via a single `am start-foreground-service` invocation;
+no adb command of any kind until a single `run-as cat` after the soak finished.
+10.1 min wall clock, 119 samples, 5 s cadence, partial wakelock held.
+
+Raw record:
+
+```json
+{"id":"LC-4","message":"idleMinutes=10 samples=119 avgCpu=3.458% maxCpu=12.58% stoppedAfterIdle=true postStopTicks=0 idleTimeout=10min default","running":false,"updatedAt":1793119778529,"pass":false,"detail":"idleMinutes=10 samples=119 avgCpu=3.458% maxCpu=12.58% stoppedAfterIdle=true postStopTicks=0 idleTimeout=10min default","durationMs":606898}
+```
+
+## Interpretation
+
+- Pass rule (`G3RecoveryChecks.runLc4`): server alive, port frees after stop,
+  average server-process-tree CPU <= 1.0% of one core, zero ticks after stop.
+- `stoppedAfterIdle=true postStopTicks=0` — the stop/idle-shutdown half passes.
+  `processTreeTicks` samples only the server PID tree, so shell/tool traffic
+  cannot contaminate it; the drain is inside the pinned OpenCode server idle
+  workload (A_DIRECT: musl loader + pinned binary, filewatcher/FFF/LSP/model
+  fetch all disabled per env).
+- Remaining deficit: 3.458% vs 1.0% threshold. Next step: per-thread idle
+  capture (`top -H -p <serverPid>`) while idling outside any LC-4 soak, then
+  targeted fix (runtime env/flag or harness measurement gap).

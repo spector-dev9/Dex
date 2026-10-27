@@ -1,0 +1,192 @@
+﻿{
+  "spikeVersion": "0.1",
+  "generatedAt": "2026-10-27T21:50:51+05:30",
+  "scope": "Isolated pre-G0 device feasibility evidence; not production-app acceptance.",
+  "knownNotCovered": [
+    "S1 Profile A\/B comparison on the Infinix X6870",
+    "S2 Profile A\/B performance comparison; Profile B is not implemented",
+    "S4\/S5 host-side SSE and endpoint contract checks",
+    "S6 OpenCode 2.x contract test; no distributable 2.x artifact is available",
+    "S7 one 10-minute active-agent background-survival acceptance; this APK measures only a harness-service soak",
+    "TERM-5 real Gboard input acceptance; this APK only runs a scripted PTY byte round-trip",
+    "RT\/STR\/WS\/TERM production-app and UI acceptance tests",
+    "SEC production security, second-UID, and release-manifest acceptance tests",
+    "S9 release, licensing, and distribution compliance",
+    "16 KB-page-device boot (out of scope for v1) and optional post-G0 memory\/thermal checks"
+  ],
+  "g0Status": "pending",
+  "g0GateChecks": {
+    "S1-A": {
+      "title": "S1 Profile A",
+      "status": "pending",
+      "requirement": "Loader, authenticated health, and mock-provider prompt on the reference device.",
+      "detail": "Not yet assessed"
+    },
+    "S1-B": {
+      "title": "S1 Profile B",
+      "status": "pending",
+      "requirement": "Profile B must run the same reference-device flow or be resolved by the S1 decision rule.",
+      "detail": "Not yet assessed"
+    },
+    "S2-cold": {
+      "title": "S2 cold start",
+      "status": "pending",
+      "requirement": "Compare Profile A and B cold-start measurements.",
+      "detail": "Not yet assessed"
+    },
+    "S2-rss": {
+      "title": "S2 idle RSS",
+      "status": "pending",
+      "requirement": "Compare Profile A and B idle memory measurements.",
+      "detail": "Not yet assessed"
+    },
+    "S2-git": {
+      "title": "S2 git status",
+      "status": "pending",
+      "requirement": "Compare git status on a 10k-file repository.",
+      "detail": "Not yet assessed"
+    },
+    "S2-npm": {
+      "title": "S2 npm test",
+      "status": "pending",
+      "requirement": "Compare npm test through the agent for both profiles.",
+      "detail": "Not yet assessed"
+    },
+    "S3": {
+      "title": "S3 agent shell",
+      "status": "pending",
+      "requirement": "Compare actual agent bash with the guest shell and PTY environment.",
+      "detail": "Not yet assessed"
+    },
+    "S4": {
+      "title": "S4 SSE semantics",
+      "status": "pending",
+      "requirement": "Document resync behavior and pass STR-5 fault-injection checks.",
+      "detail": "Not yet assessed"
+    },
+    "S5": {
+      "title": "S5 endpoint inventory",
+      "status": "pending",
+      "requirement": "Reconcile pinned API docs, PTY routes, port, auth, and socket behavior.",
+      "detail": "Not yet assessed"
+    },
+    "S6": {
+      "title": "S6 OpenCode 2.x",
+      "status": "pending",
+      "requirement": "Check a distributable 2.x artifact when available; otherwise retain the documented 1.x pin.",
+      "detail": "Not yet assessed"
+    },
+    "S7-LC2": {
+      "title": "S7 \/ LC-2 active task",
+      "status": "pending",
+      "requirement": "One real agent task survives 10 minutes with the screen off on the reference device.",
+      "detail": "Not yet assessed"
+    },
+    "S8-TERM5": {
+      "title": "S8 \/ TERM-5 Gboard",
+      "status": "pending",
+      "requirement": "Verify Gboard, paste\/select, extra keys, resize, signals, and cleanup in the native terminal UI.",
+      "detail": "Not yet assessed"
+    },
+    "S9": {
+      "title": "S9 release compliance",
+      "status": "pending",
+      "requirement": "Complete licensing, source-offer, signing, and distribution compliance evidence.",
+      "detail": "Not yet assessed"
+    },
+    "BASELINES": {
+      "title": "Baselines and thresholds",
+      "status": "pending",
+      "requirement": "Record reference-device baselines and ratify numeric thresholds.",
+      "detail": "Not yet assessed"
+    },
+    "D1": {
+      "title": "D1 distribution decision",
+      "status": "pending",
+      "requirement": "Freeze the distribution decision from the required compliance evidence.",
+      "detail": "Not yet assessed"
+    },
+    "D4": {
+      "title": "D4 runtime profile",
+      "status": "pending",
+      "requirement": "Freeze the runtime profile using admissible S1\/S2\/S3 evidence.",
+      "detail": "Not yet assessed"
+    },
+    "D5": {
+      "title": "D5 version pin",
+      "status": "pending",
+      "requirement": "Confirm the exact OpenCode baseline and documented 2.x disposition.",
+      "detail": "Not yet assessed"
+    }
+  },
+  "device": {
+    "manufacturer": "INFINIX",
+    "model": "Infinix X6870",
+    "device": "Infinix-X6870",
+    "buildFingerprint": "Infinix\/X6870-IN\/Infinix-X6870:16\/BP2A.250605.031.A3\/301500017:user\/release-keys",
+    "androidRelease": "16",
+    "sdkInt": "36",
+    "supportedAbis": "arm64-v8a",
+    "supported64BitAbis": "arm64-v8a",
+    "buildTags": "release-keys",
+    "buildType": "user",
+    "pageSize": "4096",
+    "totalMemoryBytes": "5717118976",
+    "memoryClassMiB": "256",
+    "lowRamDevice": "false",
+    "ignoringBatteryOptimizations": "false",
+    "thermalStatusAtReport": "0",
+    "defaultInputMethod": "com.google.android.inputmethod.latin\/com.android.inputmethod.latin.LatinIME",
+    "applicationId": "io.github.spectordev9.opencode.spike.debug",
+    "appVersionName": "0.1.0-spike",
+    "appVersionCode": "1",
+    "apkSha256": "4f092cce936f277e51524e18d7a704a33a9b2d4df55c9f4bc2841cca19f5e068",
+    "dataDir": "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug",
+    "nativeLibraryDir": "\/data\/app\/~~_ElPyvxc6yAJ54ToMkxXVA==\/io.github.spectordev9.opencode.spike.debug-wceOLjR3Fk2l7_5fdOgX7A==\/lib\/arm64",
+    "extractNativeLibs": "true",
+    "externalFilesDir": "\/storage\/emulated\/0\/Android\/data\/io.github.spectordev9.opencode.spike.debug\/files",
+    "runtimeDir": "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike"
+  },
+  "results": [
+    {
+      "id": "WS-2",
+      "pass": true,
+      "detail": "runs=100 completed=0 killedBeforeCommit=100 corrupt=0 missing=0 failedBinds=0 sizes=1KB..50MB final=1024B sha=c24f5742cb4c67b7",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 33909,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "WS-3",
+      "pass": true,
+      "detail": "runs=50 conflicts=50 silentOverwrites=0 recoveryWrites=50",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 393,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "LC-3",
+      "pass": true,
+      "detail": "runs=5 restarts=5 p95=4059ms max=4059ms unhealthy=0 sessionsLost=0 extraListeners=0 portStuck=0 crashLoopBreaker=notExercised",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 27503,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "SEC-2",
+      "pass": true,
+      "detail": "apkFiles=1 scannedEntries=12 findings=0 deniedPaths=3\/3 allowBackup=true credentials=0 logcatScan=hostScriptRequired",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 142,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+# LC-3 device runs, 2026-10-27 (reference device Infinix X6870, adb serial 1402931585025241)
+
+Harness: `io.github.spectordev9.opencode.spike.debug` APK sha256
+`4f092cce936f277e51524e18d7a704a33a9b2d4df55c9f4bc2841cca19f5e068`.
+Method: `SIGKILL` restarts driven by the spike harness in the app sandbox;
+health polled until 200 before each restart; report read back via `run-as`.
+
+## Quick run (5 SIGKILL restarts)
+
+Recorded verbatim in the G3 quick collection report
+(`g3-device-quick-20261027.json`, `generatedAt 2026-10-27T21:50:51+05:30`):
+
+```json
+{
+  "id": "LC-3",
+  "pass": true,
+  "detail": "runs=5 restarts=5 p95=4059ms max=4059ms unhealthy=0 sessionsLost=0 extraListeners=0 portStuck=0 crashLoopBreaker=notExercised",
+  "durationMs": 27503
+}
+```
+
+## Full run (50 SIGKILL restarts, background foreground-service)
+
+Pulled from `files/g3/long-run.json` after the run on the same day (the file
+was later overwritten by the LC-4 attempts, so values here record the pulled
+result):
+
+- `pass=true`
+- `runs=50 restarts=50` — every restart reached authenticated health before
+  being killed again, `unhealthy=0`, `sessionsLost=0`
+- `p95=4132ms` rounded to the millisecond as displayed by the harness
+- total `durationMs=227778` (~3.8 min for 50 restart-kill cycles)
+
+Note: the crash-loop breaker condition listed in the quick run detail
+(`crashLoopBreaker=notExercised`) refers to the supervisor-level breaker test,
+which is covered by the host test suite
+(`core/supervisor/.../ProcessServerSupervisorTest.kt`); the device run
+exercises recovery, not the breaker.

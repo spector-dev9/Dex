@@ -34,7 +34,7 @@
     "docs/evidence/g3/spike-harness.md",
     "docs/evidence/g3/spike-harness-report.json"
    ],
-   "notes": "Asset manifest is valid JSON and matches runtime/manifest.json (binary 37c7de...); artifact, executable and archive hashes verified on the host and by the harness installer on the device. Production-app startup enforcement is not wired yet."
+   "notes": "Asset manifest is valid JSON and matches runtime/manifest.json (binary 37c7de...); artifact, executable and archive hashes verified on the host and by the harness installer on the device. Production startup enforcement wired (PinnedRuntimeInstaller + AppRuntime.ensureReady); device smoke test pending."
   },
   {
    "id": "RT-4",
@@ -211,20 +211,22 @@
   },
   {
    "id": "LC-3",
-   "status": "PARTIAL",
+   "status": "PASS",
    "evidence": [
     "core/supervisor/src/test/kotlin/io/github/spectordev9/opencode/core/supervisor/impl/ProcessServerSupervisorTest.kt",
-    "docs/evidence/g3/host-tests.md"
+    "docs/evidence/g3/host-tests.md",
+    "docs/evidence/g3/device-lc3-20261027-raw.txt"
    ],
-   "notes": "Supervisor restart, health-timeout and crash-loop-breaker tests pass; 50 SIGKILL device run not performed."
+   "notes": "Host supervisor restart/health-timeout/crash-loop tests pass; on-device 50 SIGKILL restarts pass (50/50 healthy, p95 4,132 ms, sessionsLost=0)."
   },
   {
    "id": "LC-4",
    "status": "PARTIAL",
    "evidence": [
-    "docs/evidence/g3/idle-top-60s-raw.txt"
+    "docs/evidence/g3/idle-top-60s-raw.txt",
+    "docs/evidence/g3/device-lc4-20261027-raw.txt"
    ],
-   "notes": "App shell averaged 0.0% CPU over a 60 s idle sample; 10 min sample and idle server shutdown not measured."
+   "notes": "Canonical zero-interaction 10-min run: stop-after-idle passes (stoppedAfterIdle=true, postStopTicks=0) but idle server process-tree CPU averages 3.458% of one core vs the 1.0% threshold (max 12.58%). Per-thread idle investigation queued."
   },
   {
    "id": "LC-5",
@@ -259,9 +261,10 @@
    "evidence": [
     "docs/evidence/g3/device-baseline.md",
     "docs/evidence/g3/spike-harness-exec-audit.txt",
-    "docs/evidence/g3/spike-harness.md"
+    "docs/evidence/g3/spike-harness.md",
+    "docs/evidence/g3/g3-device-quick-20261027.json"
    ],
-   "notes": "No token/credential patterns found in the installed APK; no execute_no_trans denials and only 25 MediaTek perf_ioctl denials for the harness app. Full E2E secret scan and deny-path test not performed."
+   "notes": "Host scan: no secret patterns, no execute_no_trans denials (25 vendor perf_ioctl only). On-device scan (spike quick): 0 credential findings, 3/3 denied paths enforced, no extra APK entries."
   },
   {
    "id": "SEC-3",
