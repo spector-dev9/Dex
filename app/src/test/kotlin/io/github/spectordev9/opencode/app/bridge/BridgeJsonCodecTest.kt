@@ -65,7 +65,7 @@ class BridgeJsonCodecTest {
         val result = ResultEnvelope.Error(
             id = CommandId("cmd-3"),
             error = BridgeError(
-                code = ErrorCode.SERVER_UNAVAILABLE,
+                code = ErrorCode.E_UPSTREAM,
                 message = "server is starting",
                 upstreamStatus = 503,
             ),
@@ -73,7 +73,7 @@ class BridgeJsonCodecTest {
 
         val decoded = assertIs<ResultEnvelope.Error>(codec.decodeResult(codec.encodeResult(result)))
 
-        assertEquals(ErrorCode.SERVER_UNAVAILABLE, decoded.error.code)
+        assertEquals(ErrorCode.E_UPSTREAM, decoded.error.code)
         assertEquals("server is starting", decoded.error.message)
         assertEquals(503, decoded.error.upstreamStatus)
     }
