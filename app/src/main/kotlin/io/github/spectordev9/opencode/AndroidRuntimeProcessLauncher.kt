@@ -1,11 +1,11 @@
 package io.github.spectordev9.opencode
 
 import io.github.spectordev9.opencode.core.common.ApiResult
+import io.github.spectordev9.opencode.core.common.ProcessId
 import io.github.spectordev9.opencode.core.runtime.ManagedProcess
 import io.github.spectordev9.opencode.core.runtime.ProcessSpec
-import io.github.spectordev9.opencode.core.common.ProcessId
-import kotlin.system.ProcessBuilder
 import kotlin.system.exitProcess
+import kotlin.system.ProcessBuilder
 
 /**
  * Android‑specific implementation of [RuntimeProcessLauncher].
@@ -31,22 +31,25 @@ object AndroidRuntimeProcessLauncher : RuntimeProcessLauncher {
                 override val pid: Long? = process.pid()
                 override val isAlive: Boolean = true
                 override fun signal(signal: Int): ApiResult<Unit> = ApiResult.success(Unit)
-                override suspend fun waitFor(): ProcessExit {
-                    return suspend cancellation {
-                        // Simple busy‑wait until the process exits or timeout
-                        var finished = false
-                        while (!finished) {
-                            if (process.exitValue().takeIf { it != -1 } != null) {
+                override suspend fun waitFor(): ProcessExit = suspend cancellation {
+                    // Simple busy‑wait until the process exits or timeout
+                    var finished = false
+                    while (!finished) {
+                        // Process may have already exited; check exitValue()
+                        try {
+                            val rc = process.exitValue()
+                            if (rc != -1) {
                                 finished = true
-                            } else {
-                                delay(200)
                             }
+                        } catch (e: IllegalStateException) {
+                            // process still running
                         }
-                        ProcessExit(
-                            exitCode = process.exitValue(),
-                            signal = null
-                        )
+                        delay(200)
                     }
+                    ProcessExit(
+                        exitCode = process.exitValue(),
+                        signal = null
+                    )
                 }
                 override suspend fun terminate(graceMillis: Long = 3000): ApiResult<Unit> = ApiResult.success(Unit)
             }
