@@ -10,10 +10,12 @@ file layout. Its installer verifies both the archive and extracted
 executable SHA-256 values, extracts into a staging directory, and publishes
 with an atomic move. The `core:supervisor` JVM module now implements health
 polling, backoff, crash-loop breaking, stop/restart, and state reporting
-behind a `ServerLauncher` port. Android process launch, production launcher
-and authenticated-health composition, gateway composition, diagnostics
-storage, JNI `forkpty`, command payload DTOs, and bridge JSON serialization
-are still not implemented.
+behind a `ServerLauncher` port. The `core:diagnostics` JVM module provides a
+bounded in-memory event log that applies the `LogScrubber` before storage and
+export. Android process launch, production launcher and authenticated-health
+composition, gateway composition, persistent diagnostics export, JNI
+`forkpty`, command payload DTOs, and bridge JSON serialization are still not
+implemented.
 
 G0 is not green. The owner has directed G1-G2 work to proceed while the
 open G0 blockers (S1-B/S2/S3 production evidence, S6 2.x artifact, S9
@@ -42,6 +44,7 @@ All source lives under `io.github.spectordev9.opencode.core.<module>`.
 | `core:terminal-api` | native PTY open/write/resize/signal/close | `common-api` |
 | `core:security-api` | Keystore-backed secrets, loopback auth, scrubbing | `common-api` |
 | `core:diagnostics-api` | bounded event log and redacted report export | `common-api` |
+| `core:diagnostics` | bounded in-memory event log with scrubbed export | `common-api`, `diagnostics-api`, `security-api` |
 | `core:bridge-api` | protocol v1 envelopes, command names, transport ports | `common-api` |
 
 ```text
@@ -66,7 +69,7 @@ independent of service implementation details.
 Rules checked by `scripts/check-architecture.py`:
 
 - exactly ten contract `core/*-api` modules plus `model`, `opencode-client`,
-  `runtime`, and `supervisor` are included;
+  `runtime`, `supervisor`, and `diagnostics` are included;
 - `common-api` has no project dependency and no core imports;
 - implementation modules depend only on their relevant core contracts;
 - `runtime-api` remains free of implementation and serialization dependencies;
@@ -172,7 +175,9 @@ they must not change the envelope shapes above.
       process-tree termination remain open.
 - [ ] Production gateway composition using `OpenCodeHttpClient` and
       `SecureLoopbackAuth`, including SSE reconnect/resync.
-- [ ] Diagnostics storage/export and production log scrubbing.
+- [~] Diagnostics storage/export and production log scrubbing; in-memory
+      redacted storage/export and tests are implemented, persistence and the
+      production scrubber remain open.
 - [ ] JSON serialization and per-command payload DTOs.
 - [ ] Foreground-service lifecycle and recovery behavior.
 - [ ] Native loader/PRoot process management and JNI `forkpty`.

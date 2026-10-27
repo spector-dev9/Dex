@@ -14,6 +14,7 @@ PACKAGE_PREFIX = "io.github.spectordev9.opencode.core"
 MODULE_PACKAGES = {
     "bridge-api": "bridge",
     "common-api": "common",
+    "diagnostics": "diagnostics.impl",
     "diagnostics-api": "diagnostics",
     "gateway-api": "gateway",
     "git-api": "git",
@@ -39,6 +40,7 @@ ALLOWED_PROJECT_DEPENDENCIES["opencode-client"] = {
     "gateway-api",
     "model",
 }
+ALLOWED_PROJECT_DEPENDENCIES["diagnostics"] = {"common-api", "diagnostics-api", "security-api"}
 ALLOWED_PROJECT_DEPENDENCIES["runtime"] = {"common-api", "runtime-api"}
 ALLOWED_PROJECT_DEPENDENCIES["security"] = {"common-api", "security-api"}
 ALLOWED_PROJECT_DEPENDENCIES["supervisor"] = {"common-api", "runtime-api", "supervisor-api"}
@@ -47,6 +49,11 @@ ALLOWED_EXTERNAL_DEPENDENCIES = {
     "common-api": {"libs.kotlinx.coroutines.core"},
     "model": {
         "libs.kotlinx.serialization.json",
+        "libs.junit.jupiter",
+        "libs.junit.platform.launcher",
+    },
+    "diagnostics": {
+        "libs.kotlinx.coroutines.core",
         "libs.junit.jupiter",
         "libs.junit.platform.launcher",
     },

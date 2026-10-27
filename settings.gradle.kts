@@ -19,6 +19,7 @@ rootProject.name = "opencode-mobile"
 include(
     ":core:bridge-api",
     ":core:common-api",
+    ":core:diagnostics",
     ":core:diagnostics-api",
     ":core:gateway-api",
     ":core:git-api",

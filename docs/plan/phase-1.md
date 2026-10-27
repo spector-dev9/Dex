@@ -66,7 +66,8 @@ headlessly, with hash and version mismatches refused.
       intact, exactly one listener.
 - [ ] Add foreground-service and wake-lock ownership only while an agent task
       is active; release both when idle.
-- [ ] Record supervision diagnostics without secrets.
+- [~] Record supervision diagnostics without secrets; the in-memory
+      diagnostics service scrubs events, but supervisor wiring remains open.
 
 Exit: LC-3 passes on device and the supervisor reports stable state through
 the bridge.
@@ -83,7 +84,8 @@ the bridge.
       requests without the secret; only expected listeners exist.
 - [ ] Prove SEC-2: scan APK, logcat, app logs, crash dumps and process
       arguments; zero secret findings; restrictive credential permissions.
-- [ ] Add production log scrubbing and diagnostics redaction.
+- [~] Add production log scrubbing and diagnostics redaction; the in-memory
+      service applies `LogScrubber`, but the production scrubber remains open.
 
 Exit: STR-1, STR-5, SEC-1 and SEC-2 pass on device using the production
 gateway and secret path.
