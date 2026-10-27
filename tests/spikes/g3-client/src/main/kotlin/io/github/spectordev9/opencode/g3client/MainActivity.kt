@@ -109,7 +109,7 @@ class MainActivity : Activity() {
                     runOnUiThread {
                         resultView.text = results.joinToString("\n") {
                             "${if (it.ok) "PASS" else "FAIL"} ${it.status} ${it.case} ${it.route}" +
-                                (it.error?.let { " (${it.error})" } ?: "")
+                                (it.error?.let { errorMessage -> " ($errorMessage)" } ?: "")
                         }
                     }
                 }
