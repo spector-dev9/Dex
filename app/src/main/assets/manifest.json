@@ -2,7 +2,7 @@
   "version": "1.19.3",
   "profile": "A_DIRECT",
   "binary": "opencode",
-  "binarySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "binarySha256": "62f8e1ec095e1857446d403d1431007de8813aea9553a56ccd4552a131b1f297",
   "artifact": {
     "url": "",
     "sha256": ""
