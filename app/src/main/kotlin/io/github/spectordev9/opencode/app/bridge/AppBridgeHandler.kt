@@ -11,6 +11,12 @@ import io.github.spectordev9.opencode.core.common.ErrorCode
 import io.github.spectordev9.opencode.core.common.TrashId
 import io.github.spectordev9.opencode.core.diagnostics.DiagnosticsService
 import io.github.spectordev9.opencode.core.git.GitService
+import io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient
+import io.github.spectordev9.opencode.core.opencode.client.PermissionResponse
+import io.github.spectordev9.opencode.core.opencode.client.PromptInput
+import io.github.spectordev9.opencode.core.opencode.client.PromptModel
+import io.github.spectordev9.opencode.core.opencode.client.PromptPart
+import io.github.spectordev9.opencode.core.opencode.client.SessionModelRef
 import io.github.spectordev9.opencode.core.runtime.RuntimeManager
 import io.github.spectordev9.opencode.core.security.LogScrubber
 import io.github.spectordev9.opencode.core.supervisor.ServerSupervisor
@@ -90,6 +96,65 @@ private fun unsupported(command: CommandEnvelope): ResultEnvelope.Error =
         ),
     )
 
+private fun Map<String, Any?>.sessionID(): String =
+    optionalString("sessionId") ?: string("sessionID")
+
+private fun Map<String, Any?>.promptModel(name: String = "model"): PromptModel? {
+    val model = this[name] as? Map<*, *> ?: return null
+    return PromptModel(
+        providerID = model["providerID"]?.toString()
+            ?: throw IllegalArgumentException("missing $name.providerID"),
+        modelID = model["modelID"]?.toString()
+            ?: throw IllegalArgumentException("missing $name.modelID"),
+    )
+}
+
+private fun Map<String, Any?>.sessionModel(): SessionModelRef? {
+    val model = this["model"] as? Map<*, *> ?: return null
+    return SessionModelRef(
+        id = model["id"]?.toString() ?: throw IllegalArgumentException("missing model.id"),
+        providerID = model["providerID"]?.toString()
+            ?: throw IllegalArgumentException("missing model.providerID"),
+        variant = model["variant"]?.toString(),
+    )
+}
+
+private fun parsePrompt(args: Map<String, Any?>): PromptInput {
+    val parts = (args["parts"] as? List<*>)
+        ?.map { part ->
+            val value = part as? Map<*, *>
+                ?: throw IllegalArgumentException("prompt parts must be objects")
+            val type = value["type"]?.toString() ?: "text"
+            require(type == "text") { "only text prompt parts are supported" }
+            PromptPart(
+                text = value["text"]?.toString()
+                    ?: throw IllegalArgumentException("missing prompt part text"),
+            )
+        }
+        ?: listOf(PromptPart(text = args.string("prompt")))
+    require(parts.isNotEmpty()) { "prompt requires at least one text part" }
+    return PromptInput(
+        parts = parts,
+        messageID = args.optionalString("messageId"),
+        model = args.promptModel(),
+        agent = args.optionalString("agent"),
+        noReply = args["noReply"]?.let { it as? Boolean },
+        system = args.optionalString("system"),
+        variant = args.optionalString("variant"),
+    )
+}
+
+private fun parsePermissionResponse(args: Map<String, Any?>): PermissionResponse {
+    val response = (args.optionalString("response") ?: args.string("reply"))
+        .lowercase(Locale.ROOT)
+    return when (response) {
+        "once" -> PermissionResponse.ONCE
+        "always" -> PermissionResponse.ALWAYS
+        "reject" -> PermissionResponse.REJECT
+        else -> throw IllegalArgumentException("invalid permission response: $response")
+    }
+}
+
 private fun parsePrecondition(args: Map<String, Any?>): Precondition {
     val expected = args["expect"] as? Map<*, *> ?: run {
         val size = args["expectSizeBytes"] ?: return Precondition.None
@@ -116,6 +181,7 @@ class AppBridgeHandler(
     private val workspace: WorkspaceService,
     private val git: GitService,
     private val terminal: PtyService,
+    private val client: OpenCodeClient,
     private val diagnostics: DiagnosticsService,
     private val scrubber: LogScrubber,
 ) : BridgeCommandHandler {
@@ -128,6 +194,142 @@ class AppBridgeHandler(
             BridgeCommandNames.RUNTIME_STOP -> stopRuntime(command)
             BridgeCommandNames.RUNTIME_RESTART -> restartRuntime(command)
             BridgeCommandNames.RUNTIME_EXPORT_DIAGNOSTICS -> exportDiagnostics(command)
+            BridgeCommandNames.SESSION_LIST -> commandResult(
+                command,
+                client.listSessions(command.args.string("directory")),
+            )
+            BridgeCommandNames.SESSION_GET -> commandResult(
+                command,
+                client.getSession(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                ),
+            )
+            BridgeCommandNames.SESSION_CREATE -> commandResult(
+                command,
+                client.createSession(
+                    directory = command.args.string("directory"),
+                    title = command.args.optionalString("title"),
+                    parentID = command.args.optionalString("parentId"),
+                    agent = command.args.optionalString("agent"),
+                    model = command.args.sessionModel(),
+                ),
+            )
+            BridgeCommandNames.SESSION_UPDATE -> commandResult(
+                command,
+                client.updateSession(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                    title = command.args.optionalString("title"),
+                    archived = command.args["archived"] as? Boolean,
+                ),
+            )
+            BridgeCommandNames.SESSION_DELETE -> commandResult(
+                command,
+                client.deleteSession(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                ),
+            )
+            BridgeCommandNames.SESSION_STATUS -> commandResult(
+                command,
+                client.sessionStatuses(command.args.string("directory")),
+            )
+            BridgeCommandNames.SESSION_FORK -> commandResult(
+                command,
+                client.forkSession(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                    messageID = command.args.optionalString("messageId"),
+                ),
+            )
+            BridgeCommandNames.SESSION_ABORT -> commandResult(
+                command,
+                client.abortSession(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                ),
+            )
+            BridgeCommandNames.SESSION_REVERT -> commandResult(
+                command,
+                client.revertSession(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                    messageID = command.args.string("messageId"),
+                    partID = command.args.optionalString("partId"),
+                ),
+            )
+            BridgeCommandNames.SESSION_UNREVERT -> commandResult(
+                command,
+                client.unrevertSession(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                ),
+            )
+            BridgeCommandNames.SESSION_SUMMARIZE -> commandResult(
+                command,
+                client.summarizeSession(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                    providerID = command.args.string("providerId"),
+                    modelID = command.args.string("modelId"),
+                    auto = command.args.boolean("auto", false),
+                ),
+            )
+            BridgeCommandNames.SESSION_DIFF -> commandResult(
+                command,
+                client.sessionDiff(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                ),
+            )
+            BridgeCommandNames.SESSION_MESSAGES -> commandResult(
+                command,
+                client.listMessages(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                ),
+            )
+            BridgeCommandNames.SESSION_PROMPT_ASYNC -> commandResult(
+                command,
+                client.promptAsync(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                    prompt = parsePrompt(command.args),
+                ),
+            )
+            BridgeCommandNames.SESSION_COMMAND -> commandResult(
+                command,
+                client.runCommand(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                    command = command.args.string("command"),
+                    arguments = command.args.optionalString("arguments") ?: "",
+                    agent = command.args.optionalString("agent"),
+                    model = command.args.promptModel(),
+                    messageID = command.args.optionalString("messageId"),
+                ),
+            )
+            BridgeCommandNames.SESSION_SHELL -> commandResult(
+                command,
+                client.runShell(
+                    sessionID = command.args.sessionID(),
+                    directory = command.args.string("directory"),
+                    command = command.args.string("command"),
+                    agent = command.args.string("agent"),
+                    model = command.args.promptModel(),
+                    messageID = command.args.optionalString("messageId"),
+                ),
+            )
+            BridgeCommandNames.SESSION_PERMISSION_REPLY -> commandResult(
+                command,
+                client.replyPermission(
+                    sessionID = command.args.sessionID(),
+                    permissionID = command.args.string("permissionId"),
+                    directory = command.args.string("directory"),
+                    response = parsePermissionResponse(command.args),
+                ),
+            )
             BridgeCommandNames.WORKSPACE_LIST -> commandResult(
                 command,
                 workspace.list(command.args.optionalString("path") ?: "/"),

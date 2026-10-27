@@ -28,6 +28,19 @@ import io.github.spectordev9.opencode.core.git.GitCommitResult
 import io.github.spectordev9.opencode.core.git.GitDiff
 import io.github.spectordev9.opencode.core.git.GitService
 import io.github.spectordev9.opencode.core.git.GitStatus
+import io.github.spectordev9.opencode.core.model.Message
+import io.github.spectordev9.opencode.core.model.MessageInfo
+import io.github.spectordev9.opencode.core.model.Session
+import io.github.spectordev9.opencode.core.model.SessionTime
+import io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient
+import io.github.spectordev9.opencode.core.opencode.client.PermissionResponse
+import io.github.spectordev9.opencode.core.opencode.client.PromptInput
+import io.github.spectordev9.opencode.core.opencode.client.PromptModel
+import io.github.spectordev9.opencode.core.opencode.client.SessionFileDiff
+import io.github.spectordev9.opencode.core.opencode.client.SessionModelRef
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import io.github.spectordev9.opencode.core.runtime.ManagedProcess
 import io.github.spectordev9.opencode.core.runtime.ProcessExit
 import io.github.spectordev9.opencode.core.runtime.ProcessSpec
@@ -401,6 +414,184 @@ class FakeDiagnosticsService : DiagnosticsService {
             openCodeVersion = "1.19.3",
             events = emptyList(),
         ),
+    )
+}
+
+class FakeOpenCodeClient : OpenCodeClient {
+    val sessions = linkedMapOf(
+        "ses_123" to Session(
+            id = "ses_123",
+            slug = "sample",
+            projectID = "prj_1",
+            directory = "/workspace",
+            title = "Sample",
+            version = "1.19.3",
+            time = SessionTime(created = 1, updated = 2),
+        ),
+    )
+    var lastPrompt: PromptInput? = null
+    var lastPermission: Pair<String, PermissionResponse>? = null
+
+    override suspend fun listSessions(directory: String): ApiResult<List<Session>> =
+        ApiResult.Success(sessions.values.toList())
+
+    override suspend fun getSession(sessionID: String, directory: String): ApiResult<Session> =
+        sessions[sessionID]?.let { ApiResult.Success(it) }
+            ?: ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing session $sessionID"))
+
+    override suspend fun createSession(
+        directory: String,
+        title: String?,
+        parentID: String?,
+        agent: String?,
+        model: SessionModelRef?,
+    ): ApiResult<Session> {
+        val session = Session(
+            id = "ses_new",
+            slug = "new",
+            projectID = "prj_1",
+            directory = directory,
+            title = title ?: "New session",
+            version = "1.19.3",
+            time = SessionTime(created = 3, updated = 3),
+            parentID = parentID,
+            agent = agent,
+        )
+        sessions[session.id] = session
+        return ApiResult.Success(session)
+    }
+
+    override suspend fun updateSession(
+        sessionID: String,
+        directory: String,
+        title: String?,
+        archived: Boolean?,
+    ): ApiResult<Session> {
+        val session = sessions[sessionID]
+            ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing session $sessionID"))
+        val updated = session.copy(title = title ?: session.title)
+        sessions[sessionID] = updated
+        return ApiResult.Success(updated)
+    }
+
+    override suspend fun deleteSession(sessionID: String, directory: String): ApiResult<Boolean> =
+        ApiResult.Success(sessions.remove(sessionID) != null)
+
+    override suspend fun sessionStatuses(directory: String): ApiResult<JsonObject> =
+        ApiResult.Success(
+            buildJsonObject {
+                put("ses_123", buildJsonObject { put("type", "idle") })
+            },
+        )
+
+    override suspend fun forkSession(
+        sessionID: String,
+        directory: String,
+        messageID: String?,
+    ): ApiResult<Session> {
+        val session = sessions[sessionID]
+            ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "missing session $sessionID"))
+        val forked = session.copy(id = "ses_fork", parentID = sessionID)
+        sessions[forked.id] = forked
+        return ApiResult.Success(forked)
+    }
+
+    override suspend fun abortSession(sessionID: String, directory: String): ApiResult<Boolean> =
+        ApiResult.Success(true)
+
+    override suspend fun revertSession(
+        sessionID: String,
+        directory: String,
+        messageID: String,
+        partID: String?,
+    ): ApiResult<Session> = getSession(sessionID, directory)
+
+    override suspend fun unrevertSession(sessionID: String, directory: String): ApiResult<Session> =
+        getSession(sessionID, directory)
+
+    override suspend fun summarizeSession(
+        sessionID: String,
+        directory: String,
+        providerID: String,
+        modelID: String,
+        auto: Boolean,
+    ): ApiResult<Boolean> = ApiResult.Success(true)
+
+    override suspend fun sessionDiff(
+        sessionID: String,
+        directory: String,
+    ): ApiResult<List<SessionFileDiff>> = ApiResult.Success(
+        listOf(
+            SessionFileDiff(
+                file = "README.md",
+                patch = "@@ fake @@",
+                additions = 1.0,
+                deletions = 0.0,
+                status = "modified",
+            ),
+        ),
+    )
+
+    override suspend fun listMessages(sessionID: String, directory: String): ApiResult<List<Message>> =
+        ApiResult.Success(emptyList())
+
+    override suspend fun promptAsync(
+        sessionID: String,
+        directory: String,
+        prompt: PromptInput,
+    ): ApiResult<Unit> {
+        lastPrompt = prompt
+        return ApiResult.Success(Unit)
+    }
+
+    override suspend fun runCommand(
+        sessionID: String,
+        directory: String,
+        command: String,
+        arguments: String,
+        agent: String?,
+        model: PromptModel?,
+        messageID: String?,
+    ): ApiResult<Message> = ApiResult.Success(message(sessionID))
+
+    override suspend fun runShell(
+        sessionID: String,
+        directory: String,
+        command: String,
+        agent: String,
+        model: PromptModel?,
+        messageID: String?,
+    ): ApiResult<Message> = ApiResult.Success(message(sessionID))
+
+    override suspend fun replyPermission(
+        sessionID: String,
+        permissionID: String,
+        directory: String,
+        response: PermissionResponse,
+    ): ApiResult<Boolean> {
+        lastPermission = permissionID to response
+        return ApiResult.Success(true)
+    }
+
+    override suspend fun listFiles(path: String, directory: String): ApiResult<List<io.github.spectordev9.opencode.core.model.FileEntry>> =
+        ApiResult.Success(emptyList())
+
+    override suspend fun <T> call(operation: GatewayOperation<T>): ApiResult<T> =
+        ApiResult.Failure(ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "not used by fake client"))
+
+    override fun events(directory: String?): Flow<ServerEvent> = MutableSharedFlow<ServerEvent>()
+
+    override suspend fun health(): ApiResult<GatewayHealth> =
+        ApiResult.Success(GatewayHealth(version = "1.19.3", endpointPort = 4097))
+
+    private fun message(sessionID: String): Message = Message(
+        info = MessageInfo(
+            id = "msg_1",
+            sessionID = sessionID,
+            role = "assistant",
+            time = buildJsonObject { put("created", 1L) },
+        ),
+        parts = emptyList(),
     )
 }
 

@@ -61,6 +61,76 @@ class OpenCodeHttpClientTest {
     }
 
     @Test
+    fun `session create update summarize and permission use pinned routes`() = runBlocking {
+        val sessionBody = """
+            {
+              "id":"ses_123","slug":"sample","projectID":"prj_1",
+              "directory":"/workspace","title":"Created","version":"1.19.3",
+              "time":{"created":1,"updated":2}
+            }
+        """.trimIndent()
+        server.enqueue(MockResponse().setBody(sessionBody))
+        server.enqueue(MockResponse().setBody(sessionBody))
+        server.enqueue(MockResponse().setBody("true"))
+        server.enqueue(MockResponse().setBody("true"))
+
+        assertTrue(
+            client.createSession(
+                directory = "/workspace",
+                title = "Created",
+                agent = "build",
+                model = SessionModelRef(id = "model", providerID = "provider"),
+            ) is ApiResult.Success,
+        )
+        val create = server.takeRequest()
+        val createBody = Json.parseToJsonElement(create.body.readUtf8()).jsonObject
+        assertEquals("POST", create.method)
+        assertEquals("/session", create.requestUrl?.encodedPath)
+        assertEquals("/workspace", create.requestUrl?.queryParameter("directory"))
+        assertEquals("Created", createBody["title"]!!.jsonPrimitive.content)
+        assertEquals("provider", createBody["model"]!!.jsonObject["providerID"]!!.jsonPrimitive.content)
+
+        assertTrue(
+            client.updateSession("ses_123", "/workspace", title = "Renamed", archived = true) is ApiResult.Success,
+        )
+        val update = server.takeRequest()
+        val updateBody = Json.parseToJsonElement(update.body.readUtf8()).jsonObject
+        assertEquals("PATCH", update.method)
+        assertEquals("/session/ses_123", update.requestUrl?.encodedPath)
+        assertEquals("Renamed", updateBody["title"]!!.jsonPrimitive.content)
+        assertTrue(updateBody["time"]!!.jsonObject["archived"]!!.jsonPrimitive.content.toLong() > 0L)
+
+        assertTrue(
+            client.summarizeSession(
+                sessionID = "ses_123",
+                directory = "/workspace",
+                providerID = "provider",
+                modelID = "model",
+                auto = true,
+            ) is ApiResult.Success,
+        )
+        val summarize = server.takeRequest()
+        val summarizeBody = Json.parseToJsonElement(summarize.body.readUtf8()).jsonObject
+        assertEquals("/session/ses_123/summarize", summarize.requestUrl?.encodedPath)
+        assertEquals("provider", summarizeBody["providerID"]!!.jsonPrimitive.content)
+        assertEquals("model", summarizeBody["modelID"]!!.jsonPrimitive.content)
+        assertTrue(summarizeBody["auto"]!!.jsonPrimitive.content.toBoolean())
+
+        assertTrue(
+            client.replyPermission(
+                sessionID = "ses_123",
+                permissionID = "per_123",
+                directory = "/workspace",
+                response = PermissionResponse.ALWAYS,
+            ) is ApiResult.Success,
+        )
+        val permission = server.takeRequest()
+        val permissionBody = Json.parseToJsonElement(permission.body.readUtf8()).jsonObject
+        assertEquals("/session/ses_123/permissions/per_123", permission.requestUrl?.encodedPath)
+        assertEquals("always", permissionBody["response"]!!.jsonPrimitive.content)
+    }
+
+    @Test
     fun `decodes pinned session and file models`() = runBlocking {
         server.enqueue(
             MockResponse()

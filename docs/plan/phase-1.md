@@ -30,8 +30,8 @@ These do not pause G1, but no release claim may treat them as resolved.
       terminal commands, with app unit coverage against service fakes.
 - [ ] Add bridge JSON serialization and per-command payload DTOs.
 - [ ] Add the app composition root that constructs real service ports.
-- [ ] Add session and settings command handling after the gateway and
-      settings contracts are frozen.
+- [~] Route all 17 session commands through the OpenCode client; settings
+      command handling remains pending a frozen settings contract.
 - [ ] Keep the test fake services separate from production wiring.
 
 Exit: the bridge handler covers every command needed by G1 and can be

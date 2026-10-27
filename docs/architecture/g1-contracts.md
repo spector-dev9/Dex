@@ -12,9 +12,12 @@ with an atomic move. The `core:supervisor` JVM module now implements health
 polling, backoff, crash-loop breaking, stop/restart, and state reporting
 behind a `ServerLauncher` port. The `core:diagnostics` JVM module provides a
 bounded in-memory event log that applies the `LogScrubber` before storage and
-export. Android process launch, production launcher and authenticated-health
-composition, gateway composition, persistent diagnostics export, JNI
-`forkpty`, command payload DTOs, and bridge JSON serialization are still not
+export. All 17 `session.*` commands now route through `OpenCodeClient` and
+`OpenCodeHttpClient`, including prompt, command, shell, fork, revert,
+permission reply and diff operations. Android process launch, production
+launcher and authenticated-health composition, production gateway
+composition, persistent diagnostics export, JNI `forkpty`, settings command
+handling, command payload DTOs, and bridge JSON serialization are still not
 implemented.
 
 G0 is not green. The owner has directed G1-G2 work to proceed while the
@@ -167,8 +170,8 @@ they must not change the envelope shapes above.
 
 ## G1 implementation backlog
 
-- [~] Injectable app bridge handler for runtime, workspace, Git and terminal
-      commands; session and settings commands remain open.
+- [~] Injectable app bridge handler for runtime, workspace, Git, terminal
+      and all session commands; settings commands remain open.
 - [ ] Runtime installer integration and Android process launcher.
 - [~] Server supervisor with backoff, crash-loop breaker, stop/restart and
       state reporting; production launcher, authenticated health and

@@ -24,11 +24,15 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Credentials
@@ -129,6 +133,208 @@ class OpenCodeHttpClient(
             ),
         )
 
+    override suspend fun createSession(
+        directory: String,
+        title: String?,
+        parentID: String?,
+        agent: String?,
+        model: SessionModelRef?,
+    ): ApiResult<Session> {
+        val body = buildJsonObject {
+            title?.let { put("title", it) }
+            parentID?.let { put("parentID", it) }
+            agent?.let { put("agent", it) }
+            model?.let { ref ->
+                put(
+                    "model",
+                    buildJsonObject {
+                        put("id", ref.id)
+                        put("providerID", ref.providerID)
+                        ref.variant?.let { put("variant", it) }
+                    },
+                )
+            }
+        }
+        return call(
+            operation(
+                "session.create",
+                HttpMethod.POST,
+                path("session"),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(Session.serializer()),
+                body = encode(body, JsonObject.serializer()),
+                contentType = "application/json",
+            ),
+        )
+    }
+
+    override suspend fun updateSession(
+        sessionID: String,
+        directory: String,
+        title: String?,
+        archived: Boolean?,
+    ): ApiResult<Session> {
+        val body = buildJsonObject {
+            title?.let { put("title", it) }
+            archived?.let { isArchived ->
+                put(
+                    "time",
+                    buildJsonObject {
+                        put("archived", if (isArchived) System.currentTimeMillis() else 0L)
+                    },
+                )
+            }
+        }
+        return call(
+            operation(
+                "session.update",
+                HttpMethod.PATCH,
+                path("session", sessionID),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(Session.serializer()),
+                body = encode(body, JsonObject.serializer()),
+                contentType = "application/json",
+            ),
+        )
+    }
+
+    override suspend fun deleteSession(sessionID: String, directory: String): ApiResult<Boolean> =
+        call(
+            operation(
+                "session.delete",
+                HttpMethod.DELETE,
+                path("session", sessionID),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(Boolean.serializer()),
+            ),
+        )
+
+    override suspend fun sessionStatuses(directory: String): ApiResult<JsonObject> =
+        call(
+            operation(
+                "session.status",
+                HttpMethod.GET,
+                path("session", "status"),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(JsonObject.serializer()),
+            ),
+        )
+
+    override suspend fun forkSession(
+        sessionID: String,
+        directory: String,
+        messageID: String?,
+    ): ApiResult<Session> {
+        val body = buildJsonObject {
+            messageID?.let { put("messageID", it) }
+        }
+        return call(
+            operation(
+                "session.fork",
+                HttpMethod.POST,
+                path("session", sessionID, "fork"),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(Session.serializer()),
+                body = encode(body, JsonObject.serializer()),
+                contentType = "application/json",
+            ),
+        )
+    }
+
+    override suspend fun abortSession(sessionID: String, directory: String): ApiResult<Boolean> =
+        call(
+            operation(
+                "session.abort",
+                HttpMethod.POST,
+                path("session", sessionID, "abort"),
+                mapOf("directory" to directory),
+                TimeoutClass.ABORT,
+                decoder(Boolean.serializer()),
+            ),
+        )
+
+    override suspend fun revertSession(
+        sessionID: String,
+        directory: String,
+        messageID: String,
+        partID: String?,
+    ): ApiResult<Session> {
+        val body = buildJsonObject {
+            put("messageID", messageID)
+            partID?.let { put("partID", it) }
+        }
+        return call(
+            operation(
+                "session.revert",
+                HttpMethod.POST,
+                path("session", sessionID, "revert"),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(Session.serializer()),
+                body = encode(body, JsonObject.serializer()),
+                contentType = "application/json",
+            ),
+        )
+    }
+
+    override suspend fun unrevertSession(sessionID: String, directory: String): ApiResult<Session> =
+        call(
+            operation(
+                "session.unrevert",
+                HttpMethod.POST,
+                path("session", sessionID, "unrevert"),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(Session.serializer()),
+            ),
+        )
+
+    override suspend fun summarizeSession(
+        sessionID: String,
+        directory: String,
+        providerID: String,
+        modelID: String,
+        auto: Boolean,
+    ): ApiResult<Boolean> {
+        val body = buildJsonObject {
+            put("providerID", providerID)
+            put("modelID", modelID)
+            put("auto", auto)
+        }
+        return call(
+            operation(
+                "session.summarize",
+                HttpMethod.POST,
+                path("session", sessionID, "summarize"),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(Boolean.serializer()),
+                body = encode(body, JsonObject.serializer()),
+                contentType = "application/json",
+            ),
+        )
+    }
+
+    override suspend fun sessionDiff(
+        sessionID: String,
+        directory: String,
+    ): ApiResult<List<SessionFileDiff>> =
+        call(
+            operation(
+                "session.diff",
+                HttpMethod.GET,
+                path("session", sessionID, "diff"),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                listDecoder(SessionFileDiff.serializer()),
+            ),
+        )
+
     override suspend fun listMessages(sessionID: String, directory: String): ApiResult<List<Message>> =
         call(
             operation(
@@ -158,7 +364,7 @@ class OpenCodeHttpClient(
         directory: String,
         prompt: PromptInput,
     ): ApiResult<Unit> {
-        val body = json.encodeToString(PromptInput.serializer(), prompt).encodeToByteArray()
+        val body = encode(prompt, PromptInput.serializer())
         return call(
             operation(
                 "session.promptAsync",
@@ -168,6 +374,103 @@ class OpenCodeHttpClient(
                 TimeoutClass.PROMPT_ASYNC,
                 GatewayResponseDecoder { _, _ -> Unit },
                 body = body,
+                contentType = "application/json",
+            ),
+        )
+    }
+
+    override suspend fun runCommand(
+        sessionID: String,
+        directory: String,
+        command: String,
+        arguments: String,
+        agent: String?,
+        model: PromptModel?,
+        messageID: String?,
+    ): ApiResult<Message> {
+        val body = buildJsonObject {
+            put("command", command)
+            put("arguments", arguments)
+            messageID?.let { put("messageID", it) }
+            agent?.let { put("agent", it) }
+            model?.let { ref ->
+                put(
+                    "model",
+                    buildJsonObject {
+                        put("providerID", ref.providerID)
+                        put("modelID", ref.modelID)
+                    },
+                )
+            }
+        }
+        return call(
+            operation(
+                "session.command",
+                HttpMethod.POST,
+                path("session", sessionID, "command"),
+                mapOf("directory" to directory),
+                TimeoutClass.PROMPT_ASYNC,
+                decoder(Message.serializer()),
+                body = encode(body, JsonObject.serializer()),
+                contentType = "application/json",
+            ),
+        )
+    }
+
+    override suspend fun runShell(
+        sessionID: String,
+        directory: String,
+        command: String,
+        agent: String,
+        model: PromptModel?,
+        messageID: String?,
+    ): ApiResult<Message> {
+        val body = buildJsonObject {
+            put("command", command)
+            put("agent", agent)
+            messageID?.let { put("messageID", it) }
+            model?.let { ref ->
+                put(
+                    "model",
+                    buildJsonObject {
+                        put("providerID", ref.providerID)
+                        put("modelID", ref.modelID)
+                    },
+                )
+            }
+        }
+        return call(
+            operation(
+                "session.shell",
+                HttpMethod.POST,
+                path("session", sessionID, "shell"),
+                mapOf("directory" to directory),
+                TimeoutClass.PROMPT_ASYNC,
+                decoder(Message.serializer()),
+                body = encode(body, JsonObject.serializer()),
+                contentType = "application/json",
+            ),
+        )
+    }
+
+    override suspend fun replyPermission(
+        sessionID: String,
+        permissionID: String,
+        directory: String,
+        response: PermissionResponse,
+    ): ApiResult<Boolean> {
+        val body = buildJsonObject {
+            put("response", response.wireName)
+        }
+        return call(
+            operation(
+                "session.permissionReply",
+                HttpMethod.POST,
+                path("session", sessionID, "permissions", permissionID),
+                mapOf("directory" to directory),
+                TimeoutClass.LIST_GET,
+                decoder(Boolean.serializer()),
+                body = encode(body, JsonObject.serializer()),
                 contentType = "application/json",
             ),
         )
@@ -390,10 +693,13 @@ class OpenCodeHttpClient(
             decoder = responseDecoder,
         )
 
-    private fun <T> decoder(serializer: kotlinx.serialization.KSerializer<T>) =
+    private fun <T> decoder(serializer: KSerializer<T>) =
         GatewayResponseDecoder<T> { _, body ->
             json.decodeFromString(serializer, body.toString(StandardCharsets.UTF_8))
         }
+
+    private fun <T> encode(value: T, serializer: KSerializer<T>): ByteArray =
+        json.encodeToString(serializer, value).encodeToByteArray()
 
     private fun <T> listDecoder(serializer: kotlinx.serialization.KSerializer<T>) =
         decoder(ListSerializer(serializer))
@@ -402,6 +708,13 @@ class OpenCodeHttpClient(
         when (this) {
             is ApiResult.Success -> ApiResult.Success(transform(value))
             is ApiResult.Failure -> this
+        }
+
+    private val PermissionResponse.wireName: String
+        get() = when (this) {
+            PermissionResponse.ONCE -> "once"
+            PermissionResponse.ALWAYS -> "always"
+            PermissionResponse.REJECT -> "reject"
         }
 
     private data class HttpResponse(

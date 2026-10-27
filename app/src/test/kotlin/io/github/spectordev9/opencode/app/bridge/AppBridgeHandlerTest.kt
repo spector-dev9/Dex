@@ -14,12 +14,16 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class AppBridgeHandlerTest {
-    private fun handler(workspace: FakeWorkspaceService = FakeWorkspaceService()) = AppBridgeHandler(
+    private fun handler(
+        workspace: FakeWorkspaceService = FakeWorkspaceService(),
+        client: FakeOpenCodeClient = FakeOpenCodeClient(),
+    ) = AppBridgeHandler(
         runtime = FakeRuntimeService(),
         supervisor = FakeServerSupervisor(),
         workspace = workspace,
         git = FakeGitService(),
         terminal = FakePtyService(),
+        client = client,
         diagnostics = FakeDiagnosticsService(),
         scrubber = FakeLogScrubber(),
     )
@@ -206,9 +210,72 @@ class AppBridgeHandlerTest {
     }
 
     @Test
+    fun `session commands are dispatched to the gateway client`() = runBlocking {
+        val client = FakeOpenCodeClient()
+        val handler = handler(client = client)
+
+        val listed = handler.handle(
+            CommandEnvelope(
+                CommandId("sessions"),
+                BridgeCommandNames.SESSION_LIST,
+                mapOf("directory" to "/workspace"),
+            ),
+        )
+        val sessions = assertIs<List<*>>(assertIs<ResultEnvelope.Ok<*>>(listed).value)
+        assertEquals("ses_123", assertIs<io.github.spectordev9.opencode.core.model.Session>(sessions.single()).id)
+
+        val created = handler.handle(
+            CommandEnvelope(
+                CommandId("create"),
+                BridgeCommandNames.SESSION_CREATE,
+                mapOf("directory" to "/workspace", "title" to "New work"),
+            ),
+        )
+        assertEquals(
+            "New work",
+            assertIs<io.github.spectordev9.opencode.core.model.Session>(
+                assertIs<ResultEnvelope.Ok<*>>(created).value,
+            ).title,
+        )
+
+        assertIs<ResultEnvelope.Ok<*>>(
+            handler.handle(
+                CommandEnvelope(
+                    CommandId("prompt"),
+                    BridgeCommandNames.SESSION_PROMPT_ASYNC,
+                    mapOf(
+                        "directory" to "/workspace",
+                        "sessionId" to "ses_123",
+                        "prompt" to "hello",
+                        "model" to mapOf("providerID" to "provider", "modelID" to "model"),
+                    ),
+                ),
+            ),
+        )
+        assertEquals("hello", client.lastPrompt?.parts?.single()?.text)
+        assertEquals("provider", client.lastPrompt?.model?.providerID)
+
+        assertIs<ResultEnvelope.Ok<*>>(
+            handler.handle(
+                CommandEnvelope(
+                    CommandId("permission"),
+                    BridgeCommandNames.SESSION_PERMISSION_REPLY,
+                    mapOf(
+                        "directory" to "/workspace",
+                        "sessionId" to "ses_123",
+                        "permissionId" to "per_123",
+                        "response" to "once",
+                    ),
+                ),
+            ),
+        )
+        assertEquals("per_123", client.lastPermission?.first)
+    }
+
+    @Test
     fun `commands outside the G1 composition are explicit`() = runBlocking {
         val result = handler().handle(
-            CommandEnvelope(CommandId("sessions"), BridgeCommandNames.SESSION_LIST, mapOf("directory" to "/repo")),
+            CommandEnvelope(CommandId("settings"), BridgeCommandNames.SETTINGS_GET, mapOf("key" to "theme")),
         )
 
         val error = assertIs<ResultEnvelope.Error>(result)
