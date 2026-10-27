@@ -98,6 +98,7 @@ private data class VerificationTest(
 fun OpenCodeShell(
     ptyService: PtyService? = null,
     onOpenLicenses: () -> Unit,
+    runtimeLauncher: io.github.spectordev9.opencode.AndroidRuntimeProcessLauncher = AndroidRuntimeProcessLauncher,
 ) {
     var selectedTab by remember { mutableStateOf(AppTab.Chat) }
 
