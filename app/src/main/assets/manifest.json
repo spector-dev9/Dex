@@ -2,9 +2,6 @@
   "version": "1.19.3",
   "profile": "A_DIRECT",
   "binary": "opencode",
-  "binarySha256": "62f8e1ec095e1857446d403d1431007de8813aea9553a56ccd4552a131b1f297",
-  "artifact": {
-    "url": "",
-    "sha256": ""
-  }
+  "binarySha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "# TODO: replace with real binary SHA-256 after D4 runtime profile freeze"
 }
