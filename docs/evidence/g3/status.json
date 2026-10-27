@@ -1,333 +1,351 @@
 {
-  "gate": "G3",
-  "updated": "2026-10-27",
-  "reference_device": "Infinix X6870 (INFINIX, Android 16/API 36, arm64-v8a, 4 KB pages, 5.58 GB RAM)",
-  "criteria": [
-    {
-      "id": "RT-1",
-      "status": "PARTIAL",
-      "evidence": [
-        "docs/evidence/g3/host-runtime-probe.md"
-      ],
-      "notes": "Pinned 1.19.3 server answered /global/health 200 on the reference device via the bundled musl loader. App-sandbox clean-install/airplane-mode run not performed."
-    },
-    {
-      "id": "RT-2",
-      "status": "PARTIAL",
-      "evidence": [
-        "docs/evidence/g3/host-runtime-probe.md",
-        "docs/evidence/g3/device-baseline.md"
-      ],
-      "notes": "Host cold start to healthy 4.572 s; app UI cold launch 1756 ms, warm 81 ms. App-sandbox cold/first-run/warm and p95 runs not measured."
-    },
-    {
-      "id": "RT-3",
-      "status": "PARTIAL",
-      "evidence": [
-        "docs/evidence/g3/verify-runtime.json",
-        "scripts/check-app-manifest.py",
-        "docs/evidence/g3/host-tests.md"
-      ],
-      "notes": "Asset manifest is valid JSON and matches runtime/manifest.json (binary 37c7de...); artifact and executable hashes verified. Device startup hash enforcement is not wired yet."
-    },
-    {
-      "id": "RT-4",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/device-baseline.md"
-      ],
-      "notes": "No execute_no_trans denials observed for the app during launch logcat scan; full E2E suite not run."
-    },
-    {
-      "id": "RT-5",
-      "status": "PASS",
-      "evidence": [
-        "docs/evidence/g3/verify-runtime.json",
-        "docs/evidence/g3/host-tests.md"
-      ],
-      "notes": "Reference device uses 4 KB pages; artifact-side ELF LOAD alignment is 65536 B (verify-runtime pass). CI ELF-alignment step added."
-    },
-    {
-      "id": "STR-1",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/host-runtime-probe.md"
-      ],
-      "notes": "SSE probe showed heartbeat-only traffic, but the gateway request-counter test is not implemented."
-    },
-    {
-      "id": "STR-2",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "No trace gateway-receive to frame-commit instrumentation in the app."
-    },
-    {
-      "id": "STR-3",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "No Macrobenchmark run; UI bridge not wired to the runtime."
-    },
-    {
-      "id": "STR-4",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "Cancel path is not wired in the app."
-    },
-    {
-      "id": "STR-5",
-      "status": "PARTIAL",
-      "evidence": [
-        "ui/src/bridge/resync.test.ts",
-        "docs/evidence/g3/host-runtime-probe.md"
-      ],
-      "notes": "500-trial resync simulation passes; reconnect delivers a new server.connected event. Live 500-drop device run not performed."
-    },
-    {
-      "id": "WS-1",
-      "status": "PASS",
-      "evidence": [
-        "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt",
-        "docs/evidence/g3/host-tests.md"
-      ],
-      "notes": "100,000-case traversal/noncanonical-path safety run passed on the reference device JVM."
-    },
-    {
-      "id": "WS-2",
-      "status": "PARTIAL",
-      "evidence": [
-        "docs/evidence/g3/ws2-stress-300.log",
-        "docs/evidence/g3/host-tests.md"
-      ],
-      "notes": "300/1000 SIGKILL atomic-write stress runs passed on the reference device JVM; app-sandbox SIGKILL run and the remaining runs are pending."
-    },
-    {
-      "id": "WS-3",
-      "status": "PARTIAL",
-      "evidence": [
-        "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt"
-      ],
-      "notes": "Stale-precondition conflicts are rejected (E_CONFLICT path); external-change-between-open-and-save UI flow not exercised."
-    },
-    {
-      "id": "WS-4",
-      "status": "PARTIAL",
-      "evidence": [
-        "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt"
-      ],
-      "notes": "Bounded reads of a sparse 1 GiB file pass; first-screen latency and peak memory thresholds not measured."
-    },
-    {
-      "id": "WS-5",
-      "status": "PASS",
-      "evidence": [
-        "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt",
-        "docs/evidence/g3/host-tests.md"
-      ],
-      "notes": "All 60 file/folder create/rename/move/trash/restore cases passed on the reference device JVM."
-    },
-    {
-      "id": "WS-6",
-      "status": "BLOCKED",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "Only the git API module exists; no git service implementation to validate."
-    },
-    {
-      "id": "TERM-1",
-      "status": "BLOCKED",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "MainActivity passes ptyService=null; terminal UI is not wired to a PTY service."
-    },
-    {
-      "id": "TERM-2",
-      "status": "BLOCKED",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "Signals/cleanup cannot be exercised until the terminal service is wired."
-    },
-    {
-      "id": "TERM-3",
-      "status": "BLOCKED",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "Resize behaviour cannot be exercised until the terminal service is wired."
-    },
-    {
-      "id": "TERM-4",
-      "status": "BLOCKED",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "Flood behaviour cannot be exercised until the terminal service is wired."
-    },
-    {
-      "id": "TERM-5",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/device-baseline.md"
-      ],
-      "notes": "Gboard is installed on the reference device; the input test needs a wired terminal."
-    },
-    {
-      "id": "LC-1",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "Rotation during a streamed reply is not testable with the runtime offline."
-    },
-    {
-      "id": "LC-2",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "Agent task/background survival requires the app runtime to be wired."
-    },
-    {
-      "id": "LC-3",
-      "status": "PARTIAL",
-      "evidence": [
-        "core/supervisor/src/test/kotlin/io/github/spectordev9/opencode/core/supervisor/impl/ProcessServerSupervisorTest.kt",
-        "docs/evidence/g3/host-tests.md"
-      ],
-      "notes": "Supervisor restart, health-timeout and crash-loop-breaker tests pass; 50 SIGKILL device run not performed."
-    },
-    {
-      "id": "LC-4",
-      "status": "PARTIAL",
-      "evidence": [
-        "docs/evidence/g3/idle-top-60s-raw.txt"
-      ],
-      "notes": "App shell averaged 0.0% CPU over a 60 s idle sample; 10 min sample and idle server shutdown not measured."
-    },
-    {
-      "id": "LC-5",
-      "status": "DEFERRED",
-      "evidence": [
-        "docs/spec.md"
-      ],
-      "notes": "Post-G0 4 h soak is deferred as a post-v1 optional check per the G3 gate."
-    },
-    {
-      "id": "LC-6",
-      "status": "DEFERRED",
-      "evidence": [
-        "docs/spec.md"
-      ],
-      "notes": "30 min thermal soak is deferred as a post-v1 optional check per the G3 gate."
-    },
-    {
-      "id": "SEC-1",
-      "status": "PARTIAL",
-      "evidence": [
-        "tests/spikes/results/raw/g3-host-auth-summary.json",
-        "docs/evidence/g3/host-runtime-probe.md"
-      ],
-      "notes": "Health, doc, project, session, PTY and event routes return 401 without the secret and 200 with Basic auth; a second-UID instrumented app was not run."
-    },
-    {
-      "id": "SEC-2",
-      "status": "PARTIAL",
-      "evidence": [
-        "docs/evidence/g3/device-baseline.md"
-      ],
-      "notes": "No token/credential patterns found in the installed APK and no app-UID execute denials in logcat; full E2E secret scan not performed."
-    },
-    {
-      "id": "SEC-3",
-      "status": "PASS",
-      "evidence": [
-        "scripts/check-release-manifest.py",
-        "tests/security/test_release_manifest.py",
-        "ci:40495019508"
-      ],
-      "notes": "Release manifest invariants (debuggable false, one exported launcher, permission allow-list, no global cleartext) are enforced in CI and passed."
-    },
-    {
-      "id": "SEC-4",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "Permission prompts and transcript visibility require the runtime/UI wiring."
-    },
-    {
-      "id": "SEC-5",
-      "status": "PARTIAL",
-      "evidence": [
-        "docs/licenses/README.md",
-        "ci:40495019508"
-      ],
-      "notes": "Pinned hashes, CycloneDX SBOM and license-artifact checks are green. osv-scanner and the GPL source offer are not present."
-    },
-    {
-      "id": "SEC-6",
-      "status": "PENDING",
-      "evidence": [
-        "docs/spec.md"
-      ],
-      "notes": "Remote-profile TLS validation is a v1.1 item; not required for v1 G3."
-    },
-    {
-      "id": "REL-1",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "No two-build diffoscope comparison in CI."
-    },
-    {
-      "id": "REL-2",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "No upgrade/install documentation or downgrade-refusal test."
-    },
-    {
-      "id": "REL-3",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "No release signing configuration or apksigner verification step."
-    },
-    {
-      "id": "REL-4",
-      "status": "PASS",
-      "evidence": [
-        "ci:40496782526",
-        "docs/evidence/g3/host-runtime-probe.md"
-      ],
-      "notes": "Nightly contract-drift workflow is green, and the live /doc capture is byte-identical to the pinned OpenAPI contract."
-    },
-    {
-      "id": "QA-1",
-      "status": "PARTIAL",
-      "evidence": [
-        "docs/evidence/g3/host-tests.md"
-      ],
-      "notes": "39 targeted core tests pass on the reference device JVM; 80% coverage and zero-lint thresholds are not measured."
-    },
-    {
-      "id": "QA-2",
-      "status": "PENDING",
-      "evidence": [
-        "docs/evidence/g3/G3_STATUS.md"
-      ],
-      "notes": "No nightly device E2E workflow."
-    }
-  ]
+ "gate": "G3",
+ "updated": "2026-10-27",
+ "reference_device": "Infinix X6870 (INFINIX, Android 16/API 36, arm64-v8a, 4 KB pages, 5.58 GB RAM)",
+ "criteria": [
+  {
+   "id": "RT-1",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/host-runtime-probe.md",
+    "docs/evidence/g3/spike-harness.md",
+    "docs/evidence/g3/spike-harness-report.json"
+   ],
+   "notes": "Pinned 1.19.3 server answered /global/health 200 on the reference device via the bundled musl loader; the isolated harness app did the same in its app sandbox (4.609 s) after verifying the pinned hashes. Airplane-mode and production-app install runs not performed."
+  },
+  {
+   "id": "RT-2",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/host-runtime-probe.md",
+    "docs/evidence/g3/device-baseline.md",
+    "docs/evidence/g3/spike-harness.md",
+    "docs/evidence/g3/spike-harness-report.json"
+   ],
+   "notes": "Host cold start to healthy 4.572 s; harness app-sandbox server start to health 4.609 s; production app UI cold launch 1756 ms, warm 81 ms. App-sandbox cold/first-run/warm p95 for the production app not measured."
+  },
+  {
+   "id": "RT-3",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/verify-runtime.json",
+    "scripts/check-app-manifest.py",
+    "docs/evidence/g3/host-tests.md",
+    "docs/evidence/g3/spike-harness.md",
+    "docs/evidence/g3/spike-harness-report.json"
+   ],
+   "notes": "Asset manifest is valid JSON and matches runtime/manifest.json (binary 37c7de...); artifact, executable and archive hashes verified on the host and by the harness installer on the device. Production-app startup enforcement is not wired yet."
+  },
+  {
+   "id": "RT-4",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/device-baseline.md",
+    "docs/evidence/g3/spike-harness.md",
+    "docs/evidence/g3/spike-harness-exec-audit.txt"
+   ],
+   "notes": "Harness app executed the loader, PRoot and OpenCode from its native-library directory with zero execute_no_trans denials; 25 MediaTek perf_ioctl denials only. Production-app E2E suite not run."
+  },
+  {
+   "id": "RT-5",
+   "status": "PASS",
+   "evidence": [
+    "docs/evidence/g3/verify-runtime.json",
+    "docs/evidence/g3/host-tests.md",
+    "docs/evidence/g3/spike-harness.md",
+    "docs/evidence/g3/spike-harness-report.json"
+   ],
+   "notes": "Reference device uses 4 KB pages; host verify-runtime reports min ELF LOAD alignment 65536 B, and the harness reports 65536 B (loader) / 16384 B (PRoot) on-device. CI ELF-alignment step added."
+  },
+  {
+   "id": "STR-1",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/host-runtime-probe.md"
+   ],
+   "notes": "SSE probe showed heartbeat-only traffic, but the gateway request-counter test is not implemented."
+  },
+  {
+   "id": "STR-2",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "No trace gateway-receive to frame-commit instrumentation in the app."
+  },
+  {
+   "id": "STR-3",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "No Macrobenchmark run; UI bridge not wired to the runtime."
+  },
+  {
+   "id": "STR-4",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "Cancel path is not wired in the app."
+  },
+  {
+   "id": "STR-5",
+   "status": "PARTIAL",
+   "evidence": [
+    "ui/src/bridge/resync.test.ts",
+    "docs/evidence/g3/host-runtime-probe.md"
+   ],
+   "notes": "500-trial resync simulation passes; reconnect delivers a new server.connected event. Live 500-drop device run not performed."
+  },
+  {
+   "id": "WS-1",
+   "status": "PASS",
+   "evidence": [
+    "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt",
+    "docs/evidence/g3/host-tests.md"
+   ],
+   "notes": "100,000-case traversal/noncanonical-path safety run passed on the reference device JVM."
+  },
+  {
+   "id": "WS-2",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/ws2-stress-300.log",
+    "docs/evidence/g3/host-tests.md"
+   ],
+   "notes": "300/1000 SIGKILL atomic-write stress runs passed on the reference device JVM; app-sandbox SIGKILL run and the remaining runs are pending."
+  },
+  {
+   "id": "WS-3",
+   "status": "PARTIAL",
+   "evidence": [
+    "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt"
+   ],
+   "notes": "Stale-precondition conflicts are rejected (E_CONFLICT path); external-change-between-open-and-save UI flow not exercised."
+  },
+  {
+   "id": "WS-4",
+   "status": "PARTIAL",
+   "evidence": [
+    "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt"
+   ],
+   "notes": "Bounded reads of a sparse 1 GiB file pass; first-screen latency and peak memory thresholds not measured."
+  },
+  {
+   "id": "WS-5",
+   "status": "PASS",
+   "evidence": [
+    "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt",
+    "docs/evidence/g3/host-tests.md"
+   ],
+   "notes": "All 60 file/folder create/rename/move/trash/restore cases passed on the reference device JVM."
+  },
+  {
+   "id": "WS-6",
+   "status": "BLOCKED",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "Only the git API module exists; no git service implementation to validate."
+  },
+  {
+   "id": "TERM-1",
+   "status": "BLOCKED",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "MainActivity passes ptyService=null; terminal UI is not wired to a PTY service."
+  },
+  {
+   "id": "TERM-2",
+   "status": "BLOCKED",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md",
+    "docs/evidence/g3/spike-harness.md"
+   ],
+   "notes": "Production terminal service is absent. Harness forkpty cleanup with --kill-on-exit passed, but signal handling in the production terminal cannot be exercised."
+  },
+  {
+   "id": "TERM-3",
+   "status": "BLOCKED",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md",
+    "docs/evidence/g3/spike-harness.md"
+   ],
+   "notes": "Production terminal service is absent. Harness native PTY reported 80x24 and environment parity, but production resize behaviour cannot be exercised."
+  },
+  {
+   "id": "TERM-4",
+   "status": "BLOCKED",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "Flood behaviour cannot be exercised until the terminal service is wired."
+  },
+  {
+   "id": "TERM-5",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/device-baseline.md",
+    "docs/evidence/g3/spike-harness.md",
+    "docs/evidence/g3/spike-harness-report.json"
+   ],
+   "notes": "Scripted native-PTY byte round trip passed in the harness app for text, Enter (CR->LF via ICRNL), Backspace, Tab, Esc, Up, Ctrl-C and Alt-x. Physical Gboard mapping and the production terminal UI remain untested."
+  },
+  {
+   "id": "LC-1",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "Rotation during a streamed reply is not testable with the runtime offline."
+  },
+  {
+   "id": "LC-2",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "Agent task/background survival requires the app runtime to be wired."
+  },
+  {
+   "id": "LC-3",
+   "status": "PARTIAL",
+   "evidence": [
+    "core/supervisor/src/test/kotlin/io/github/spectordev9/opencode/core/supervisor/impl/ProcessServerSupervisorTest.kt",
+    "docs/evidence/g3/host-tests.md"
+   ],
+   "notes": "Supervisor restart, health-timeout and crash-loop-breaker tests pass; 50 SIGKILL device run not performed."
+  },
+  {
+   "id": "LC-4",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/idle-top-60s-raw.txt"
+   ],
+   "notes": "App shell averaged 0.0% CPU over a 60 s idle sample; 10 min sample and idle server shutdown not measured."
+  },
+  {
+   "id": "LC-5",
+   "status": "DEFERRED",
+   "evidence": [
+    "docs/spec.md"
+   ],
+   "notes": "Post-G0 4 h soak is deferred as a post-v1 optional check per the G3 gate."
+  },
+  {
+   "id": "LC-6",
+   "status": "DEFERRED",
+   "evidence": [
+    "docs/spec.md"
+   ],
+   "notes": "30 min thermal soak is deferred as a post-v1 optional check per the G3 gate."
+  },
+  {
+   "id": "SEC-1",
+   "status": "PARTIAL",
+   "evidence": [
+    "tests/spikes/results/raw/g3-host-auth-summary.json",
+    "docs/evidence/g3/host-runtime-probe.md",
+    "docs/evidence/g3/spike-harness.md",
+    "docs/evidence/g3/spike-harness-report.json"
+   ],
+   "notes": "Health, doc, project, session, PTY and event routes return 401 without the secret and 200 with Basic auth on the host; the harness app also reached authenticated /global/health from its sandbox. A second-UID instrumented client was not run."
+  },
+  {
+   "id": "SEC-2",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/device-baseline.md",
+    "docs/evidence/g3/spike-harness-exec-audit.txt",
+    "docs/evidence/g3/spike-harness.md"
+   ],
+   "notes": "No token/credential patterns found in the installed APK; no execute_no_trans denials and only 25 MediaTek perf_ioctl denials for the harness app. Full E2E secret scan and deny-path test not performed."
+  },
+  {
+   "id": "SEC-3",
+   "status": "PASS",
+   "evidence": [
+    "scripts/check-release-manifest.py",
+    "tests/security/test_release_manifest.py",
+    "ci:40495019508"
+   ],
+   "notes": "Release manifest invariants (debuggable false, one exported launcher, permission allow-list, no global cleartext) are enforced in CI and passed."
+  },
+  {
+   "id": "SEC-4",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "Permission prompts and transcript visibility require the runtime/UI wiring."
+  },
+  {
+   "id": "SEC-5",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/licenses/README.md",
+    "ci:40495019508"
+   ],
+   "notes": "Pinned hashes, CycloneDX SBOM and license-artifact checks are green. osv-scanner and the GPL source offer are not present."
+  },
+  {
+   "id": "SEC-6",
+   "status": "PENDING",
+   "evidence": [
+    "docs/spec.md"
+   ],
+   "notes": "Remote-profile TLS validation is a v1.1 item; not required for v1 G3."
+  },
+  {
+   "id": "REL-1",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "No two-build diffoscope comparison in CI."
+  },
+  {
+   "id": "REL-2",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "No upgrade/install documentation or downgrade-refusal test."
+  },
+  {
+   "id": "REL-3",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "No release signing configuration or apksigner verification step."
+  },
+  {
+   "id": "REL-4",
+   "status": "PASS",
+   "evidence": [
+    "ci:40496782526",
+    "docs/evidence/g3/host-runtime-probe.md"
+   ],
+   "notes": "Nightly contract-drift workflow is green, and the live /doc capture is byte-identical to the pinned OpenAPI contract."
+  },
+  {
+   "id": "QA-1",
+   "status": "PARTIAL",
+   "evidence": [
+    "docs/evidence/g3/host-tests.md"
+   ],
+   "notes": "39 targeted core tests pass on the reference device JVM; 80% coverage and zero-lint thresholds are not measured."
+  },
+  {
+   "id": "QA-2",
+   "status": "PENDING",
+   "evidence": [
+    "docs/evidence/g3/G3_STATUS.md"
+   ],
+   "notes": "No nightly device E2E workflow."
+  }
+ ]
 }

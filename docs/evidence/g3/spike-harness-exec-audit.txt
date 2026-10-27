@@ -1,0 +1,12 @@
+scope: harness app (uid 10376) logcat scan after the 11/11 device suite
+captured: 2026-10-27T12:09:48Z
+
+execute_no_trans entries for harness: 0
+total denied entries for harness: 25
+
+breakdown by denied permission:
+     25 denied={ioctl }
+
+denied targets:
+     25 path="/proc/perfmgr/perf_ioctl"
+     25 tclass=file

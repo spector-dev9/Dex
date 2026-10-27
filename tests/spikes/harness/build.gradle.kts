@@ -24,10 +24,12 @@ android {
         versionCode = 1
         versionName = "0.1.0-spike"
 
-        externalNativeBuild {
-            cmake {
-                cppFlags += "-std=c++17"
-                abiFilters += "arm64-v8a"
+        if (providers.gradleProperty("skipNative").orNull != "true") {
+            externalNativeBuild {
+                cmake {
+                    cppFlags += "-std=c++17"
+                    abiFilters += "arm64-v8a"
+                }
             }
         }
     }
@@ -63,10 +65,12 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+    if (providers.gradleProperty("skipNative").orNull != "true") {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
 
@@ -74,6 +78,7 @@ android {
 
 dependencies {
     implementation(project(":core:runtime"))
+    implementation(project(":core:workspace"))
 }
 
 tasks.named("preBuild").configure {

@@ -151,8 +151,8 @@ jobs:
       - name: Stage spike harness native entrypoints
         run: python3 scripts/stage-spike-harness.py
 
-      - name: Compile isolated spike harness
-        run: ./gradlew --no-daemon -PspikeHarness=true -PskipApp=true :spike-harness:assembleDebug
+      - name: Compile isolated spike harness and G3 client
+        run: ./gradlew --no-daemon -PspikeHarness=true -PskipApp=true :spike-harness:assembleDebug :g3-client:assembleDebug
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
@@ -161,4 +161,5 @@ jobs:
           path: |
             app/build/outputs/apk/**/*.apk
             tests/spikes/harness/build/outputs/apk/**/*.apk
+            tests/spikes/g3-client/build/outputs/apk/**/*.apk
           if-no-files-found: error

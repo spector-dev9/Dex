@@ -43,4 +43,6 @@ if (providers.gradleProperty("skipApp").orNull != "true") {
 if (providers.gradleProperty("spikeHarness").orNull == "true") {
     include(":spike-harness")
     project(":spike-harness").projectDir = file("tests/spikes/harness")
+    include(":g3-client")
+    project(":g3-client").projectDir = file("tests/spikes/g3-client")
 }

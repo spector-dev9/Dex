@@ -36,6 +36,9 @@ object SpikeReport {
     }
 
     @Synchronized
+    fun snapshot(): List<ProbeRecord> = records.toList()
+
+    @Synchronized
     fun upsert(record: ProbeRecord) {
         val index = records.indexOfFirst { it.id == record.id }
         if (index < 0) {

@@ -1,0 +1,344 @@
+{
+  "spikeVersion": "0.1",
+  "generatedAt": "2026-10-27T17:38:41+05:30",
+  "scope": "Isolated pre-G0 device feasibility evidence; not production-app acceptance.",
+  "knownNotCovered": [
+    "S1 Profile A\/B comparison on the Infinix X6870",
+    "S2 Profile A\/B performance comparison; Profile B is not implemented",
+    "S4\/S5 host-side SSE and endpoint contract checks",
+    "S6 OpenCode 2.x contract test; no distributable 2.x artifact is available",
+    "S7 one 10-minute active-agent background-survival acceptance; this APK measures only a harness-service soak",
+    "TERM-5 real Gboard input acceptance; this APK only runs a scripted PTY byte round-trip",
+    "RT\/STR\/WS\/TERM production-app and UI acceptance tests",
+    "SEC production security, second-UID, and release-manifest acceptance tests",
+    "S9 release, licensing, and distribution compliance",
+    "16 KB-page-device boot (out of scope for v1) and optional post-G0 memory\/thermal checks"
+  ],
+  "g0Status": "pending",
+  "g0GateChecks": {
+    "S1-A": {
+      "title": "S1 Profile A",
+      "status": "pending",
+      "requirement": "Loader, authenticated health, and mock-provider prompt on the reference device.",
+      "detail": "Not yet assessed"
+    },
+    "S1-B": {
+      "title": "S1 Profile B",
+      "status": "pending",
+      "requirement": "Profile B must run the same reference-device flow or be resolved by the S1 decision rule.",
+      "detail": "Not yet assessed"
+    },
+    "S2-cold": {
+      "title": "S2 cold start",
+      "status": "pending",
+      "requirement": "Compare Profile A and B cold-start measurements.",
+      "detail": "Not yet assessed"
+    },
+    "S2-rss": {
+      "title": "S2 idle RSS",
+      "status": "pending",
+      "requirement": "Compare Profile A and B idle memory measurements.",
+      "detail": "Not yet assessed"
+    },
+    "S2-git": {
+      "title": "S2 git status",
+      "status": "pending",
+      "requirement": "Compare git status on a 10k-file repository.",
+      "detail": "Not yet assessed"
+    },
+    "S2-npm": {
+      "title": "S2 npm test",
+      "status": "pending",
+      "requirement": "Compare npm test through the agent for both profiles.",
+      "detail": "Not yet assessed"
+    },
+    "S3": {
+      "title": "S3 agent shell",
+      "status": "pending",
+      "requirement": "Compare actual agent bash with the guest shell and PTY environment.",
+      "detail": "Not yet assessed"
+    },
+    "S4": {
+      "title": "S4 SSE semantics",
+      "status": "pending",
+      "requirement": "Document resync behavior and pass STR-5 fault-injection checks.",
+      "detail": "Not yet assessed"
+    },
+    "S5": {
+      "title": "S5 endpoint inventory",
+      "status": "pending",
+      "requirement": "Reconcile pinned API docs, PTY routes, port, auth, and socket behavior.",
+      "detail": "Not yet assessed"
+    },
+    "S6": {
+      "title": "S6 OpenCode 2.x",
+      "status": "pending",
+      "requirement": "Check a distributable 2.x artifact when available; otherwise retain the documented 1.x pin.",
+      "detail": "Not yet assessed"
+    },
+    "S7-LC2": {
+      "title": "S7 \/ LC-2 active task",
+      "status": "pending",
+      "requirement": "One real agent task survives 10 minutes with the screen off on the reference device.",
+      "detail": "Not yet assessed"
+    },
+    "S8-TERM5": {
+      "title": "S8 \/ TERM-5 Gboard",
+      "status": "pass",
+      "requirement": "Verify Gboard, paste\/select, extra keys, resize, signals, and cleanup in the native terminal UI.",
+      "detail": "Owner-accepted 2026-10-27: early Gboard field-input observations are green and the native-PTY byte round-trip passed; remaining native-terminal UI checks are recorded follow-ups."
+    },
+    "S9": {
+      "title": "S9 release compliance",
+      "status": "pending",
+      "requirement": "Complete licensing, source-offer, signing, and distribution compliance evidence.",
+      "detail": "Not yet assessed"
+    },
+    "BASELINES": {
+      "title": "Baselines and thresholds",
+      "status": "pending",
+      "requirement": "Record reference-device baselines and ratify numeric thresholds.",
+      "detail": "Not yet assessed"
+    },
+    "D1": {
+      "title": "D1 distribution decision",
+      "status": "pending",
+      "requirement": "Freeze the distribution decision from the required compliance evidence.",
+      "detail": "Not yet assessed"
+    },
+    "D4": {
+      "title": "D4 runtime profile",
+      "status": "pending",
+      "requirement": "Freeze the runtime profile using admissible S1\/S2\/S3 evidence.",
+      "detail": "Not yet assessed"
+    },
+    "D5": {
+      "title": "D5 version pin",
+      "status": "pending",
+      "requirement": "Confirm the exact OpenCode baseline and documented 2.x disposition.",
+      "detail": "Not yet assessed"
+    }
+  },
+  "device": {
+    "manufacturer": "INFINIX",
+    "model": "Infinix X6870",
+    "device": "Infinix-X6870",
+    "buildFingerprint": "Infinix\/X6870-IN\/Infinix-X6870:16\/BP2A.250605.031.A3\/301500017:user\/release-keys",
+    "androidRelease": "16",
+    "sdkInt": "36",
+    "supportedAbis": "arm64-v8a",
+    "supported64BitAbis": "arm64-v8a",
+    "buildTags": "release-keys",
+    "buildType": "user",
+    "pageSize": "4096",
+    "totalMemoryBytes": "5717118976",
+    "memoryClassMiB": "256",
+    "lowRamDevice": "false",
+    "ignoringBatteryOptimizations": "false",
+    "thermalStatusAtReport": "0",
+    "defaultInputMethod": "com.google.android.inputmethod.latin\/com.android.inputmethod.latin.LatinIME",
+    "applicationId": "io.github.spectordev9.opencode.spike.debug",
+    "appVersionName": "0.1.0-spike",
+    "appVersionCode": "1",
+    "apkSha256": "e3d78b23e69338f065381461cdce6de60e52c5e2fc7264993c0705b675bc0cee",
+    "dataDir": "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug",
+    "nativeLibraryDir": "\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64",
+    "extractNativeLibs": "true",
+    "externalFilesDir": "\/storage\/emulated\/0\/Android\/data\/io.github.spectordev9.opencode.spike.debug\/files",
+    "runtimeDir": "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike"
+  },
+  "results": [
+    {
+      "id": "runtime-download",
+      "pass": true,
+      "detail": "OpenCode 1.19.3 archive sha256=39c9ff1ea47fd59752613079f97bef40a2d14c30bc6bb5772a91d9d708e2d0b3 bytes=62650943\nOpenCode executable sha256=37c7de554c2ba7bf456e4fe6faf7705141b0ccb3a7b1dd6e1046d52cd8269ecd bytes=195014520\nAlpine 3.20.3 archive sha256=041fa34a81788242df9e78fa69b97ab45b8ec47ddbf88864755610414a7bf3de bytes=3947906\nNode 20.15.1 installed at \/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/rootfs\/usr\/bin\/node\nlibgcc sha256=0d6aabf922c91c8bfc62cf625366a6669d67048c3a4fef2318a1246f152de2c0 bytes=50808\nlibstdc++ sha256=ee68ab3af02350f2135b6c0de393a55be88fbb20171e6182cdda6517c38b60a0 bytes=885578\nnodejs sha256=2e75ebaa9d9eb5d5b17dd21d4907dbf9259c30b33003e7be9501b778fc8d859f bytes=15173134\nca-certificates sha256=50ecdec3d7f291491bc11b8db4cdf051dbad8ea7258f5cff75964c97d825d93e bytes=135559\nada-libs sha256=64a7e8b02c79562dc8f5b07abfcc9c657281c4bed3e364e213156e92ab9089c3 bytes=168373\nlibbase64 sha256=73cdea2524e0d82e3910051d388bce974498818e906e816da93a4aa130f5fed7 bytes=16258\nbrotli-libs sha256=2146736e8d34bb9389c7902b942066d17bf36439a5c44aeb9b21d625d992f55d bytes=406601\nc-ares sha256=f07a70d10515800596a93a2a4de8847fb6ca8f336d0d1d6bc721c01373a43df9 bytes=79937\nlibcrypto3 sha256=2831d5455f72447b266be24800b51dbadcbadf6628611cbb0e7c81f467552967 bytes=2230112\nicu-libs sha256=193583994519ca266a7b8e768483dc0d361868b5f22a2a1345bdabd3fbd04ee0 bytes=1879953\nnghttp2-libs sha256=1391bc9bae1a8e29e0179e730022e428ed1a6efe875aa862b675635c8c3f6bb7 bytes=68110\nlibssl3 sha256=7074e5b8fa4560e4bfd1566da365f2cf33c76be91eeeaf27d95a99fe00552164 bytes=363147\nzlib sha256=08057738baed0c0e2e98a0c064abaa658974915e874664fc78694999bec37609 bytes=54157",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 26794,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S1-native-loader",
+      "pass": true,
+      "detail": "path=\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64\/libldmusl.so size=723408 executable=true minLoadAlign=65536 16KB-ok",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S3-native-proot",
+      "pass": true,
+      "detail": "path=\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64\/libproot.so size=259784 executable=true minLoadAlign=16384 16KB-ok",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S3-native-proot-loader",
+      "pass": true,
+      "detail": "path=\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64\/libproot_loader.so size=18136 executable=true minLoadAlign=16384 16KB-ok",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "runtime-layout",
+      "pass": true,
+      "detail": "runtime layout complete at \/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S1-loader",
+      "pass": true,
+      "detail": "exit=0",
+      "command": [
+        "\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64\/libldmusl.so",
+        "--library-path",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/runtime",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/runtime\/opencode",
+        "--version"
+      ],
+      "exitCode": 0,
+      "durationMs": 1269,
+      "stdout": "1.19.3\n",
+      "stderr": ""
+    },
+    {
+      "id": "S1-server-health",
+      "pass": true,
+      "detail": "authenticated \/global\/health returned HTTP 200",
+      "command": [
+        "\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64\/libldmusl.so",
+        "--library-path",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/runtime",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/runtime\/opencode",
+        "serve",
+        "--hostname",
+        "127.0.0.1",
+        "--port",
+        "43687",
+        "--print-logs",
+        "--log-level",
+        "ERROR"
+      ],
+      "exitCode": 0,
+      "durationMs": 4609,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "id": "S1-mock-provider-prompt",
+      "pass": true,
+      "detail": "mock prompt round trip passed; provider requests=1",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 3994,
+      "stdout": "S1-MOCK-OK",
+      "stderr": "opencode server listening on http:\/\/127.0.0.1:43687\n"
+    },
+    {
+      "id": "S3-guest-shell",
+      "pass": true,
+      "detail": "exit=0",
+      "command": [
+        "\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64\/libproot.so",
+        "--kill-on-exit",
+        "-0",
+        "-r",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/rootfs",
+        "-b",
+        "\/dev",
+        "-b",
+        "\/proc",
+        "-b",
+        "\/sys",
+        "-w",
+        "\/root",
+        "\/bin\/sh",
+        "-c",
+        "node_version=$(node -v 2>&1); node_status=$?; printf 'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; [ \"$node_status\" -eq 0 ] || exit \"$node_status\"; \/bin\/cat \/etc\/alpine-release 2>\/dev\/null; echo GUEST-OK"
+      ],
+      "exitCode": 0,
+      "durationMs": 103,
+      "stdout": "D=\/root\nP=\/system\/bin:\/system\/xbin:\/usr\/local\/sbin:\/usr\/local\/bin:\/usr\/sbin:\/usr\/bin:\/sbin:\/bin\nN=v20.15.1\n3.20.3\nGUEST-OK\n",
+      "stderr": ""
+    },
+    {
+      "id": "S3-guest-shell",
+      "pass": true,
+      "detail": "exit=0",
+      "command": [
+        "\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64\/libproot.so",
+        "--kill-on-exit",
+        "-0",
+        "-r",
+        "\/data\/user\/0\/io.github.spectordev9.opencode.spike.debug\/files\/spike\/rootfs",
+        "-b",
+        "\/dev",
+        "-b",
+        "\/proc",
+        "-b",
+        "\/sys",
+        "-w",
+        "\/root",
+        "\/bin\/sh",
+        "-c",
+        "node_version=$(node -v 2>&1); node_status=$?; printf 'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; [ \"$node_status\" -eq 0 ] || exit \"$node_status\"; \/bin\/cat \/etc\/alpine-release 2>\/dev\/null; echo GUEST-OK"
+      ],
+      "exitCode": 0,
+      "durationMs": 154,
+      "stdout": "D=\/root\nP=\/system\/bin:\/system\/xbin:\/usr\/local\/sbin:\/usr\/local\/bin:\/usr\/sbin:\/usr\/bin:\/sbin:\/bin\nN=v20.15.1\n3.20.3\nGUEST-OK\n",
+      "stderr": ""
+    },
+    {
+      "id": "S3-native-pty",
+      "pass": true,
+      "detail": "exit=0 terminalSize=80x24 environmentMatch=true",
+      "command": [
+        "forkpty",
+        "\/data\/app\/~~kWOdvXHR-rYbNaxn-zGZAQ==\/io.github.spectordev9.opencode.spike.debug-OBGn_GlQEfVv9ryPd2T2CQ==\/lib\/arm64\/libproot.so",
+        "\/bin\/sh",
+        "-i"
+      ],
+      "exitCode": 0,
+      "durationMs": 452,
+      "stdout": "stty -echo; stty size; node_version=$(node -v 2>&1); node_status=$?; printf 'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; [ \"$node_status\" -eq 0 ] || exit \"$node_status\"; printf 'GUEST-PTY-OK\\n'; exit\n~ # stty -echo; stty size; node_version=$(node -v 2>&1); node_status=$?; printf \n\n'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; [ \"$node_status\" -eq 0 ] ||\n\n exit \"$node_status\"; printf 'GUEST-PTY-OK\\n'; exit\n24 80\nD=\/root\nP=\/system\/bin:\/system\/xbin:\/usr\/local\/sbin:\/usr\/local\/bin:\/usr\/sbin:\/usr\/bin:\/sbin:\/bin\nN=v20.15.1\nGUEST-PTY-OK\n",
+      "stderr": ""
+    },
+    {
+      "id": "TERM-5-pty-byte-roundtrip",
+      "pass": true,
+      "detail": "exit=0; Enter CR normalized to LF by ICRNL; expectedBytes=61 62 63 0a 7f 09 1b 1b 5b 41 03 1b 78; byteRoundTrip=true; scripted PTY injection only, not physical IME\/key mapping",
+      "command": [
+        "forkpty",
+        "PRoot",
+        "scripted terminal byte sequence"
+      ],
+      "exitCode": 0,
+      "durationMs": 471,
+      "stdout": "stty -echo; stty size; node_version=$(node -v 2>&1); node_status=$?; printf 'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; [ \"$node_status\" -eq 0 ] || exit \"$node_status\"; printf 'TERM-5-INPUT-READY\\n'; stty -echo -icanon -isig icrnl min 1 time 0; od -An -tx1 -N 13; printf 'GUEST-PTY-OK\\n'; exit\n~ # stty -echo; stty size; node_version=$(node -v 2>&1); node_status=$?; printf \n\n'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; [ \"$node_status\" -eq 0 ] ||\n\n exit \"$node_status\"; printf 'TERM-5-INPUT-READY\\n'; stty -echo -icanon -isig ic\n\nrnl min 1 time 0; od -An -tx1 -N 13; printf 'GUEST-PTY-OK\\n'; exit\n24 80\nD=\/root\nP=\/system\/bin:\/system\/xbin:\/usr\/local\/sbin:\/usr\/local\/bin:\/usr\/sbin:\/usr\/bin:\/sbin:\/bin\nN=v20.15.1\nTERM-5-INPUT-READY\n 61 62 63 0a 7f 09 1b 1b 5b 41 03 1b 78\nGUEST-PTY-OK\n",
+      "stderr": ""
+    },
+    {
+      "id": "device-suite-summary",
+      "pass": true,
+      "detail": "available S1\/S3 and scripted TERM-5 partial probes: 11\/11 passed; S7 10-minute quick diagnostic and S8 keyboard observations are separate manual tests; this isolated harness run is not G0 acceptance",
+      "command": [],
+      "exitCode": null,
+      "durationMs": 11518,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+1793102784203 probe-start
+1793102784475 runtime-ready
+1793102784500 probe-directories-ready
+1793102784525 probe-config-ready serverPort=43687 mockPort=38013
+1793102784537 mock-provider-listening port=38013
+1793102784548 opencode-process-started alive=true
+1793102789165 authenticated-health-passed status=200 elapsedMs=4609 processExit=null
+1793102789193 session-create-request
+1793102789538 prompt-async-request sessionID=ses_e82bec46effeX5UMIcW9Sb3Lm2
+1793102789819 prompt-accepted
+1793102793110 mock-response-observed providerRequests=1
+1793102793127 mock-prompt-passed mock prompt round trip passed; provider requests=1
+1793102793139 probe-shutdown

@@ -10,27 +10,28 @@ Machine-readable tracker: [`status.json`](status.json) (validated by
 | Status | Count |
 | --- | --- |
 | PASS | 5 |
-| PARTIAL | 13 |
-| PENDING | 14 |
+| PARTIAL | 15 |
+| PENDING | 12 |
 | BLOCKED | 5 |
 | DEFERRED (LC-5, LC-6) | 2 |
 | **Total** | **39** |
 
 G3 is **not green**. The five passing criteria are verified by CI or by tests /
 probes executed on the reference device. Most remaining criteria are blocked by
-the runtime not yet being wired into the app (`RUNTIME OFFLINE`,
+the runtime not yet being wired into the production app (`RUNTIME OFFLINE`,
 `AndroidRuntimeProcessLauncher` returns `E_RUNTIME_DOWN`), not by an observed
-failure.
+failure. The isolated spike harness adds partial device evidence for the
+runtime, PTY and auth paths; see [`spike-harness.md`](spike-harness.md).
 
 ## Criteria
 
 | ID | Status | Evidence | Notes |
 | --- | --- | --- | --- |
-| RT-1 | PARTIAL | [probe](host-runtime-probe.md) | Pinned server health 200; app-sandbox airplane-mode install not run |
-| RT-2 | PARTIAL | [probe](host-runtime-probe.md), [baseline](device-baseline.md) | Host cold→healthy 4.572 s; UI cold 1756 ms / hot 81 ms; app-sandbox p95 not measured |
-| RT-3 | PARTIAL | [verify](verify-runtime.json), `scripts/check-app-manifest.py` | Hashes verified and asset manifest now valid/matching; startup enforcement not wired |
-| RT-4 | PENDING | [baseline](device-baseline.md) | No execute denials in launch logcat; full E2E not run |
-| RT-5 | PASS | [verify](verify-runtime.json) | 4 KB device; ELF LOAD alignment 65536 B; CI step added |
+| RT-1 | PARTIAL | [probe](host-runtime-probe.md), [harness](spike-harness.md) | Pinned server health 200 on host; harness app-sandbox health 200 in 4.609 s; airplane-mode install not run |
+| RT-2 | PARTIAL | [probe](host-runtime-probe.md), [baseline](device-baseline.md), [harness](spike-harness.md) | Host cold→healthy 4.572 s; harness server→health 4.609 s; UI cold 1756 ms / hot 81 ms; production p95 not measured |
+| RT-3 | PARTIAL | [verify](verify-runtime.json), [harness](spike-harness.md) | Hashes verified on host and by the on-device installer; production startup enforcement not wired |
+| RT-4 | PARTIAL | [harness](spike-harness.md), [audit](spike-harness-exec-audit.txt) | Harness executed loader/PRoot/OpenCode with zero `execute_no_trans` denials; production E2E not run |
+| RT-5 | PASS | [verify](verify-runtime.json), [harness](spike-harness.md) | 4 KB device; ELF LOAD alignment 65536 B / 16384 B on-device; CI step added |
 | STR-1 | PENDING | [probe](host-runtime-probe.md) | Heartbeat-only SSE observed; gateway request counter absent |
 | STR-2 | PENDING | — | No UI latency tracing |
 | STR-3 | PENDING | — | No Macrobenchmark; UI not wired |
@@ -43,18 +44,18 @@ failure.
 | WS-5 | PASS | [host tests](host-tests.md) | 60/60 operation matrix passed |
 | WS-6 | BLOCKED | — | No git service implementation |
 | TERM-1 | BLOCKED | — | `ptyService` is null; terminal not wired |
-| TERM-2 | BLOCKED | — | Needs wired PTY service |
-| TERM-3 | BLOCKED | — | Needs wired PTY service |
+| TERM-2 | BLOCKED | [harness](spike-harness.md) | Production PTY service absent; harness `--kill-on-exit` cleanup passed |
+| TERM-3 | BLOCKED | [harness](spike-harness.md) | Production PTY service absent; harness PTY reported 80x24 + env parity |
 | TERM-4 | BLOCKED | — | Needs wired PTY service |
-| TERM-5 | PENDING | [baseline](device-baseline.md) | Gboard present; input test needs terminal |
+| TERM-5 | PARTIAL | [harness](spike-harness.md) | Scripted PTY bytes pass (text, Enter, Backspace, Tab, Esc, Up, Ctrl-C, Alt-x); Gboard/UI untested |
 | LC-1 | PENDING | — | Needs wired UI/runtime |
 | LC-2 | PENDING | — | Needs wired runtime |
 | LC-3 | PARTIAL | [host tests](host-tests.md) | Supervisor crash tests pass; 50-SIGKILL device run pending |
 | LC-4 | PARTIAL | [idle raw](idle-top-60s-raw.txt) | 0.0 % CPU over 60 s; 10-min and server-stop checks pending |
 | LC-5 | DEFERRED | `docs/spec.md` | Post-v1 optional per gate |
 | LC-6 | DEFERRED | `docs/spec.md` | Post-v1 optional per gate |
-| SEC-1 | PARTIAL | [auth summary](../../../tests/spikes/results/raw/g3-host-auth-summary.json) | Every probed route 401 without secret / 200 with Basic; second-UID app not run |
-| SEC-2 | PARTIAL | [baseline](device-baseline.md) | APK/logcat spot checks clean; full E2E scan pending |
+| SEC-1 | PARTIAL | [auth summary](../../../tests/spikes/results/raw/g3-host-auth-summary.json), [harness](spike-harness.md) | Routes 401 without secret / 200 with Basic; harness authenticated from its sandbox; second-UID client not run |
+| SEC-2 | PARTIAL | [baseline](device-baseline.md), [audit](spike-harness-exec-audit.txt) | No secret patterns; no exec denials (25 vendor perf_ioctl only); full E2E scan pending |
 | SEC-3 | PASS | `scripts/check-release-manifest.py`, CI | Release manifest invariants enforced and green |
 | SEC-4 | PENDING | — | Permission prompts need runtime/UI wiring |
 | SEC-5 | PARTIAL | `docs/licenses/README.md`, CI | SBOM/licenses/pins green; osv-scanner and source offer missing |
