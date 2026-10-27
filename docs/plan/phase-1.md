@@ -28,7 +28,8 @@ These do not pause G1, but no release claim may treat them as resolved.
 
 - [x] Injectable production bridge handler for runtime, workspace, Git and
       terminal commands, with app unit coverage against service fakes.
-- [ ] Add bridge JSON serialization and per-command payload DTOs.
+- [x] Add envelope/result JSON serialization with app unit tests.
+- [ ] Add per-command wire DTOs and bridge transport binding.
 - [ ] Add the app composition root that constructs real service ports.
 - [~] Route all 17 session commands through the OpenCode client; settings
       command handling remains pending a frozen settings contract.

@@ -290,7 +290,7 @@ class AppBridgeHandler(
                     directory = command.args.string("directory"),
                 ),
             )
-            BridgeCommandNames.SESSION_PROMPT_ASYNC -> commandResult(
+            BridgeCommandNames.SESSION_PROMPT_ASYNC -> unitResult(
                 command,
                 client.promptAsync(
                     sessionID = command.args.sessionID(),

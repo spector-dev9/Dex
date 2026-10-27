@@ -14,11 +14,13 @@ behind a `ServerLauncher` port. The `core:diagnostics` JVM module provides a
 bounded in-memory event log that applies the `LogScrubber` before storage and
 export. All 17 `session.*` commands now route through `OpenCodeClient` and
 `OpenCodeHttpClient`, including prompt, command, shell, fork, revert,
-permission reply and diff operations. Android process launch, production
-launcher and authenticated-health composition, production gateway
-composition, persistent diagnostics export, JNI `forkpty`, settings command
-handling, command payload DTOs, and bridge JSON serialization are still not
-implemented.
+permission reply and diff operations. A typed bridge JSON codec now
+serializes command, result and event envelopes and maps every handler result
+type, including derived error retryability. Android process launch,
+production launcher and authenticated-health composition, production
+gateway composition, persistent diagnostics export, JNI `forkpty`, settings
+command handling, per-command wire DTOs, and bridge transport binding are
+still not implemented.
 
 G0 is not green. The owner has directed G1-G2 work to proceed while the
 open G0 blockers (S1-B/S2/S3 production evidence, S6 2.x artifact, S9
@@ -181,7 +183,8 @@ they must not change the envelope shapes above.
 - [~] Diagnostics storage/export and production log scrubbing; in-memory
       redacted storage/export and tests are implemented, persistence and the
       production scrubber remain open.
-- [ ] JSON serialization and per-command payload DTOs.
+- [x] Bridge envelope/result JSON codec with app unit tests.
+- [ ] Per-command wire DTOs and bridge transport binding.
 - [ ] Foreground-service lifecycle and recovery behavior.
 - [ ] Native loader/PRoot process management and JNI `forkpty`.
 - [ ] G1 device acceptance (RT-1..RT-4, SEC-1/2, STR-1/5, LC-3, WS-1/2).
