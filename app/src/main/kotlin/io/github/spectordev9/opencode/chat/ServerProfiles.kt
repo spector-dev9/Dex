@@ -161,8 +161,8 @@ class SharedPrefsServerProfileStore(context: Context) : ServerProfileStore {
         /** Normalizes an http(s) endpoint URL; null when it is not a valid endpoint. */
         fun normalizeProfileUrl(raw: String?): String? {
             val text = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-            val withScheme =
-                if (text.startsWith("http://") || text.startsWith("https://")) text else "http://$text"
+            val hasScheme = Regex("^[A-Za-z][A-Za-z0-9+.-]*:").containsMatchIn(text)
+            val withScheme = if (hasScheme) text else "http://$text"
             val uri = runCatching { URI(withScheme) }.getOrNull() ?: return null
             val scheme = uri.scheme?.lowercase(Locale.US) ?: return null
             if (scheme != "http" && scheme != "https") return null
