@@ -14,6 +14,7 @@ internal object ResponseBodySizeGuard {
     const val HEALTH_MAX_BYTES = MEBIBYTE
     const val DEFAULT_MAX_BYTES = 8L * MEBIBYTE
     const val MESSAGE_MAX_BYTES = 16L * MEBIBYTE
+    const val ERROR_BODY_MAX_BYTES = 4L * 1024L
 
     fun limitForPath(path: String): Long {
         val segments = path.split('/').filter(String::isNotEmpty)
@@ -49,6 +50,21 @@ internal object ResponseBodySizeGuard {
                 throw ResponseBodyTooLargeException(limitBytes)
             }
             output.write(buffer, 0, count)
+        }
+        return output.toByteArray()
+    }
+
+    /** Reads at most [limitBytes] bytes; oversized bodies are truncated instead of rejected. */
+    fun readTruncated(input: InputStream, limitBytes: Long): ByteArray {
+        require(limitBytes >= 0) { "limitBytes must not be negative" }
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8 * 1024)
+        while (output.size() < limitBytes) {
+            val remaining = limitBytes - output.size()
+            val requested = minOf(buffer.size.toLong(), remaining).toInt()
+            val count = input.read(buffer, 0, requested)
+            if (count < 0) break
+            if (count > 0) output.write(buffer, 0, count)
         }
         return output.toByteArray()
     }

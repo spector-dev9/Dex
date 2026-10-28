@@ -67,6 +67,12 @@ class OpenCodeHttpClient(
         .build()
     private val eventSourceFactory = EventSources.createFactory(this.httpClient)
     private val authorization = Credentials.basic("opencode", password, StandardCharsets.UTF_8)
+
+    companion object {
+        /** Maximum characters of an upstream error body surfaced to the UI. */
+        const val ERROR_DETAIL_MAX_CHARS = 300
+    }
+
     private val json = Json {
         ignoreUnknownKeys = true
         explicitNulls = false
@@ -88,7 +94,7 @@ class OpenCodeHttpClient(
         return try {
             val response = execute(request, timeoutMillis)
             if (response.code !in 200..299) {
-                return ApiResult.Failure(httpError(response.code))
+                return ApiResult.Failure(httpError(response.code, response.body))
             }
             ApiResult.Success(operation.decoder.decode(response.code, response.body))
         } catch (cancelled: CancellationException) {
@@ -655,7 +661,12 @@ class OpenCodeHttpClient(
                                             )
                                         } ?: ByteArray(0)
                                     } else {
-                                        ByteArray(0)
+                                        it.body?.byteStream()?.let { stream ->
+                                            ResponseBodySizeGuard.readTruncated(
+                                                stream,
+                                                ResponseBodySizeGuard.ERROR_BODY_MAX_BYTES,
+                                            )
+                                        } ?: ByteArray(0)
                                     },
                                 )
                             }
@@ -668,11 +679,23 @@ class OpenCodeHttpClient(
             )
         }
 
-    private fun httpError(statusCode: Int): ApiError = when (statusCode) {
-        401 -> ApiError(ErrorCode.E_AUTH, "OpenCode authentication failed (HTTP $statusCode)", statusCode)
-        403 -> ApiError(ErrorCode.E_PATH_DENIED, "OpenCode denied the request (HTTP $statusCode)", statusCode)
-        408, 504 -> ApiError(ErrorCode.E_TIMEOUT, "OpenCode request timed out (HTTP $statusCode)", statusCode)
-        else -> ApiError(ErrorCode.E_UPSTREAM, "OpenCode request failed (HTTP $statusCode)", statusCode)
+    private fun httpError(statusCode: Int, body: ByteArray): ApiError {
+        val detail = body.toString(StandardCharsets.UTF_8)
+            .filterNot(Char::isISOControl)
+            .replace(Regex(" {2,}"), " ")
+            .trim()
+            .take(ERROR_DETAIL_MAX_CHARS)
+        return when (statusCode) {
+            401 -> ApiError(ErrorCode.E_AUTH, "OpenCode authentication failed (HTTP $statusCode)", statusCode)
+            403 -> ApiError(ErrorCode.E_PATH_DENIED, "OpenCode denied the request (HTTP $statusCode)", statusCode)
+            408, 504 -> ApiError(ErrorCode.E_TIMEOUT, "OpenCode request timed out (HTTP $statusCode)", statusCode)
+            else -> ApiError(
+                ErrorCode.E_UPSTREAM,
+                "OpenCode request failed (HTTP $statusCode)" +
+                    if (detail.isEmpty()) "" else ": $detail",
+                statusCode,
+            )
+        }
     }
 
     private fun <T> operation(

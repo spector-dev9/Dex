@@ -218,6 +218,63 @@ class OpenCodeHttpClientTest {
     }
 
     @Test
+    fun `bad request errors surface the upstream validation detail`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(400)
+                .setBody("""{"message":"model not found: foo/bar"}"""),
+        )
+
+        val result = client.promptAsync(
+            sessionID = "ses_123",
+            directory = "/workspace",
+            prompt = PromptInput(parts = listOf(PromptPart(text = "hello"))),
+        )
+        val error = when (result) {
+            is ApiResult.Failure -> result.error
+            is ApiResult.Success -> throw AssertionError("expected bad request failure")
+        }
+
+        assertEquals(ErrorCode.E_UPSTREAM, error.code)
+        assertEquals(400, error.upstreamStatus)
+        assertTrue(error.message.orEmpty().contains("HTTP 400"))
+        assertTrue(error.message.orEmpty().contains("model not found: foo/bar"))
+    }
+
+    @Test
+    fun `oversized error bodies are truncated in the surfaced detail`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(400)
+                .setBody("x".repeat((ResponseBodySizeGuard.ERROR_BODY_MAX_BYTES * 2).toInt())),
+        )
+
+        val result = client.listSessions("/workspace")
+        val error = when (result) {
+            is ApiResult.Failure -> result.error
+            is ApiResult.Success -> throw AssertionError("expected bad request failure")
+        }
+
+        assertEquals(ErrorCode.E_UPSTREAM, error.code)
+        assertTrue(error.message.orEmpty().contains("HTTP 400"))
+        assertTrue(error.message.orEmpty().length < OpenCodeHttpClient.ERROR_DETAIL_MAX_CHARS + 100)
+    }
+
+    @Test
+    fun `error bodies are not surfaced for mapped statuses`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(401).setBody("""{"message":"private upstream details"}"""))
+
+        val result = client.listSessions("/workspace")
+        val error = when (result) {
+            is ApiResult.Failure -> result.error
+            is ApiResult.Success -> throw AssertionError("expected authentication failure")
+        }
+
+        assertEquals(ErrorCode.E_AUTH, error.code)
+        assertTrue(!error.message.orEmpty().contains("private upstream details"))
+    }
+
+    @Test
     fun `identifies the operation for an invalid response without exposing its body`() = runBlocking {
         server.enqueue(
             MockResponse()
