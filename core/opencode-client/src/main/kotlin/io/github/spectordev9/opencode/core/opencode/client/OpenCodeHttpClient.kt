@@ -105,7 +105,12 @@ class OpenCodeHttpClient(
         } catch (io: IOException) {
             ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "OpenCode server is unreachable"))
         } catch (invalidResponse: SerializationException) {
-            ApiResult.Failure(ApiError(ErrorCode.E_UPSTREAM, "OpenCode returned an invalid response"))
+            ApiResult.Failure(
+                ApiError(
+                    ErrorCode.E_UPSTREAM,
+                    "OpenCode returned an invalid response for ${operation.name}",
+                ),
+            )
         }
     }
 

@@ -216,6 +216,25 @@ class OpenCodeHttpClientTest {
     }
 
     @Test
+    fun `identifies the operation for an invalid response without exposing its body`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setBody("""{"error":"private upstream details"}"""),
+        )
+
+        val result = client.listSessions("/workspace")
+        val error = when (result) {
+            is ApiResult.Failure -> result.error
+            is ApiResult.Success -> throw AssertionError("expected invalid response failure")
+        }
+
+        assertEquals(ErrorCode.E_UPSTREAM, error.code)
+        assertTrue(error.message.orEmpty().contains("session.list"))
+        assertTrue(!error.message.orEmpty().contains("private upstream details"))
+    }
+
+    @Test
     fun `maps an oversized chunked response to a typed size error`() = runBlocking {
         val body = " ".repeat((ResponseBodySizeGuard.DEFAULT_MAX_BYTES + 1).toInt())
         server.enqueue(MockResponse().setChunkedBody(body, 8 * 1024))

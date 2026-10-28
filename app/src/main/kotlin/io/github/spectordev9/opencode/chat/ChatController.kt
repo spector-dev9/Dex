@@ -33,6 +33,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 const val MAX_PROMPT_ATTACHMENTS = 5
 const val MAX_PROMPT_ATTACHMENT_BYTES = 5 * 1024 * 1024
@@ -602,6 +604,36 @@ class ChatController(
 
     private fun JsonObject.string(name: String): String? =
         (this[name] as? JsonPrimitive)?.contentOrNull
+
+}
+
+internal fun messageUsageSummary(info: MessageInfo): String? {
+    val tokens = info.tokens
+    val usageParts = buildList {
+        fun appendCount(label: String, name: String) {
+            val count = (tokens?.get(name) as? JsonPrimitive)?.longOrNull
+                ?.takeIf { it >= 0L }
+                ?: return
+            add("$count $label")
+        }
+
+        appendCount("in", "input")
+        appendCount("out", "output")
+
+        val cache = tokens?.get("cache") as? JsonObject
+        val cachedRead = (cache?.get("read") as? JsonPrimitive)?.longOrNull
+            ?.takeIf { it >= 0L }
+        val cachedWrite = (cache?.get("write") as? JsonPrimitive)?.longOrNull
+            ?.takeIf { it >= 0L }
+        if (cachedRead != null) add("$cachedRead cached")
+        if (cachedWrite != null) add("$cachedWrite cache write")
+    }
+    val cost = info.cost?.takeIf { it.isFinite() && it >= 0.0 }
+    if (usageParts.isEmpty() && cost == null) return null
+    return buildList {
+        if (usageParts.isNotEmpty()) add(usageParts.joinToString(" · "))
+        if (cost != null) add("cost ${"%.4f".format(java.util.Locale.ROOT, cost)}")
+    }.joinToString("  |  ")
 }
 
 /** Composer-visible model picker data (mirrors /config/providers). */

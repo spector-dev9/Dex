@@ -90,7 +90,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -98,16 +100,23 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.spectordev9.opencode.chat.ChatController
 import io.github.spectordev9.opencode.chat.ChatUiState
+import io.github.spectordev9.opencode.chat.DiffLineKind
 import io.github.spectordev9.opencode.chat.FilesController
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENT_BYTES
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES
 import io.github.spectordev9.opencode.chat.PromptAttachment
 import io.github.spectordev9.opencode.chat.flattenFileTree
+import io.github.spectordev9.opencode.chat.messageUsageSummary
+import io.github.spectordev9.opencode.chat.classifyDiffLine
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.model.FileEntryType
 import io.github.spectordev9.opencode.core.model.Message
@@ -1008,6 +1017,15 @@ private fun MessageRow(
                 Text(message.info.modelID.orEmpty(), fontSize = 10.sp, color = palette.Muted2)
             }
         }
+        if (!isUser) {
+            messageUsageSummary(message.info)?.let { usage ->
+                Text(
+                    usage,
+                    fontSize = 9.sp,
+                    color = palette.Muted2,
+                )
+            }
+        }
         if (isUser) {
             Box {
                 Surface(
@@ -1239,6 +1257,12 @@ private fun ToolCard(part: Part) {
     val title = part.state.stringField("title")
         ?: part.tool?.replaceFirstChar { it.uppercase() }
         ?: "Tool"
+    val duration = (part.state?.get("time") as? JsonObject)?.let { time ->
+        formatToolDuration(
+            startMillis = (time["start"] as? JsonPrimitive)?.longOrNull,
+            endMillis = (time["end"] as? JsonPrimitive)?.longOrNull,
+        )
+    }
     Surface(
         shape = RoundedCornerShape(7.dp),
         color = palette.ToolChipBg,
@@ -1252,6 +1276,7 @@ private fun ToolCard(part: Part) {
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(title, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = palette.Muted)
                 Text(status, fontSize = 10.sp, color = palette.Muted2)
+                duration?.let { Text(it, fontSize = 10.sp, color = palette.Muted2) }
             }
             if (expanded) {
                 val output = part.state.stringField("output")
@@ -1573,9 +1598,30 @@ private fun SessionDiffDialog(
                                 fontSize = 10.sp,
                             )
                             diff.patch?.let { patch ->
+                                val patchLines = patch.split('\n')
+                                val highlightedPatch = buildAnnotatedString {
+                                    patchLines.forEachIndexed { index, line ->
+                                        val (foreground, background) = when (classifyDiffLine(line)) {
+                                            DiffLineKind.ADDED -> palette.SuccessCol to
+                                                palette.SuccessCol.copy(alpha = 0.12f)
+                                            DiffLineKind.REMOVED -> palette.ErrorText to
+                                                palette.ErrorSurface
+                                            DiffLineKind.HUNK -> palette.Accent to
+                                                palette.AccentSoft
+                                            DiffLineKind.FILE_HEADER -> palette.Muted2 to
+                                                Color.Transparent
+                                            DiffLineKind.CONTEXT -> palette.CodeText to
+                                                Color.Transparent
+                                        }
+                                        withStyle(SpanStyle(color = foreground, background = background)) {
+                                            append(line)
+                                        }
+                                        if (index < patchLines.lastIndex) append('\n')
+                                    }
+                                }
                                 androidx.compose.foundation.text.selection.SelectionContainer {
                                     Text(
-                                        patch,
+                                        highlightedPatch,
                                         modifier = Modifier
                                             .horizontalScroll(rememberScrollState())
                                             .fillMaxWidth(),
@@ -2899,6 +2945,19 @@ private fun formatRelativeTime(millis: Long): String {
         minutes < 60 -> "${minutes}m ago"
         minutes < 1440 -> "${minutes / 60}h ago"
         else -> "${minutes / 1440}d ago"
+    }
+}
+
+internal fun formatToolDuration(startMillis: Long?, endMillis: Long?): String? {
+    val start = startMillis?.takeIf { it >= 0L } ?: return null
+    val end = endMillis?.takeIf { it >= start } ?: return null
+    val elapsedMillis = end - start
+    return if (elapsedMillis < 60_000L) {
+        "duration ${elapsedMillis / 1_000}.${(elapsedMillis % 1_000) / 100}s"
+    } else {
+        val minutes = elapsedMillis / 60_000L
+        val seconds = elapsedMillis % 60_000L / 1_000L
+        "duration ${minutes}:${seconds.toString().padStart(2, '0')}"
     }
 }
 
