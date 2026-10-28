@@ -1,6 +1,7 @@
 package io.github.spectordev9.opencode
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -71,6 +72,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -464,10 +466,41 @@ private fun ChatScreen(
     var showSessions by rememberSaveable { mutableStateOf(false) }
     var showModelPicker by rememberSaveable { mutableStateOf(false) }
     var showDiffDialog by rememberSaveable { mutableStateOf(false) }
+    var pendingExportSessionID by rememberSaveable { mutableStateOf<String?>(null) }
+    var exportError by remember { mutableStateOf<String?>(null) }
     var draft by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
+    var sessionDrafts by rememberSaveable { mutableStateOf(emptyMap<String, String>()) }
+    var previousDraftSession by remember { mutableStateOf(state.activeSessionId ?: NEW_SESSION_DRAFT_KEY) }
     var attachments by remember { mutableStateOf(emptyList<PromptAttachment>()) }
     var attachmentError by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    val exportPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        val sessionID = pendingExportSessionID
+        pendingExportSessionID = null
+        if (uri != null && sessionID != null) {
+            scope.launch {
+                val json = chat.exportSessionJson(sessionID)
+                if (json != null) {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val output = context.contentResolver.openOutputStream(uri, "wt")
+                                ?: throw IOException("Could not open the selected export location")
+                            output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+                        }
+                        exportError = null
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: IOException) {
+                        exportError = failure.message ?: "Could not write the session export"
+                    } catch (failure: SecurityException) {
+                        exportError = failure.message ?: "Permission denied for the selected export location"
+                    }
+                }
+            }
+        }
+    }
     val attachmentPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments(),
     ) { selectedUris ->
@@ -498,6 +531,13 @@ private fun ChatScreen(
     }
     val activeSession = state.sessions.firstOrNull { it.id == state.activeSessionId }
     val listState = rememberLazyListState()
+
+    LaunchedEffect(state.activeSessionId) {
+        val nextDraftSession = state.activeSessionId ?: NEW_SESSION_DRAFT_KEY
+        sessionDrafts = sessionDrafts + (previousDraftSession to draft.text)
+        draft = TextFieldValue(sessionDrafts[nextDraftSession].orEmpty())
+        previousDraftSession = nextDraftSession
+    }
 
     LaunchedEffect(state.messages.size, state.activeSessionId) {
         val count = state.messages.size
@@ -568,11 +608,31 @@ private fun ChatScreen(
                 Text("Diff", color = palette.Accent, fontSize = 11.sp)
             }
             TextButton(
+                onClick = {
+                    val session = activeSession ?: return@TextButton
+                    val baseName = session.title.ifBlank { session.slug }
+                        .replace(Regex("[^A-Za-z0-9._-]+"), "_")
+                        .trim('_')
+                        .take(64)
+                        .ifBlank { "session" }
+                    exportError = null
+                    pendingExportSessionID = session.id
+                    exportPicker.launch("$baseName.json")
+                },
+                enabled = activeSession != null && !state.sending,
+            ) {
+                Text("Export", color = palette.Accent, fontSize = 11.sp)
+            }
+            TextButton(
                 onClick = { scope.launch { chat.newSession() } },
                 enabled = !state.sending,
             ) {
                 Text("＋", color = palette.Accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
+        }
+
+        exportError?.let { error ->
+            Text(error, modifier = Modifier.fillMaxWidth(), color = palette.ErrorText, fontSize = 11.sp)
         }
 
         if (state.error != null) {
@@ -655,6 +715,8 @@ private fun ChatScreen(
                             .clip(RoundedCornerShape(10.dp))
                             .clickable {
                                 draft = TextFieldValue()
+                                sessionDrafts = sessionDrafts +
+                                    ((state.activeSessionId ?: NEW_SESSION_DRAFT_KEY) to "")
                                 scope.launch { chat.sendOrStart(suggestion) }
                             },
                     ) {
@@ -745,7 +807,11 @@ private fun ChatScreen(
                 }
                 BasicTextField(
                     value = draft,
-                    onValueChange = { next -> draft = next },
+                    onValueChange = { next ->
+                        draft = next
+                        val draftSession = state.activeSessionId ?: NEW_SESSION_DRAFT_KEY
+                        sessionDrafts = sessionDrafts + (draftSession to next.text)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 140.dp),
@@ -776,8 +842,14 @@ private fun ChatScreen(
                     ) {
                         Text("＋ Attach", color = palette.Accent, fontSize = 11.sp)
                     }
-                    listOf("build", "plan").forEach { mode ->
-                        val selected = state.mode == mode
+                    val agentOptions = state.agents.ifEmpty {
+                        listOf(
+                            io.github.spectordev9.opencode.chat.AgentInfo("build", null, "primary"),
+                            io.github.spectordev9.opencode.chat.AgentInfo("plan", null, "primary"),
+                        )
+                    }
+                    agentOptions.forEach { agent ->
+                        val selected = state.mode == agent.id
                         Surface(
                             shape = RoundedCornerShape(7.dp),
                             color = if (selected) palette.AccentSoft else Color.Transparent,
@@ -787,10 +859,10 @@ private fun ChatScreen(
                             ),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(7.dp))
-                                .clickable { scope.launch { chat.setMode(mode) } },
+                                .clickable { scope.launch { chat.setMode(agent.id) } },
                         ) {
                             Text(
-                                mode.replaceFirstChar { it.uppercase() },
+                                agent.id.replaceFirstChar { it.uppercase() },
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                                 fontSize = 11.sp,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
@@ -827,6 +899,8 @@ private fun ChatScreen(
                                     scope.launch {
                                         if (chat.sendOrStart(text, selectedAttachments)) {
                                             draft = TextFieldValue()
+                                            sessionDrafts = sessionDrafts +
+                                                ((state.activeSessionId ?: NEW_SESSION_DRAFT_KEY) to "")
                                             attachments = emptyList()
                                             attachmentError = null
                                         }
@@ -846,6 +920,14 @@ private fun ChatScreen(
                             )
                         }
                     }
+                }
+                state.agentError?.let { error ->
+                    Text(
+                        error,
+                        modifier = Modifier.padding(top = 4.dp),
+                        color = palette.ErrorText,
+                        fontSize = 10.sp,
+                    )
                 }
             }
         }
@@ -1722,6 +1804,7 @@ private fun SettingsSheet(
 ) {
     val palette = LocalOpencodePalette.current
     val scope = rememberCoroutineScope()
+    var connectionStatus by remember { mutableStateOf<String?>(null) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = palette.Panel2,
@@ -1737,6 +1820,24 @@ private fun SettingsSheet(
             if (uiPrefs != null) {
                 AppearanceSection(uiPrefs)
                 HorizontalDivider(color = palette.BorderCol)
+            }
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        connectionStatus = chat?.testConnection()
+                            ?: "Connection test failed: chat client is unavailable"
+                    }
+                },
+                enabled = isConnected && chat != null,
+            ) {
+                Text("Test server connection", color = palette.Accent)
+            }
+            connectionStatus?.let { result ->
+                Text(
+                    result,
+                    fontSize = 11.sp,
+                    color = if (result.startsWith("Connected")) palette.SuccessCol else palette.DangerCol,
+                )
             }
             Text(
                 "Provider keys are stored on the device server (PUT /auth) and picked up by real provider profiles when they ship.",
@@ -1875,6 +1976,9 @@ private fun AppearanceSection(uiPrefs: UiPrefs) {
             range = UiPrefsTerminalRange,
             onChange = { uiPrefs.setTerminalTextSize(it) },
         )
+        TextButton(onClick = uiPrefs::resetAppearance) {
+            Text("Reset appearance", color = palette.Muted)
+        }
     }
 }
 
@@ -1969,6 +2073,7 @@ private fun RuntimeOfflinePanel(
 }
 
 private const val MAX_COMPOSER_CHARS = 20_000
+private const val NEW_SESSION_DRAFT_KEY = "__new_session__"
 private val SUGGESTIONS = listOf(
     "Explain this project and its main entry points.",
     "Find one likely bug and explain how to fix it.",
@@ -1988,12 +2093,15 @@ private fun TerminalScreen(
     var output by remember { mutableStateOf("OpenCode Mobile terminal\n") }
     var input by remember { mutableStateOf(TextFieldValue()) }
     var forwardedInput by remember { mutableStateOf("") }
+    var commandHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var historyExpanded by remember { mutableStateOf(false) }
+    var restartGeneration by remember { mutableIntStateOf(0) }
     val focusRequester = remember { FocusRequester() }
     val terminalTextSize = uiPrefs?.terminalTextSize?.collectAsState()?.value ?: 13
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(ptyService) {
+    LaunchedEffect(ptyService, restartGeneration) {
         if (ptyService == null) {
             status = "PTY service not connected"
             return@LaunchedEffect
@@ -2015,7 +2123,9 @@ private fun TerminalScreen(
                 status = "Connected · 80 × 24"
                 output += "PTY connected.\n"
             }
-            is ApiResult.Failure -> status = result.error.message ?: result.error.code.name
+            is ApiResult.Failure -> status = terminalFailureMessage(
+                result.error.message ?: result.error.code.name,
+            )
         }
     }
 
@@ -2040,7 +2150,9 @@ private fun TerminalScreen(
         val activeSession = session ?: return
         when (val result = activeSession.write(bytes)) {
             is ApiResult.Success -> Unit
-            is ApiResult.Failure -> status = result.error.message ?: result.error.code.name
+            is ApiResult.Failure -> status = terminalFailureMessage(
+                result.error.message ?: result.error.code.name,
+            )
         }
     }
 
@@ -2049,9 +2161,21 @@ private fun TerminalScreen(
     }
 
     fun submitInput() {
+        val command = forwardedInput.trim()
+        if (command.isNotEmpty()) {
+            commandHistory = (listOf(command) + commandHistory.filterNot { it == command }).take(50)
+        }
         sendControl("\r")
         input = TextFieldValue()
         forwardedInput = ""
+    }
+
+    fun recallCommand(command: String) {
+        sendControl("\u0015")
+        write(command.toByteArray(Charsets.UTF_8))
+        input = TextFieldValue(command)
+        forwardedInput = command
+        historyExpanded = false
     }
 
     Column(
@@ -2069,8 +2193,41 @@ private fun TerminalScreen(
                 Text("TERMINAL", fontSize = 20.sp, fontWeight = FontWeight.Black, color = palette.TextCol)
                 Text(status, fontSize = 12.sp, color = palette.Muted2)
             }
-            TextButton(onClick = { focusRequester.requestFocus() }, enabled = session != null) {
-                Text("Focus", color = palette.Accent)
+            Row {
+                Box {
+                    TextButton(onClick = { historyExpanded = true }, enabled = commandHistory.isNotEmpty()) {
+                        Text("History", color = palette.Accent)
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = historyExpanded,
+                        onDismissRequest = { historyExpanded = false },
+                    ) {
+                        commandHistory.forEach { command ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = {
+                                    Text(command, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                },
+                                onClick = { recallCommand(command) },
+                            )
+                        }
+                    }
+                }
+                TextButton(onClick = { focusRequester.requestFocus() }, enabled = session != null) {
+                    Text("Focus", color = palette.Accent)
+                }
+                TextButton(
+                    onClick = {
+                        session = null
+                        status = "Restarting terminal"
+                        output = "OpenCode Mobile terminal\n"
+                        input = TextFieldValue()
+                        forwardedInput = ""
+                        restartGeneration++
+                    },
+                    enabled = ptyService != null,
+                ) {
+                    Text("Restart", color = palette.Accent)
+                }
             }
         }
 
@@ -2302,6 +2459,21 @@ private fun RowScope.KeyButton(label: String, enabled: Boolean, onClick: () -> U
 }
 
 private const val MAX_TERMINAL_CHARS = 24_000
+internal fun terminalFailureMessage(message: String): String {
+    val normalized = message.lowercase()
+    val guidance = when {
+        "permission" in normalized || "denied" in normalized ->
+            "Check shell executable permissions."
+        "not found" in normalized || "no such file" in normalized ->
+            "Check that the requested shell exists in the runtime."
+        "pty" in normalized || "terminal" in normalized ->
+            "The runtime could not allocate a terminal; try restarting it."
+        "closed" in normalized || "cancel" in normalized || "lifecycle" in normalized ->
+            "The terminal process may have stopped with the app lifecycle."
+        else -> null
+    }
+    return if (guidance == null) message else "$message · $guidance"
+}
 
 @Composable
 private fun FilesScreen(
@@ -2311,6 +2483,7 @@ private fun FilesScreen(
 ) {
     val palette = LocalOpencodePalette.current
     val filesState = files?.state?.collectAsState()?.value
+    val clipboard = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
     var createMenuExpanded by remember { mutableStateOf(false) }
     var createKind by remember { mutableStateOf<String?>(null) }
@@ -2321,6 +2494,7 @@ private fun FilesScreen(
     var confirmDiscardEdit by remember { mutableStateOf(false) }
     var fileSearchQuery by rememberSaveable { mutableStateOf("") }
     var fileSearchExtension by rememberSaveable { mutableStateOf("") }
+    var fileSearchPath by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -2443,6 +2617,24 @@ private fun FilesScreen(
                     ) {
                         Text("Clear", color = palette.Muted)
                     }
+                    BasicTextField(
+                        value = fileSearchPath,
+                        onValueChange = { fileSearchPath = it },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(color = palette.TextCol, fontSize = 12.sp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (fileSearchPath.isEmpty()) {
+                                    Text("Limit results to a path (optional)", color = palette.Muted2, fontSize = 12.sp)
+                                }
+                                innerTextField()
+                            }
+                        },
+                    )
                 }
             }
         }
@@ -2481,6 +2673,9 @@ private fun FilesScreen(
             // their children inline; the chevron toggles expansion.
             val treeRows = remember(filesState) {
                 flattenFileTree(filesState.entries, filesState)
+            }
+            val visibleSearchResults = filesState.searchResults.filter {
+                fileSearchPath.isBlank() || it.path.contains(fileSearchPath.trim(), ignoreCase = true)
             }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -2525,7 +2720,7 @@ private fun FilesScreen(
                             )
                         }
                     }
-                    if (filesState.searchResults.isEmpty() && !filesState.searching) {
+                    if (visibleSearchResults.isEmpty() && !filesState.searching) {
                         item {
                             Text(
                                 "No matching files or content found.",
@@ -2536,7 +2731,7 @@ private fun FilesScreen(
                         }
                     }
                     items(
-                        filesState.searchResults,
+                        visibleSearchResults,
                         key = { "search:${it.path}:${it.line ?: 0}" },
                     ) { result ->
                         val type = if (result.isDirectory) FileEntryType.DIRECTORY else FileEntryType.FILE
@@ -2636,6 +2831,13 @@ private fun FilesScreen(
                                     expanded = entryMenuExpanded,
                                     onDismissRequest = { entryMenuExpanded = false },
                                 ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Copy path") },
+                                        onClick = {
+                                            clipboard.setText(AnnotatedString(entry.path))
+                                            entryMenuExpanded = false
+                                        },
+                                    )
                                     androidx.compose.material3.DropdownMenuItem(
                                         text = { Text("Rename") },
                                         onClick = {
@@ -2852,6 +3054,31 @@ private fun FilePreviewDialog(
     onDismiss: () -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
+    val context = LocalContext.current
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    var findQuery by remember(path) { mutableStateOf("") }
+    var activeMatch by remember(path) { mutableIntStateOf(0) }
+    val matchingLines = remember(content, findQuery) {
+        if (findQuery.isBlank()) {
+            emptyList()
+        } else {
+            content.orEmpty().lineSequence().mapIndexedNotNull { index, line ->
+                index.takeIf { line.contains(findQuery, ignoreCase = true) }
+            }.toList()
+        }
+    }
+
+    fun navigateMatch(direction: Int) {
+        if (matchingLines.isEmpty()) return
+        activeMatch = (activeMatch + direction + matchingLines.size) % matchingLines.size
+        scope.launch {
+            val density = context.resources.displayMetrics.density
+            val lineHeightPx = (fontSize + 5) * density * context.resources.configuration.fontScale
+            scrollState.animateScrollTo((matchingLines[activeMatch] * lineHeightPx).toInt())
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = palette.Panel2,
@@ -2902,6 +3129,54 @@ private fun FilePreviewDialog(
                 if (error != null) {
                     Text(error, fontSize = 11.sp, color = palette.ErrorText)
                 }
+                if (!editing && content != null) {
+                   Row(verticalAlignment = Alignment.CenterVertically) {
+                       BasicTextField(
+                           value = findQuery,
+                           onValueChange = {
+                               findQuery = it
+                               activeMatch = 0
+                           },
+                           singleLine = true,
+                           modifier = Modifier
+                               .weight(1f)
+                               .border(1.dp, palette.BorderStrong, RoundedCornerShape(7.dp))
+                               .padding(horizontal = 8.dp, vertical = 7.dp),
+                           textStyle = TextStyle(color = palette.TextCol, fontSize = 12.sp),
+                           decorationBox = { innerTextField ->
+                               Box {
+                                   if (findQuery.isEmpty()) {
+                                       Text("Find in file", color = palette.Muted2, fontSize = 12.sp)
+                                   }
+                                   innerTextField()
+                               }
+                           },
+                       )
+                       TextButton(onClick = { navigateMatch(-1) }, enabled = matchingLines.isNotEmpty()) {
+                           Text("↑", color = palette.Accent)
+                       }
+                       TextButton(onClick = { navigateMatch(1) }, enabled = matchingLines.isNotEmpty()) {
+                           Text("↓", color = palette.Accent)
+                       }
+                       Text(
+                           if (matchingLines.isEmpty()) "0" else "${activeMatch + 1}/${matchingLines.size}",
+                           fontSize = 10.sp,
+                           color = palette.Muted2,
+                       )
+                   }
+                   TextButton(
+                       onClick = {
+                           val intent = Intent(Intent.ACTION_SEND).apply {
+                               type = "text/plain"
+                               putExtra(Intent.EXTRA_SUBJECT, path)
+                               putExtra(Intent.EXTRA_TEXT, content)
+                           }
+                           context.startActivity(Intent.createChooser(intent, "Share file"))
+                       },
+                   ) {
+                       Text("Share file", color = palette.Accent)
+                   }
+                }
                 if (editing) {
                     BasicTextField(
                         value = content.orEmpty(),
@@ -2909,7 +3184,7 @@ private fun FilePreviewDialog(
                         modifier = Modifier
                             .weight(1f, fill = false)
                             .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(scrollState)
                             .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
                             .padding(10.dp),
                         textStyle = androidx.compose.ui.text.TextStyle(
@@ -2924,7 +3199,7 @@ private fun FilePreviewDialog(
                         text = content?.ifBlank { "(empty file)" } ?: "(unavailable)",
                         modifier = Modifier
                             .weight(1f, fill = false)
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(scrollState)
                             .fillMaxWidth(),
                         fontFamily = FontFamily.Monospace,
                         fontSize = fontSize.sp,

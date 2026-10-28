@@ -126,6 +126,7 @@ class ChatController(
     private suspend fun refresh() {
         val activeClient = client ?: return
         runCatching { listSessions(activeClient) }
+        loadAgents(activeClient)
         if (_state.value.activeSessionId == null) {
             // Surface provider/models early so the composer chip is filled.
             runCatching { loadProviders(activeClient) }
@@ -281,6 +282,30 @@ class ChatController(
         }
     }
 
+    suspend fun exportSessionJson(sessionID: String): String? {
+        val activeClient = client
+        val session = _state.value.sessions.firstOrNull { it.id == sessionID }
+        if (activeClient == null || session == null) {
+            _state.update { it.copy(error = "The selected session is no longer available") }
+            return null
+        }
+        return when (val result = activeClient.listMessages(sessionID, directory)) {
+            is ApiResult.Success -> try {
+                encodeSessionExport(session, result.value, System.currentTimeMillis())
+                    .also { _state.update { current -> current.copy(error = null) } }
+            } catch (failure: IllegalArgumentException) {
+                _state.update {
+                    it.copy(error = failure.message ?: "Session export is too large")
+                }
+                null
+            }
+            is ApiResult.Failure -> {
+                _state.update { it.copy(error = result.error.message ?: "Could not load session messages") }
+                null
+            }
+        }
+    }
+
     private suspend fun removeSessionFromVisibleList(sessionID: String) {
         val wasActive = _state.value.activeSessionId == sessionID
         _state.update {
@@ -316,6 +341,32 @@ class ChatController(
                     defaultModel = default,
                     selectedModel = it.selectedModel ?: default,
                 )
+            }
+        }
+    }
+
+    private suspend fun loadAgents(activeClient: OpenCodeClient) {
+        when (val result = activeClient.call(agentsOperation(directory))) {
+            is ApiResult.Success -> {
+                val agents = try {
+                    parseAgents(json, result.value)
+                } catch (_: kotlinx.serialization.SerializationException) {
+                    _state.update {
+                        it.copy(agentError = "OpenCode returned an invalid response for agent.list")
+                    }
+                    return
+                }
+                _state.update { current ->
+                    val selectedAgent = current.mode.takeIf { mode ->
+                        agents.any { it.id == mode }
+                    } ?: agents.firstOrNull { it.mode == "primary" }?.id
+                        ?: agents.firstOrNull()?.id
+                        ?: current.mode
+                    current.copy(agents = agents, mode = selectedAgent)
+                }
+            }
+            is ApiResult.Failure -> _state.update {
+                it.copy(agentError = result.error.message ?: "Could not load available agents")
             }
         }
     }
@@ -526,6 +577,17 @@ class ChatController(
                 it.copy(authMessage = null, error = result.error.message)
             }
         }
+
+        suspend fun testConnection(): String {
+            val activeClient = client
+                ?: return "Connection test failed: server client is not connected"
+            return when (val result = activeClient.health()) {
+                is ApiResult.Success ->
+                    "Connected to OpenCode ${result.value.version} on port ${result.value.endpointPort}"
+                is ApiResult.Failure ->
+                    "Connection test failed: ${result.error.message}"
+            }
+        }
     }
 
     private suspend fun onEvent(event: ServerEvent) {
@@ -648,6 +710,12 @@ data class ModelInfo(
     val name: String,
 )
 
+data class AgentInfo(
+    val id: String,
+    val description: String?,
+    val mode: String,
+)
+
 data class ChatUiState(
     val connected: Boolean = false,
     val directory: String = "",
@@ -655,6 +723,8 @@ data class ChatUiState(
     val activeSessionId: String? = null,
     val messages: List<Message> = emptyList(),
     val providers: List<ProviderInfo> = emptyList(),
+    val agents: List<AgentInfo> = emptyList(),
+    val agentError: String? = null,
     val defaultModel: PromptModel? = null,
     val selectedModel: PromptModel? = null,
     val mode: String = "build",
@@ -677,6 +747,35 @@ val providersOperation = GatewayOperation<String>(
     timeoutClass = TimeoutClass.LIST_GET,
     decoder = GatewayResponseDecoder { _, body -> String(body, Charsets.UTF_8) },
 )
+
+internal fun agentsOperation(directory: String): GatewayOperation<String> =
+    GatewayOperation(
+        name = "agent.list",
+        request = GatewayRequest(
+            method = HttpMethod.GET,
+            path = "/agent",
+            query = mapOf("directory" to directory),
+        ),
+        timeoutClass = TimeoutClass.LIST_GET,
+        decoder = GatewayResponseDecoder { _, body -> String(body, Charsets.UTF_8) },
+    )
+
+internal fun parseAgents(json: Json, raw: String): List<AgentInfo> {
+    val values = json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonArray
+        ?: throw kotlinx.serialization.SerializationException("Agent list must be a JSON array")
+    return values.mapNotNull { element ->
+        val obj = element as? JsonObject ?: return@mapNotNull null
+        val id = obj.string("name")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+        if ((obj["hidden"] as? JsonPrimitive)?.contentOrNull?.toBooleanStrictOrNull() == true) {
+            return@mapNotNull null
+        }
+        AgentInfo(
+            id = id,
+            description = obj.string("description"),
+            mode = obj.string("mode") ?: "all",
+        )
+    }.distinctBy { it.id }
+}
 
 internal fun parseProviders(json: Json, raw: String): List<ProviderInfo> {
     val root = runCatching { json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return emptyList()

@@ -60,6 +60,21 @@ class UiPrefs(context: Context) {
         _terminalTextSize.value = clamp(size, TERMINAL_MIN, TERMINAL_MAX)
     }
 
+    fun resetAppearance() {
+        prefs.edit()
+            .remove(KEY_THEME)
+            .remove(KEY_DYNAMIC)
+            .remove(KEY_CHAT_SIZE)
+            .remove(KEY_CODE_SIZE)
+            .remove(KEY_TERMINAL_SIZE)
+            .apply()
+        _themeMode.value = ThemeMode.SYSTEM
+        _dynamicColors.value = false
+        _chatTextSize.value = DEFAULT_CHAT_SIZE
+        _codeTextSize.value = DEFAULT_CODE_SIZE
+        _terminalTextSize.value = DEFAULT_TERMINAL_SIZE
+    }
+
     private fun loadThemeMode(): ThemeMode =
         runCatching {
             ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.SYSTEM.name).orEmpty())
