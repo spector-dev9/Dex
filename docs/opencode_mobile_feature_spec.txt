@@ -373,4 +373,37 @@ Do not mark a feature verified solely because its unit tests pass if it also req
 
 A frozen child process, missing executable, or unsupported PTY must be classified with a specific runtime or platform diagnosis. Do not automatically label it as an AI request failure. Also distinguish platform limitations from genuine bugs in the app itself.
 
+CURRENT IMPLEMENTATION LEDGER
+Snapshot: 2026-10-28. Status reflects the current repository implementation, not a
+claim that every acceptance criterion has passed. Device-dependent behavior must
+remain unverified until there is device evidence.
+
+ID   Status       ID   Status       ID   Status       ID   Status
+F01  IMPLEMENTED  F23  IMPLEMENTED  F45  PLANNED      F67  IN PROGRESS
+F02  IMPLEMENTED  F24  IN PROGRESS  F46  IN PROGRESS  F68  PLANNED
+F03  IN PROGRESS  F25  IN PROGRESS  F47  IN PROGRESS  F69  PLANNED
+F04  IMPLEMENTED  F26  IN PROGRESS  F48  PLANNED      F70  PLANNED
+F05  IMPLEMENTED  F27  IMPLEMENTED  F49  IN PROGRESS  F71  IMPLEMENTED
+F06  IMPLEMENTED  F28  PLANNED      F50  PLANNED      F72  PLANNED
+F07  IN PROGRESS  F29  PLANNED      F51  PLANNED      F73  IN PROGRESS
+F08  IMPLEMENTED  F30  PLANNED      F52  PLANNED      F74  IMPLEMENTED
+F09  IN PROGRESS  F31  PLANNED      F53  PLANNED      F75  IN PROGRESS
+F10  PLANNED      F32  PLANNED      F54  PLANNED      F76  PLANNED
+F11  IMPLEMENTED  F33  PLANNED      F55  PLANNED      F77  IN PROGRESS
+F12  IN PROGRESS  F34  PLANNED      F56  IMPLEMENTED  F78  PLANNED
+F13  IN PROGRESS  F35  PLANNED      F57  IN PROGRESS  F79  IMPLEMENTED
+F14  IN PROGRESS  F36  PLANNED      F58  IMPLEMENTED  F80  IMPLEMENTED
+F15  PLANNED      F37  IN PROGRESS  F59  IMPLEMENTED  F81  IN PROGRESS
+F16  IN PROGRESS  F38  IMPLEMENTED  F60  IN PROGRESS   F82  IN PROGRESS
+F17  IMPLEMENTED  F39  PLANNED      F61  IN PROGRESS  F83  IMPLEMENTED
+F18  IMPLEMENTED  F40  PLANNED      F62  IN PROGRESS  F84  IN PROGRESS
+F19  IN PROGRESS  F41  IN PROGRESS  F63  IMPLEMENTED  F85  IN PROGRESS
+F20  IMPLEMENTED  F42  IN PROGRESS  F64  IN PROGRESS
+F21  IN PROGRESS  F43  IMPLEMENTED  F65  IMPLEMENTED
+F22  IMPLEMENTED  F44  IMPLEMENTED  F66  IMPLEMENTED
+
+No feature is marked VERIFIED in this snapshot. Required acceptance evidence,
+especially for Android lifecycle, terminal, and runtime behavior, has not yet
+been collected for the full production app.
+
 END OF SPECIFICATION

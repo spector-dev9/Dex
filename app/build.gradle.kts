@@ -143,6 +143,7 @@ dependencies {
     implementation(project(":core:supervisor-api"))
     implementation(project(":core:supervisor"))
     implementation(project(":core:terminal-api"))
+    implementation(project(":core:workspace"))
     implementation(project(":core:workspace-api"))
     implementation(libs.okhttp)
 

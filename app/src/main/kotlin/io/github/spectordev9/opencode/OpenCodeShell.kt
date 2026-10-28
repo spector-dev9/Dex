@@ -1,5 +1,10 @@
 package io.github.spectordev9.opencode
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -98,6 +103,10 @@ import androidx.compose.ui.unit.sp
 import io.github.spectordev9.opencode.chat.ChatController
 import io.github.spectordev9.opencode.chat.ChatUiState
 import io.github.spectordev9.opencode.chat.FilesController
+import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENT_BYTES
+import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS
+import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES
+import io.github.spectordev9.opencode.chat.PromptAttachment
 import io.github.spectordev9.opencode.chat.flattenFileTree
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.model.FileEntryType
@@ -122,7 +131,12 @@ import io.github.spectordev9.opencode.ui.materialScheme
 import io.github.spectordev9.opencode.ui.rememberOpencodePalette
 import io.github.spectordev9.opencode.ui.shareText
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.IOException
 
 
 private enum class AppTab(val label: String, val glyph: String) {
@@ -440,7 +454,39 @@ private fun ChatScreen(
     val scope = rememberCoroutineScope()
     var showSessions by rememberSaveable { mutableStateOf(false) }
     var showModelPicker by rememberSaveable { mutableStateOf(false) }
+    var showDiffDialog by rememberSaveable { mutableStateOf(false) }
     var draft by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
+    var attachments by remember { mutableStateOf(emptyList<PromptAttachment>()) }
+    var attachmentError by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val attachmentPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments(),
+    ) { selectedUris ->
+        if (selectedUris.isNotEmpty()) {
+            if (attachments.size + selectedUris.size > MAX_PROMPT_ATTACHMENTS) {
+                attachmentError = "Attach up to $MAX_PROMPT_ATTACHMENTS files per prompt"
+            } else {
+                scope.launch {
+                    try {
+                        val selected = withContext(Dispatchers.IO) {
+                            selectedUris.map { readPromptAttachment(context, it) }
+                        }
+                        val totalBytes = (attachments + selected).sumOf { it.bytes.size.toLong() }
+                        if (totalBytes > MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES) {
+                            attachmentError = "Attachments exceed the 10 MiB prompt limit"
+                        } else {
+                            attachments = attachments + selected
+                            attachmentError = null
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        attachmentError = failure.message ?: "Could not read the selected attachment"
+                    }
+                }
+            }
+        }
+    }
     val activeSession = state.sessions.firstOrNull { it.id == state.activeSessionId }
     val listState = rememberLazyListState()
 
@@ -502,6 +548,15 @@ private fun ChatScreen(
                     color = palette.Muted,
                     maxLines = 1,
                 )
+            }
+            TextButton(
+                onClick = {
+                    showDiffDialog = true
+                    scope.launch { chat.loadSessionDiff() }
+                },
+                enabled = activeSession != null,
+            ) {
+                Text("Diff", color = palette.Accent, fontSize = 11.sp)
             }
             TextButton(
                 onClick = { scope.launch { chat.newSession() } },
@@ -604,7 +659,14 @@ private fun ChatScreen(
                 }
             }
             items(state.messages, key = { it.info.id }) { message ->
-                MessageRow(message, chatTextSize, codeTextSize)
+                MessageRow(
+                    message = message,
+                    chatTextSize = chatTextSize,
+                    codeTextSize = codeTextSize,
+                    onRetryPrompt = { messageID, text ->
+                        scope.launch { chat.retryPrompt(messageID, text) }
+                    },
+                )
             }
             if (state.sending) {
                 item {
@@ -635,6 +697,43 @@ private fun ChatScreen(
             border = androidx.compose.foundation.BorderStroke(1.dp, palette.ToolChipBorder),
         ) {
             Column(Modifier.padding(horizontal = 13.dp, vertical = 10.dp)) {
+                if (attachments.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        attachments.forEachIndexed { index, attachment ->
+                            Surface(
+                                shape = RoundedCornerShape(7.dp),
+                                color = palette.Panel3,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(7.dp))
+                                    .clickable {
+                                        attachments = attachments.filterIndexed { itemIndex, _ -> itemIndex != index }
+                                        attachmentError = null
+                                    },
+                            ) {
+                                Text(
+                                    "${attachment.filename}  ×",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                    color = palette.Muted,
+                                    fontSize = 11.sp,
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    }
+                }
+                attachmentError?.let { error ->
+                    Text(
+                        error,
+                        modifier = Modifier.padding(bottom = 5.dp),
+                        color = palette.ErrorText,
+                        fontSize = 11.sp,
+                    )
+                }
                 BasicTextField(
                     value = draft,
                     onValueChange = { next -> draft = next },
@@ -662,6 +761,12 @@ private fun ChatScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
+                    TextButton(
+                        onClick = { attachmentPicker.launch(arrayOf("*/*")) },
+                        enabled = !state.sending && attachments.size < MAX_PROMPT_ATTACHMENTS,
+                    ) {
+                        Text("＋ Attach", color = palette.Accent, fontSize = 11.sp)
+                    }
                     listOf("build", "plan").forEach { mode ->
                         val selected = state.mode == mode
                         Surface(
@@ -685,7 +790,8 @@ private fun ChatScreen(
                         }
                     }
                     Spacer(Modifier.weight(1f))
-                    val canSend = !state.sending && draft.text.isNotBlank()
+                    val canSend = !state.sending &&
+                        (draft.text.isNotBlank() || attachments.isNotEmpty())
                     // STR-4: while the agent is streaming the send control
                     // becomes the cancel affordance (abort() → session.idle).
                     Surface(
@@ -708,8 +814,14 @@ private fun ChatScreen(
                                     scope.launch { chat.abort() }
                                 } else {
                                     val text = draft.text.take(MAX_COMPOSER_CHARS)
-                                    draft = TextFieldValue()
-                                    scope.launch { chat.sendOrStart(text) }
+                                    val selectedAttachments = attachments
+                                    scope.launch {
+                                        if (chat.sendOrStart(text, selectedAttachments)) {
+                                            draft = TextFieldValue()
+                                            attachments = emptyList()
+                                            attachmentError = null
+                                        }
+                                    }
                                 }
                             },
                     ) {
@@ -741,6 +853,19 @@ private fun ChatScreen(
                 showSessions = false
                 scope.launch { chat.newSession() }
             },
+            onRename = { sessionID, title ->
+                scope.launch { chat.renameSession(sessionID, title) }
+            },
+            onArchive = { sessionID ->
+                scope.launch { chat.archiveSession(sessionID) }
+            },
+            onDelete = { sessionID ->
+                scope.launch { chat.deleteSession(sessionID) }
+            },
+            onFork = { sessionID ->
+                showSessions = false
+                scope.launch { chat.forkSession(sessionID) }
+            },
             onDismiss = { showSessions = false },
         )
     }
@@ -755,10 +880,60 @@ private fun ChatScreen(
             onDismiss = { showModelPicker = false },
         )
     }
+
+    if (showDiffDialog) {
+        SessionDiffDialog(
+            diffs = state.sessionDiffs,
+            loading = state.diffLoading,
+            error = state.diffError,
+            onDismiss = { showDiffDialog = false },
+        )
+    }
 }
 
 private fun modelLabel(state: ChatUiState): String =
     (state.selectedModel ?: state.defaultModel)?.let { "${it.providerID}/${it.modelID}" } ?: "no model"
+
+private fun readPromptAttachment(context: Context, uri: Uri): PromptAttachment {
+    val resolver = context.contentResolver
+    val displayName = resolver.query(
+        uri,
+        arrayOf(OpenableColumns.DISPLAY_NAME),
+        null,
+        null,
+        null,
+    )?.use { cursor ->
+        val nameColumn = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (nameColumn >= 0 && cursor.moveToFirst()) cursor.getString(nameColumn) else null
+    }
+    val filename = displayName
+        ?.filterNot(Char::isISOControl)
+        ?.trim()
+        ?.take(255)
+        ?.ifBlank { null }
+        ?: uri.lastPathSegment?.substringAfterLast('/')?.take(255)?.ifBlank { null }
+        ?: "attachment"
+    val mimeType = resolver.getType(uri)
+        ?.takeIf { it.matches(Regex("[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+")) }
+        ?: "application/octet-stream"
+    val input = resolver.openInputStream(uri)
+        ?: throw IOException("Could not open $filename")
+    val output = ByteArrayOutputStream()
+    input.use { stream ->
+        val buffer = ByteArray(8 * 1024)
+        while (true) {
+            val count = stream.read(buffer)
+            if (count < 0) break
+            if (output.size() + count > MAX_PROMPT_ATTACHMENT_BYTES) {
+                throw IOException("$filename exceeds the 5 MiB attachment limit")
+            }
+            output.write(buffer, 0, count)
+        }
+    }
+    val bytes = output.toByteArray()
+    if (bytes.isEmpty()) throw IOException("$filename is empty")
+    return PromptAttachment(filename, mimeType, bytes)
+}
 
 @Composable
 private fun TypingDots() {
@@ -791,6 +966,7 @@ private fun MessageRow(
     message: Message,
     chatTextSize: Int,
     codeTextSize: Int,
+    onRetryPrompt: (String, String) -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
     val context = LocalContext.current
@@ -801,9 +977,13 @@ private fun MessageRow(
         .filter { it.type == "text" && it.ignored != true && it.synthetic != true }
         .joinToString("\n\n") { it.text.orEmpty() }
         .trim()
+    val fileParts = message.parts.filter { it.type == "file" }
     val tools = message.parts.filter { it.type == "tool" }
     val errors = message.parts.filter { it.type == "error" }
     val copyLabel = if (isUser) "Copy prompt" else "Copy message"
+    var editingPrompt by remember(message.info.id) { mutableStateOf(false) }
+    var editedPrompt by remember(message.info.id) { mutableStateOf(text) }
+    var promptToRetry by remember(message.info.id) { mutableStateOf<String?>(null) }
 
     fun openMenu() {
         menuOpen = true
@@ -837,15 +1017,28 @@ private fun MessageRow(
                     color = palette.UserBubbleBg,
                     border = androidx.compose.foundation.BorderStroke(1.dp, palette.UserBubbleBorder),
                 ) {
-                    Text(
-                        text = text,
+                    Column(
                         modifier = Modifier
                             .combinedClickable(onClick = {}, onLongClick = ::openMenu)
                             .padding(horizontal = 14.dp, vertical = 11.dp),
-                        fontSize = chatTextSize.sp,
-                        color = palette.TextCol,
-                        lineHeight = (chatTextSize + 6).sp,
-                    )
+                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        if (text.isNotEmpty()) {
+                            Text(
+                                text = text,
+                                fontSize = chatTextSize.sp,
+                                color = palette.TextCol,
+                                lineHeight = (chatTextSize + 6).sp,
+                            )
+                        }
+                        fileParts.forEach { part ->
+                            Text(
+                                "Attachment: ${part.filename ?: part.mime ?: "file"}",
+                                fontSize = 11.sp,
+                                color = palette.Muted,
+                            )
+                        }
+                    }
                 }
                 MessageActionsMenu(
                     expanded = menuOpen,
@@ -855,6 +1048,11 @@ private fun MessageRow(
                     copyLabel = copyLabel,
                     onCopied = { menuOpen = false },
                     onShare = { shareText(context, text) },
+                    onRetry = { promptToRetry = text },
+                    onEdit = {
+                        editedPrompt = text
+                        editingPrompt = true
+                    },
                 )
             }
         } else {
@@ -881,6 +1079,20 @@ private fun MessageRow(
                     )
                 }
             }
+            fileParts.forEach { part ->
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = palette.Panel2,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                ) {
+                    Text(
+                        "Attachment: ${part.filename ?: part.mime ?: "file"}",
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
+                        fontSize = 11.sp,
+                        color = palette.Muted,
+                    )
+                }
+            }
             tools.forEach { part -> ToolCard(part) }
             errors.forEach { part ->
                 Surface(
@@ -896,6 +1108,72 @@ private fun MessageRow(
                     )
                 }
             }
+            if (editingPrompt) {
+                AlertDialog(
+                    onDismissRequest = { editingPrompt = false },
+                    containerColor = palette.Panel2,
+                    title = { Text("Edit prompt", color = palette.TextCol) },
+                    text = {
+                        BasicTextField(
+                            value = editedPrompt,
+                            onValueChange = { editedPrompt = it },
+                            textStyle = androidx.compose.ui.text.TextStyle(
+                                color = palette.TextCol,
+                                fontSize = chatTextSize.sp,
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 88.dp)
+                                .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                                .padding(12.dp),
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                promptToRetry = editedPrompt
+                                editingPrompt = false
+                            },
+                            enabled = editedPrompt.isNotBlank(),
+                        ) {
+                            Text("Continue", color = palette.Accent)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { editingPrompt = false }) {
+                            Text("Cancel", color = palette.Muted)
+                        }
+                    },
+                )
+            }
+            promptToRetry?.let { replacement ->
+                AlertDialog(
+                    onDismissRequest = { promptToRetry = null },
+                    containerColor = palette.Panel2,
+                    title = { Text(if (replacement == text) "Retry prompt?" else "Replace prompt and retry?", color = palette.TextCol) },
+                    text = {
+                        Text(
+                            "The session will be restored to this prompt. Later messages and changes in this conversation may be removed.",
+                            color = palette.Muted,
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                promptToRetry = null
+                                onRetryPrompt(message.info.id, replacement)
+                            },
+                        ) {
+                            Text("Restore and send", color = palette.Accent)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { promptToRetry = null }) {
+                            Text("Cancel", color = palette.Muted)
+                        }
+                    },
+                )
+            }
         }
     }
 }
@@ -909,6 +1187,8 @@ private fun MessageActionsMenu(
     copyLabel: String,
     onCopied: () -> Unit,
     onShare: () -> Unit,
+    onRetry: (() -> Unit)? = null,
+    onEdit: (() -> Unit)? = null,
 ) {
     val palette = LocalOpencodePalette.current
     androidx.compose.material3.DropdownMenu(
@@ -930,6 +1210,24 @@ private fun MessageActionsMenu(
                 onShare()
             },
         )
+        if (onRetry != null) {
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text("Retry prompt", fontSize = 13.sp, color = palette.TextCol) },
+                onClick = {
+                    onDismiss()
+                    onRetry()
+                },
+            )
+        }
+        if (onEdit != null) {
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text("Edit and retry", fontSize = 13.sp, color = palette.TextCol) },
+                onClick = {
+                    onDismiss()
+                    onEdit()
+                },
+            )
+        }
     }
 }
 
@@ -1051,9 +1349,17 @@ private fun SessionSheet(
     state: ChatUiState,
     onSelect: (String) -> Unit,
     onNew: () -> Unit,
+    onRename: (String, String) -> Unit,
+    onArchive: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onFork: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
+    var menuSessionID by remember { mutableStateOf<String?>(null) }
+    var renameSessionID by remember { mutableStateOf<String?>(null) }
+    var renameTitle by remember { mutableStateOf("") }
+    var deleteSessionID by remember { mutableStateOf<String?>(null) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = palette.Panel2,
@@ -1070,32 +1376,222 @@ private fun SessionSheet(
             }
             LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
                 items(state.sessions, key = { it.id }) { session ->
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onSelect(session.id) }
-                            .padding(vertical = 10.dp),
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            session.title.ifBlank { session.slug },
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = palette.TextCol,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            formatRelativeTime(session.time.updated),
-                            fontSize = 11.sp,
-                            color = palette.Muted2,
-                        )
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onSelect(session.id) }
+                                .padding(vertical = 8.dp),
+                        ) {
+                            Text(
+                                session.title.ifBlank { session.slug },
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = palette.TextCol,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                formatRelativeTime(session.time.updated),
+                                fontSize = 11.sp,
+                                color = palette.Muted2,
+                            )
+                        }
+                        Box {
+                            TextButton(onClick = { menuSessionID = session.id }) {
+                                Text("⋮", color = palette.Muted, fontSize = 18.sp)
+                            }
+                            androidx.compose.material3.DropdownMenu(
+                                expanded = menuSessionID == session.id,
+                                onDismissRequest = { menuSessionID = null },
+                            ) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("Rename") },
+                                    onClick = {
+                                        renameSessionID = session.id
+                                        renameTitle = session.title
+                                        menuSessionID = null
+                                    },
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("Fork") },
+                                    onClick = {
+                                        menuSessionID = null
+                                        onFork(session.id)
+                                    },
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("Archive") },
+                                    onClick = {
+                                        menuSessionID = null
+                                        onArchive(session.id)
+                                    },
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("Delete", color = palette.DangerCol) },
+                                    onClick = {
+                                        deleteSessionID = session.id
+                                        menuSessionID = null
+                                    },
+                                )
+                            }
+                        }
                     }
                     HorizontalDivider(color = palette.BorderCol)
                 }
             }
         }
     }
+    val sessionToRename = state.sessions.firstOrNull { it.id == renameSessionID }
+    if (sessionToRename != null) {
+        AlertDialog(
+            onDismissRequest = { renameSessionID = null },
+            containerColor = palette.Panel2,
+            title = { Text("Rename session", color = palette.TextCol) },
+            text = {
+                BasicTextField(
+                    value = renameTitle,
+                    onValueChange = { renameTitle = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(
+                        color = palette.TextCol,
+                        fontSize = 14.sp,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onRename(sessionToRename.id, renameTitle)
+                        renameSessionID = null
+                    },
+                    enabled = renameTitle.isNotBlank(),
+                ) {
+                    Text("Save", color = palette.Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameSessionID = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
+    }
+    val sessionToDelete = state.sessions.firstOrNull { it.id == deleteSessionID }
+    if (sessionToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { deleteSessionID = null },
+            containerColor = palette.Panel2,
+            title = { Text("Delete session?", color = palette.TextCol) },
+            text = {
+                Text(
+                    "This permanently deletes “${sessionToDelete.title.ifBlank { sessionToDelete.slug }}”.",
+                    color = palette.Muted,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete(sessionToDelete.id)
+                        deleteSessionID = null
+                    },
+                ) {
+                    Text("Delete", color = palette.DangerCol)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteSessionID = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SessionDiffDialog(
+    diffs: List<io.github.spectordev9.opencode.core.opencode.client.SessionFileDiff>,
+    loading: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+) {
+    val palette = LocalOpencodePalette.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = palette.Panel2,
+        title = { Text("Session changes", color = palette.TextCol) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close", color = palette.Muted) }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .sizeIn(maxHeight = 520.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (loading) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = palette.Accent,
+                    )
+                }
+                if (error != null) {
+                    Text(error, color = palette.ErrorText, fontSize = 12.sp)
+                } else if (!loading && diffs.isEmpty()) {
+                    Text("No session changes reported by the server.", color = palette.Muted, fontSize = 12.sp)
+                }
+                diffs.forEach { diff ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = palette.Panel,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                diff.file ?: "Changed file",
+                                color = palette.TextCol,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                            )
+                            Text(
+                                "${diff.status ?: "changed"}  +${diff.additions.toInt()}  −${diff.deletions.toInt()}",
+                                color = palette.Muted2,
+                                fontSize = 10.sp,
+                            )
+                            diff.patch?.let { patch ->
+                                androidx.compose.foundation.text.selection.SelectionContainer {
+                                    Text(
+                                        patch,
+                                        modifier = Modifier
+                                            .horizontalScroll(rememberScrollState())
+                                            .fillMaxWidth(),
+                                        color = palette.CodeText,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 10.sp,
+                                        maxLines = 300,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
 
 @Composable
@@ -1770,6 +2266,15 @@ private fun FilesScreen(
     val palette = LocalOpencodePalette.current
     val filesState = files?.state?.collectAsState()?.value
     val scope = rememberCoroutineScope()
+    var createMenuExpanded by remember { mutableStateOf(false) }
+    var createKind by remember { mutableStateOf<String?>(null) }
+    var createName by remember { mutableStateOf("") }
+    var renameTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var renameName by remember { mutableStateOf("") }
+    var trashTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var confirmDiscardEdit by remember { mutableStateOf(false) }
+    var fileSearchQuery by rememberSaveable { mutableStateOf("") }
+    var fileSearchExtension by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -1795,11 +2300,104 @@ private fun FilesScreen(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            TextButton(
-                onClick = { scope.launch { files?.goUp() } },
-                enabled = filesState?.let { it.connected && it.currentPath.isNotBlank() } == true,
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box {
+                    TextButton(
+                        onClick = { createMenuExpanded = true },
+                        enabled = filesState?.connected == true,
+                    ) {
+                        Text("＋", color = palette.Accent, fontSize = 17.sp)
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = createMenuExpanded,
+                        onDismissRequest = { createMenuExpanded = false },
+                    ) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("New file") },
+                            onClick = {
+                                createKind = "file"
+                                createName = ""
+                                createMenuExpanded = false
+                            },
+                        )
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text("New folder") },
+                            onClick = {
+                                createKind = "folder"
+                                createName = ""
+                                createMenuExpanded = false
+                            },
+                        )
+                    }
+                }
+                TextButton(
+                    onClick = { scope.launch { files?.goUp() } },
+                    enabled = filesState?.let { it.connected && it.currentPath.isNotBlank() } == true,
+                ) {
+                    Text("Up", color = palette.Accent)
+                }
+            }
+        }
+
+        if (filesState?.connected == true) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Up", color = palette.Accent)
+                BasicTextField(
+                    value = fileSearchQuery,
+                    onValueChange = { fileSearchQuery = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = palette.TextCol, fontSize = 12.sp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (fileSearchQuery.isEmpty()) {
+                                Text("Search names and contents", color = palette.Muted2, fontSize = 12.sp)
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
+                BasicTextField(
+                    value = fileSearchExtension,
+                    onValueChange = { fileSearchExtension = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = palette.TextCol, fontSize = 12.sp),
+                    modifier = Modifier
+                        .width(72.dp)
+                        .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 9.dp),
+                    decorationBox = { innerTextField ->
+                        Box {
+                            if (fileSearchExtension.isEmpty()) {
+                                Text(".ext", color = palette.Muted2, fontSize = 12.sp)
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
+                TextButton(
+                    onClick = { scope.launch { files?.search(fileSearchQuery, fileSearchExtension) } },
+                    enabled = fileSearchQuery.isNotBlank() && filesState.searching.not(),
+                ) {
+                    Text(if (filesState.searching) "…" else "Search", color = palette.Accent)
+                }
+                if (filesState.searchQuery.isNotEmpty()) {
+                    TextButton(
+                        onClick = {
+                            files?.clearSearch()
+                            fileSearchQuery = ""
+                            fileSearchExtension = ""
+                        },
+                    ) {
+                        Text("Clear", color = palette.Muted)
+                    }
+                }
             }
         }
 
@@ -1852,8 +2450,81 @@ private fun FilesScreen(
                         )
                     }
                 }
-                // Hierarchical tree (F11): expanded directories render their
-                // children inline; the chevron toggles expansion.
+                if (filesState.searching) {
+                    item {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth().height(2.dp),
+                            color = palette.Accent,
+                        )
+                    }
+                }
+                if (filesState.searchQuery.isNotEmpty()) {
+                    if (filesState.searchTruncated) {
+                        item {
+                            Text(
+                                "Search was bounded for performance; narrow the query or extension to see more results.",
+                                modifier = Modifier.padding(vertical = 6.dp),
+                                fontSize = 11.sp,
+                                color = palette.WarningCol,
+                            )
+                        }
+                    }
+                    if (filesState.searchSkippedFiles > 0) {
+                        item {
+                            Text(
+                                "${filesState.searchSkippedFiles} file(s) were skipped because they are binary or exceed the per-file search limit.",
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                fontSize = 11.sp,
+                                color = palette.Muted2,
+                            )
+                        }
+                    }
+                    if (filesState.searchResults.isEmpty() && !filesState.searching) {
+                        item {
+                            Text(
+                                "No matching files or content found.",
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                fontSize = 12.sp,
+                                color = palette.Muted,
+                            )
+                        }
+                    }
+                    items(
+                        filesState.searchResults,
+                        key = { "search:${it.path}:${it.line ?: 0}" },
+                    ) { result ->
+                        val type = if (result.isDirectory) FileEntryType.DIRECTORY else FileEntryType.FILE
+                        val entry = io.github.spectordev9.opencode.core.model.FileEntry(
+                            name = result.path.substringAfterLast('/'),
+                            path = result.path,
+                            absolute = filesState.rootDirectory.trimEnd('/') + "/" + result.path,
+                            type = type,
+                            ignored = false,
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = palette.Panel,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { scope.launch { files?.open(entry) } },
+                        ) {
+                            Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+                                Text(
+                                    result.path + (result.line?.let { ":$it" } ?: ""),
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = palette.Accent,
+                                )
+                                result.snippet?.let {
+                                    Text(it, fontSize = 11.sp, color = palette.Muted, maxLines = 2)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                // Hierarchical tree (F11): expanded directories render their children inline.
                 items(treeRows, key = { it.entry.path }) { row ->
                     val entry = row.entry
                     val isDirectory = entry.type == FileEntryType.DIRECTORY
@@ -1910,6 +2581,33 @@ private fun FilesScreen(
                             if (loadingDir) {
                                 Text("…", fontSize = 12.sp, color = palette.Muted2)
                             }
+                            Box {
+                                var entryMenuExpanded by remember(entry.path) { mutableStateOf(false) }
+                                TextButton(onClick = { entryMenuExpanded = true }) {
+                                    Text("⋮", color = palette.Muted, fontSize = 17.sp)
+                                }
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = entryMenuExpanded,
+                                    onDismissRequest = { entryMenuExpanded = false },
+                                ) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Rename") },
+                                        onClick = {
+                                            renameTarget = entry.path to entry.name
+                                            renameName = entry.name
+                                            entryMenuExpanded = false
+                                        },
+                                    )
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text("Move to trash", color = palette.DangerCol) },
+                                        onClick = {
+                                            trashTarget = entry.path to entry.name
+                                            entryMenuExpanded = false
+                                        },
+                                    )
+                                }
+                            }
+                            }
                         }
                     }
                 }
@@ -1922,8 +2620,145 @@ private fun FilesScreen(
             path = filesState.previewPath.orEmpty(),
             content = filesState.previewText,
             loading = filesState.loading,
+            editing = filesState.editingPreview,
             fontSize = uiPrefs?.codeTextSize?.collectAsState()?.value ?: 12,
-            onDismiss = { scope.launch { files?.closePreview() } },
+            error = filesState.error,
+            onContentChange = { text -> files?.updatePreviewText(text) },
+            onEdit = { files?.editPreview() },
+            onSave = { scope.launch { files?.savePreviewEdit() } },
+            onCancelEdit = { files?.cancelPreviewEdit() },
+            onDismiss = {
+                if (filesState.editingPreview && filesState.previewText != filesState.previewOriginalText) {
+                    confirmDiscardEdit = true
+                } else {
+                    scope.launch { files?.closePreview() }
+                }
+            },
+        )
+    }
+    if (confirmDiscardEdit) {
+        AlertDialog(
+            onDismissRequest = { confirmDiscardEdit = false },
+            containerColor = palette.Panel2,
+            title = { Text("Discard unsaved changes?", color = palette.TextCol) },
+            text = { Text("Your edits have not been saved.", color = palette.Muted) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDiscardEdit = false
+                        scope.launch { files?.closePreview() }
+                    },
+                ) {
+                    Text("Discard", color = palette.DangerCol)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDiscardEdit = false }) {
+                    Text("Keep editing", color = palette.Muted)
+                }
+            },
+        )
+    }
+    createKind?.let { kind ->
+        AlertDialog(
+            onDismissRequest = { createKind = null },
+            containerColor = palette.Panel2,
+            title = { Text(if (kind == "file") "Create file" else "Create folder", color = palette.TextCol) },
+            text = {
+                BasicTextField(
+                    value = createName,
+                    onValueChange = { createName = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = palette.TextCol, fontSize = 14.sp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = createName.isNotBlank(),
+                    onClick = {
+                        val name = createName
+                        createKind = null
+                        scope.launch {
+                            if (kind == "file") files?.createFile(name) else files?.createDirectory(name)
+                        }
+                    },
+                ) {
+                    Text("Create", color = palette.Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { createKind = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
+    }
+    renameTarget?.let { (path, _) ->
+        AlertDialog(
+            onDismissRequest = { renameTarget = null },
+            containerColor = palette.Panel2,
+            title = { Text("Rename", color = palette.TextCol) },
+            text = {
+                BasicTextField(
+                    value = renameName,
+                    onValueChange = { renameName = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = palette.TextCol, fontSize = 14.sp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = renameName.isNotBlank(),
+                    onClick = {
+                        val name = renameName
+                        renameTarget = null
+                        scope.launch { files?.rename(path, name) }
+                    },
+                ) {
+                    Text("Save", color = palette.Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameTarget = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
+    }
+    trashTarget?.let { (path, name) ->
+        AlertDialog(
+            onDismissRequest = { trashTarget = null },
+            containerColor = palette.Panel2,
+            title = { Text("Move to trash?", color = palette.TextCol) },
+            text = {
+                Text(
+                    "“$name” will be moved out of the workspace into the app-managed trash.",
+                    color = palette.Muted,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        trashTarget = null
+                        scope.launch { files?.trash(path) }
+                    },
+                ) {
+                    Text("Move to trash", color = palette.DangerCol)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { trashTarget = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
         )
     }
 }
@@ -1961,7 +2796,13 @@ private fun FilePreviewDialog(
     path: String,
     content: String?,
     loading: Boolean,
+    editing: Boolean,
     fontSize: Int,
+    error: String?,
+    onContentChange: (String) -> Unit,
+    onEdit: () -> Unit,
+    onSave: () -> Unit,
+    onCancelEdit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
@@ -1979,12 +2820,30 @@ private fun FilePreviewDialog(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close", color = palette.Muted) } },
+        confirmButton = {
+            if (editing) {
+                TextButton(onClick = onSave, enabled = !loading) {
+                    Text("Save", color = palette.Accent)
+                }
+            } else {
+                TextButton(onClick = onEdit, enabled = content != null && !loading) {
+                    Text("Edit", color = palette.Accent)
+                }
+            }
+        },
+        dismissButton = {
+            if (editing) {
+                TextButton(onClick = onCancelEdit) { Text("Cancel edit", color = palette.Muted) }
+            } else {
+                TextButton(onClick = onDismiss) { Text("Close", color = palette.Muted) }
+            }
+        },
         text = {
-            Box(
-                Modifier
+            Column(
+                modifier = Modifier
                     .sizeIn(maxHeight = 420.dp)
                     .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (loading && content == null) {
                     LinearProgressIndicator(
@@ -1993,10 +2852,32 @@ private fun FilePreviewDialog(
                             .height(2.dp),
                         color = palette.Accent,
                     )
+                }
+                if (error != null) {
+                    Text(error, fontSize = 11.sp, color = palette.ErrorText)
+                }
+                if (editing) {
+                    BasicTextField(
+                        value = content.orEmpty(),
+                        onValueChange = onContentChange,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                            .padding(10.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = fontSize.sp,
+                            lineHeight = (fontSize + 5).sp,
+                            color = palette.CodeText,
+                        ),
+                    )
                 } else {
                     Text(
                         text = content?.ifBlank { "(empty file)" } ?: "(unavailable)",
                         modifier = Modifier
+                            .weight(1f, fill = false)
                             .verticalScroll(rememberScrollState())
                             .fillMaxWidth(),
                         fontFamily = FontFamily.Monospace,

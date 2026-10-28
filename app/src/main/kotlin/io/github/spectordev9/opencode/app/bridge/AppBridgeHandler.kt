@@ -125,14 +125,24 @@ private fun parsePrompt(args: Map<String, Any?>): PromptInput {
             val value = part as? Map<*, *>
                 ?: throw IllegalArgumentException("prompt parts must be objects")
             val type = value["type"]?.toString() ?: "text"
-            require(type == "text") { "only text prompt parts are supported" }
-            PromptPart(
-                text = value["text"]?.toString()
-                    ?: throw IllegalArgumentException("missing prompt part text"),
-            )
+            when (type) {
+                "text" -> PromptPart(
+                    text = value["text"]?.toString()
+                        ?: throw IllegalArgumentException("missing prompt part text"),
+                )
+                "file" -> PromptPart(
+                    type = type,
+                    mime = value["mime"]?.toString()
+                        ?: throw IllegalArgumentException("missing file prompt part mime"),
+                    filename = value["filename"]?.toString(),
+                    url = value["url"]?.toString()
+                        ?: throw IllegalArgumentException("missing file prompt part url"),
+                )
+                else -> throw IllegalArgumentException("unsupported prompt part type: $type")
+            }
         }
         ?: listOf(PromptPart(text = args.string("prompt")))
-    require(parts.isNotEmpty()) { "prompt requires at least one text part" }
+    require(parts.isNotEmpty()) { "prompt requires at least one part" }
     return PromptInput(
         parts = parts,
         messageID = args.optionalString("messageId"),

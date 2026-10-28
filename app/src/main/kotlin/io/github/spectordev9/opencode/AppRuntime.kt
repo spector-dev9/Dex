@@ -3,6 +3,7 @@ package io.github.spectordev9.opencode
 import android.content.Context
 import io.github.spectordev9.opencode.chat.ChatController
 import io.github.spectordev9.opencode.chat.FilesController
+import io.github.spectordev9.opencode.chat.SharedPreferencesChatSessionStore
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.server.MockLlmServer
 import io.github.spectordev9.opencode.core.runtime.RuntimeState
@@ -62,7 +63,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     val terminal: ProductionPtyService = ProductionPtyService(this.context)
 
-    val chat = ChatController(scope)
+    val chat = ChatController(scope, SharedPreferencesChatSessionStore(this.context))
     val files = FilesController(scope)
 
     /** User-interface preferences (theme mode, font sizes) persisted on-device. */

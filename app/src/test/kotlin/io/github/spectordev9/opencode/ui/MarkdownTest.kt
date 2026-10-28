@@ -69,11 +69,12 @@ class MarkdownTest {
     @Test
     fun inlineSpansCoverAllStyles() {
         val spans = parseInlineMarkdown("**bold** `code` *it* ~~gone~~ [t](http://x)")
-        assertTrue(spans[0] is MdSpan.Bold)
-        assertTrue(spans[1] is MdSpan.Code)
-        assertTrue(spans[2] is MdSpan.Italic)
-        assertTrue(spans[3] is MdSpan.Strike)
-        val link = spans[4] as? MdSpan.Link
+        val formatted = spans.filterNot { it is MdSpan.Plain && it.text.isBlank() }
+        assertTrue(formatted[0] is MdSpan.Bold)
+        assertTrue(formatted[1] is MdSpan.Code)
+        assertTrue(formatted[2] is MdSpan.Italic)
+        assertTrue(formatted[3] is MdSpan.Strike)
+        val link = formatted[4] as? MdSpan.Link
         assertEquals("t", link?.text)
         assertEquals("http://x", link?.url)
     }

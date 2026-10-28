@@ -333,9 +333,6 @@ fun highlightCode(code: String, language: String?, palette: OpencodePalette): An
         return AnnotatedString(code)
     }
     val keywords = languageKeywords[lang] ?: return AnnotatedString(code)
-    val builder = buildAnnotatedString {
-        append(code)
-    }
     val spans = mutableListOf<Pair<IntRange, SpanStyle>>()
     tokenRegex.findAll(code).forEach { match ->
         val range = match.range
@@ -361,10 +358,12 @@ fun highlightCode(code: String, language: String?, palette: OpencodePalette): An
         }
         if (style != null) spans += range to style
     }
-    spans.sortedBy { it.first.first }.forEach { (range, style) ->
-        builder.addStyle(style, range.first, range.last + 1)
+    return buildAnnotatedString {
+        append(code)
+        spans.sortedBy { it.first.first }.forEach { (range, style) ->
+            addStyle(style, range.first, range.last + 1)
+        }
     }
-    return builder
 }
 
 private fun normalizeLanguage(tag: String?): String? {

@@ -61,6 +61,48 @@ class OpenCodeHttpClientTest {
     }
 
     @Test
+    fun `prompt async serializes OpenCode file parts`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(204))
+
+        val result = client.promptAsync(
+            sessionID = "ses_123",
+            directory = "/workspace",
+            prompt = PromptInput(
+                parts = listOf(
+                    PromptPart(
+                        type = "file",
+                        mime = "image/png",
+                        filename = "screenshot.png",
+                        url = "data:image/png;base64,aGVsbG8=",
+                    ),
+                ),
+            ),
+        )
+        val body = Json.parseToJsonElement(server.takeRequest().body.readUtf8())
+        val filePart = body.jsonObject["parts"]!!.jsonArray.single().jsonObject
+
+        assertTrue(result is ApiResult.Success)
+        assertEquals("file", filePart["type"]!!.jsonPrimitive.content)
+        assertEquals("image/png", filePart["mime"]!!.jsonPrimitive.content)
+        assertEquals("screenshot.png", filePart["filename"]!!.jsonPrimitive.content)
+        assertEquals("data:image/png;base64,aGVsbG8=", filePart["url"]!!.jsonPrimitive.content)
+        assertTrue("text" !in filePart)
+    }
+
+    @Test
+    fun `abort session preserves a negative server acknowledgement`() = runBlocking {
+        server.enqueue(MockResponse().setBody("false"))
+
+        val result = client.abortSession("ses_123", "/workspace")
+        val request = server.takeRequest()
+
+        assertEquals(ApiResult.Success(false), result)
+        assertEquals("POST", request.method)
+        assertEquals("/session/ses_123/abort", request.requestUrl?.encodedPath)
+        assertEquals("/workspace", request.requestUrl?.queryParameter("directory"))
+    }
+
+    @Test
     fun `session create update summarize and permission use pinned routes`() = runBlocking {
         val sessionBody = """
             {

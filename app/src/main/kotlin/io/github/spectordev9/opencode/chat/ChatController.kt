@@ -17,6 +17,7 @@ import io.github.spectordev9.opencode.core.opencode.client.PermissionResponse
 import io.github.spectordev9.opencode.core.opencode.client.PromptInput
 import io.github.spectordev9.opencode.core.opencode.client.PromptModel
 import io.github.spectordev9.opencode.core.opencode.client.PromptPart
+import io.github.spectordev9.opencode.core.opencode.client.SessionFileDiff
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -33,6 +34,22 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 
+const val MAX_PROMPT_ATTACHMENTS = 5
+const val MAX_PROMPT_ATTACHMENT_BYTES = 5 * 1024 * 1024
+const val MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES = 10 * 1024 * 1024
+
+data class PromptAttachment(
+    val filename: String,
+    val mimeType: String,
+    val bytes: ByteArray,
+)
+
+interface ChatSessionStore {
+    fun activeSessionId(directory: String): String?
+
+    fun setActiveSessionId(directory: String, sessionID: String?)
+}
+
 /**
  * Live chat state for the supervised server.
  *
@@ -44,6 +61,7 @@ import kotlinx.serialization.json.jsonObject
  */
 class ChatController(
     private val scope: CoroutineScope,
+    private val sessionStore: ChatSessionStore? = null,
 ) {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -109,7 +127,15 @@ class ChatController(
         if (_state.value.activeSessionId == null) {
             // Surface provider/models early so the composer chip is filled.
             runCatching { loadProviders(activeClient) }
-            pickLatestSession()
+            val savedSessionID = sessionStore?.activeSessionId(directory)
+            if (savedSessionID != null && _state.value.sessions.any { it.id == savedSessionID }) {
+                selectSession(savedSessionID)
+            } else {
+                if (savedSessionID != null) {
+                    sessionStore?.setActiveSessionId(directory, null)
+                }
+                pickLatestSession()
+            }
         }
     }
 
@@ -137,10 +163,14 @@ class ChatController(
     }
 
     suspend fun selectSession(sessionID: String) {
+        sessionStore?.setActiveSessionId(directory, sessionID)
         _state.update {
             it.copy(
                 activeSessionId = sessionID,
                 messages = emptyList(),
+                sessionDiffs = emptyList(),
+                diffError = null,
+                diffLoading = false,
                 permissions = it.permissions.filter { p -> p.sessionID == sessionID },
             )
         }
@@ -161,10 +191,107 @@ class ChatController(
                         error = null,
                     )
                 }
+                sessionStore?.setActiveSessionId(directory, result.value.id)
             }
             is ApiResult.Failure -> _state.update {
                 it.copy(error = result.error.message)
             }
+        }
+    }
+
+    suspend fun renameSession(sessionID: String, title: String) {
+        val activeClient = client ?: return
+        val normalizedTitle = title.trim()
+        if (normalizedTitle.isEmpty()) {
+            _state.update { it.copy(error = "Session title cannot be empty") }
+            return
+        }
+        when (val result = activeClient.updateSession(sessionID, directory, title = normalizedTitle)) {
+            is ApiResult.Success -> _state.update { current ->
+                current.copy(
+                    sessions = current.sessions.map { if (it.id == sessionID) result.value else it },
+                    error = null,
+                )
+            }
+            is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
+        }
+    }
+
+    suspend fun archiveSession(sessionID: String) {
+        val activeClient = client ?: return
+        when (val result = activeClient.updateSession(sessionID, directory, archived = true)) {
+            is ApiResult.Success -> removeSessionFromVisibleList(sessionID)
+            is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
+        }
+    }
+
+    suspend fun deleteSession(sessionID: String) {
+        val activeClient = client ?: return
+        when (val result = activeClient.deleteSession(sessionID, directory)) {
+            is ApiResult.Success -> {
+                if (!result.value) {
+                    _state.update { it.copy(error = "Server did not delete the session") }
+                } else {
+                    removeSessionFromVisibleList(sessionID)
+                }
+            }
+            is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
+        }
+    }
+
+    suspend fun forkSession(sessionID: String) {
+        val activeClient = client ?: return
+        when (val result = activeClient.forkSession(sessionID, directory)) {
+            is ApiResult.Success -> {
+                _state.update {
+                    it.copy(
+                        sessions = listOf(result.value) + it.sessions.filterNot { session ->
+                            session.id == result.value.id
+                        },
+                        error = null,
+                    )
+                }
+                selectSession(result.value.id)
+            }
+            is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
+        }
+    }
+
+    suspend fun loadSessionDiff() {
+        val activeClient = client ?: return
+        val sessionID = _state.value.activeSessionId ?: return
+        _state.update { it.copy(diffLoading = true, diffError = null) }
+        when (val result = activeClient.sessionDiff(sessionID, directory)) {
+            is ApiResult.Success -> _state.update {
+                if (it.activeSessionId == sessionID) {
+                    it.copy(sessionDiffs = result.value, diffLoading = false, diffError = null)
+                } else {
+                    it
+                }
+            }
+            is ApiResult.Failure -> _state.update {
+                if (it.activeSessionId == sessionID) {
+                    it.copy(sessionDiffs = emptyList(), diffLoading = false, diffError = result.error.message)
+                } else {
+                    it
+                }
+            }
+        }
+    }
+
+    private suspend fun removeSessionFromVisibleList(sessionID: String) {
+        val wasActive = _state.value.activeSessionId == sessionID
+        _state.update {
+            it.copy(
+                sessions = it.sessions.filterNot { session -> session.id == sessionID },
+                activeSessionId = if (wasActive) null else it.activeSessionId,
+                messages = if (wasActive) emptyList() else it.messages,
+                error = null,
+            )
+        }
+        if (wasActive) {
+            sessionStore?.setActiveSessionId(directory, null)
+            pickLatestSession()
         }
     }
 
@@ -211,17 +338,41 @@ class ChatController(
         }
     }
 
-    suspend fun send(text: String) {
+    suspend fun send(text: String, attachments: List<PromptAttachment> = emptyList()): Boolean {
         val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
-        val activeClient = client ?: return
-        val sessionID = _state.value.activeSessionId ?: return
+        if (trimmed.isEmpty() && attachments.isEmpty()) return false
+        if (attachments.size > MAX_PROMPT_ATTACHMENTS ||
+            attachments.any { it.bytes.isEmpty() || it.bytes.size > MAX_PROMPT_ATTACHMENT_BYTES } ||
+            attachments.sumOf { it.bytes.size.toLong() } > MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES
+        ) {
+            _state.update { it.copy(error = "Attachments exceed the supported size or count limit") }
+            return false
+        }
+        val activeClient = client ?: return false
+        val sessionID = _state.value.activeSessionId ?: return false
         val model = _state.value.selectedModel ?: _state.value.defaultModel
         val result = activeClient.promptAsync(
             sessionID = sessionID,
             directory = directory,
             prompt = PromptInput(
-                parts = listOf(PromptPart(text = trimmed)),
+                parts = buildList {
+                    if (trimmed.isNotEmpty()) add(PromptPart(text = trimmed))
+                    attachments.forEach { attachment ->
+                        val safeFilename = attachment.filename
+                            .filterNot(Char::isISOControl)
+                            .take(255)
+                            .ifBlank { "attachment" }
+                        add(
+                            PromptPart(
+                                type = "file",
+                                mime = attachment.mimeType.ifBlank { "application/octet-stream" },
+                                filename = safeFilename,
+                                url = "data:${attachment.mimeType.ifBlank { "application/octet-stream" }};" +
+                                    "base64,${java.util.Base64.getEncoder().encodeToString(attachment.bytes)}",
+                            ),
+                        )
+                    }
+                },
                 model = model,
                 agent = _state.value.mode,
             ),
@@ -233,23 +384,64 @@ class ChatController(
                         sending = true,
                         error = null,
                         // Optimistic echo; replaced when the server round-trips.
-                        messages = it.messages + optimisticUserMessage(sessionID, trimmed),
+                        messages = if (trimmed.isEmpty()) it.messages else {
+                            it.messages + optimisticUserMessage(sessionID, trimmed)
+                        },
                     )
                 }
+                return true
+            }
+            is ApiResult.Failure -> {
+                _state.update { it.copy(error = result.error.message) }
+                return false
+            }
+        }
+    }
+
+    suspend fun retryPrompt(messageID: String, text: String) {
+        val trimmed = text.trim()
+        val activeClient = client ?: return
+        val sessionID = _state.value.activeSessionId ?: return
+        if (trimmed.isEmpty()) {
+            _state.update { it.copy(error = "Prompt cannot be empty") }
+            return
+        }
+        if (_state.value.sending) {
+            _state.update { it.copy(error = "Wait for the current response to finish before retrying") }
+            return
+        }
+        if (_state.value.messages.none { it.info.id == messageID && it.info.role == "user" }) {
+            _state.update { it.copy(error = "The prompt is no longer available in this session") }
+            return
+        }
+        if (messageID.startsWith("local-")) {
+            _state.update { it.copy(error = "Wait for the prompt to sync before retrying it") }
+            return
+        }
+        when (val result = activeClient.revertSession(sessionID, directory, messageID)) {
+            is ApiResult.Success -> {
+                loadMessages()
+                send(trimmed)
             }
             is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
         }
     }
 
     /** Creates a session first if none is active, then sends [text]. */
-    suspend fun sendOrStart(text: String) {
+    suspend fun sendOrStart(
+        text: String,
+        attachments: List<PromptAttachment> = emptyList(),
+    ): Boolean {
+        if (text.isBlank() && attachments.isEmpty()) return false
         if (_state.value.activeSessionId == null) {
-            val title = text.trim().take(48).ifBlank { "New session" }
-            val activeClient = client ?: return
+            val title = text.trim().take(48).ifBlank {
+                attachments.firstOrNull()?.filename?.take(48) ?: "New session"
+            }
+            val activeClient = client ?: return false
             val created = activeClient.createSession(directory, title = title)
             if (created is ApiResult.Failure) {
                 _state.update { it.copy(error = created.error.message) }
-                return
+                return false
             }
             if (created is ApiResult.Success) {
                 _state.update {
@@ -259,16 +451,33 @@ class ChatController(
                         messages = emptyList(),
                     )
                 }
+                sessionStore?.setActiveSessionId(directory, created.value.id)
             }
         }
-        send(text)
+        return send(text, attachments)
     }
 
     suspend fun abort() {
         val activeClient = client ?: return
         val sessionID = _state.value.activeSessionId ?: return
-        activeClient.abortSession(sessionID, directory)
-        _state.update { it.copy(sending = false) }
+        when (val result = activeClient.abortSession(sessionID, directory)) {
+            is ApiResult.Success -> _state.update { current ->
+                if (current.activeSessionId != sessionID || !current.sending) {
+                    current
+                } else if (result.value) {
+                    current.copy(sending = false, error = null)
+                } else {
+                    current.copy(error = "Server did not acknowledge the cancellation request")
+                }
+            }
+            is ApiResult.Failure -> _state.update { current ->
+                if (current.activeSessionId == sessionID && current.sending) {
+                    current.copy(error = result.error.message)
+                } else {
+                    current
+                }
+            }
+        }
     }
 
     suspend fun answerPermission(permissionID: String, response: PermissionResponse) {
@@ -421,6 +630,9 @@ data class ChatUiState(
     val permissions: List<PermissionRequest> = emptyList(),
     val error: String? = null,
     val authMessage: String? = null,
+    val sessionDiffs: List<SessionFileDiff> = emptyList(),
+    val diffLoading: Boolean = false,
+    val diffError: String? = null,
 )
 
 /** GET /config/providers returning raw text; parsed defensively upstream. */

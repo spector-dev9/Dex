@@ -145,7 +145,10 @@ data class PromptInput(
 @Serializable
 data class PromptPart(
     val type: String = "text",
-    val text: String,
+    val text: String? = null,
+    val mime: String? = null,
+    val filename: String? = null,
+    val url: String? = null,
 )
 
 @Serializable
