@@ -86,8 +86,13 @@ class SharedPrefsServerProfileStore(context: Context) : ServerProfileStore {
     override suspend fun add(name: String, url: String, token: String?): ApiResult<ServerProfile> {
         val cleanName = validateProfileName(name)
             ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "Profile name is empty or too long"))
-        val cleanUrl = normalizeProfileUrl(url)
-            ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "URL must be a valid http(s) endpoint"))
+        val cleanUrl = validateProfileEndpoint(url)
+            ?: return ApiResult.Failure(
+                ApiError(
+                    ErrorCode.E_PATH_DENIED,
+                    "URL must use HTTPS for remote hosts or HTTP only for loopback",
+                ),
+            )
         if (!prefs.contains(key(cleanName)) && _profiles.value.size >= MAX_PROFILES) {
             return ApiResult.Failure(ApiError(ErrorCode.E_TOO_LARGE, "Too many profiles (max $MAX_PROFILES)"))
         }
@@ -156,6 +161,28 @@ class SharedPrefsServerProfileStore(context: Context) : ServerProfileStore {
             val name = raw?.trim() ?: return null
             if (name.isEmpty() || name.length > MAX_NAME_LENGTH) return null
             return name
+        }
+
+        /**
+         * Normalizes and validates a profile endpoint (F75). Cleartext HTTP is
+         * only permitted for loopback endpoints; remote hosts must use HTTPS.
+         */
+        fun validateProfileEndpoint(raw: String?): String? {
+            val normalized = normalizeProfileUrl(raw) ?: return null
+            val uri = runCatching { URI(normalized) }.getOrNull() ?: return null
+            if (uri.scheme.equals("http", ignoreCase = true) && !isLoopbackHost(uri.host)) {
+                return null
+            }
+            return normalized
+        }
+
+        /** True for host names and literals that never leave the device. */
+        fun isLoopbackHost(host: String?): Boolean {
+            val value = host?.trim()?.lowercase(Locale.US)?.removeSurrounding("[", "]") ?: return false
+            return value == "localhost" ||
+                value == "::1" ||
+                value == "10.0.2.2" ||
+                value.startsWith("127.")
         }
 
         /** Normalizes an http(s) endpoint URL; null when it is not a valid endpoint. */

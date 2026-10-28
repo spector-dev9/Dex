@@ -134,6 +134,7 @@ dependencies {
     implementation(project(":core:bridge-api"))
     implementation(project(":core:common-api"))
     implementation(project(":core:diagnostics-api"))
+    implementation(project(":core:diagnostics"))
     implementation(project(":core:gateway-api"))
     implementation(project(":core:git-api"))
     implementation(project(":core:git"))
@@ -162,6 +163,7 @@ dependencies {
     testImplementation(project(":core:workspace-api"))
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)
 

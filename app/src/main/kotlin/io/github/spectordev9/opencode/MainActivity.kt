@@ -1,5 +1,8 @@
 package io.github.spectordev9.opencode
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,6 +30,7 @@ class MainActivity : ComponentActivity() {
                 profiles = appRuntime.profiles,
                 cleaner = appRuntime.cleaner,
                 workspace = appRuntime.workspace,
+                advanced = appRuntime.advanced,
                 runtimeStateFlow = appRuntime.runtimeState,
                 serverStateFlow = appRuntime.serverState,
                 onOpenLicenses = {
@@ -35,5 +39,20 @@ class MainActivity : ComponentActivity() {
                 onRetryRuntime = { appRuntime.ensureRunning() },
             )
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIFICATION_REQUEST)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        appRuntime.onForeground()
+    }
+
+    private companion object {
+        const val NOTIFICATION_REQUEST = 4101
     }
 }

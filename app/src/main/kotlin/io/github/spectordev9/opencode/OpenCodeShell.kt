@@ -107,6 +107,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import io.github.spectordev9.opencode.chat.MAX_SESSION_EXPORT_BYTES
+import io.github.spectordev9.opencode.chat.decodeSessionExport
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.longOrNull
@@ -127,6 +129,7 @@ import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES
 import io.github.spectordev9.opencode.chat.PromptAttachment
 import io.github.spectordev9.opencode.chat.ServerProfileStore
 import io.github.spectordev9.opencode.chat.flattenFileTree
+import io.github.spectordev9.opencode.features.AdvancedTools
 import io.github.spectordev9.opencode.chat.messageUsageSummary
 import io.github.spectordev9.opencode.chat.classifyDiffLine
 import io.github.spectordev9.opencode.core.common.ApiError
@@ -146,6 +149,7 @@ import io.github.spectordev9.opencode.core.terminal.PtySession
 import io.github.spectordev9.opencode.core.terminal.PtySize
 import io.github.spectordev9.opencode.core.terminal.PtySpec
 import io.github.spectordev9.opencode.ui.CodeBlock
+import io.github.spectordev9.opencode.ui.AdvancedToolsSheet
 import io.github.spectordev9.opencode.ui.LocalOpencodePalette
 import io.github.spectordev9.opencode.ui.MdBlock
 import io.github.spectordev9.opencode.ui.MarkdownText
@@ -182,6 +186,7 @@ fun OpenCodeShell(
     profiles: ServerProfileStore? = null,
     cleaner: DeviceDataCleaner? = null,
     workspace: WorkspaceService? = null,
+    advanced: AdvancedTools? = null,
     runtimeStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.runtime.RuntimeState>? = null,
     serverStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.supervisor.ServerState>? = null,
     onOpenLicenses: () -> Unit,
@@ -193,6 +198,7 @@ fun OpenCodeShell(
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Chat) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showTools by rememberSaveable { mutableStateOf(false) }
 
     val palette = rememberOpencodePalette(uiPrefs)
     val darkTheme = when (
@@ -250,6 +256,11 @@ fun OpenCodeShell(
                             }
                         },
                         actions = {
+                            if (advanced != null) {
+                                TextButton(onClick = { showTools = true }) {
+                                    Text("Tools", color = palette.Muted, fontSize = 12.sp)
+                                }
+                            }
                             TextButton(onClick = { showSettings = true }) {
                                 Text("Settings", color = palette.Muted, fontSize = 12.sp)
                             }
@@ -389,6 +400,14 @@ fun OpenCodeShell(
         }
         }
 
+        if (showTools && advanced != null) {
+            AdvancedToolsSheet(
+                tools = advanced,
+                chat = chat,
+                onDismiss = { showTools = false },
+            )
+        }
+
         if (showSettings) {
             SettingsSheet(
                 chat = chat,
@@ -468,6 +487,7 @@ private fun ChatHome(
                             )
                         }
                     }
+                    ChatTaskStatusChip(chatState)
                 }
             }
         }
@@ -488,6 +508,40 @@ private fun ChatHome(
                 onRetry = onRetryRuntime,
             )
         }
+    }
+}
+
+@Composable
+private fun ChatTaskStatusChip(state: ChatUiState?) {
+    val palette = LocalOpencodePalette.current
+    val status = state?.taskStatus ?: return
+    val label = when (status) {
+        io.github.spectordev9.opencode.chat.TaskStatus.IDLE -> return
+        io.github.spectordev9.opencode.chat.TaskStatus.RUNNING -> "running"
+        io.github.spectordev9.opencode.chat.TaskStatus.WAITING_APPROVAL -> "approval"
+        io.github.spectordev9.opencode.chat.TaskStatus.COMPLETED -> "done"
+        io.github.spectordev9.opencode.chat.TaskStatus.FAILED -> "failed"
+        io.github.spectordev9.opencode.chat.TaskStatus.INTERRUPTED -> "interrupted"
+    }
+    val color = when (status) {
+        io.github.spectordev9.opencode.chat.TaskStatus.RUNNING -> palette.Accent
+        io.github.spectordev9.opencode.chat.TaskStatus.WAITING_APPROVAL -> palette.WarningCol
+        io.github.spectordev9.opencode.chat.TaskStatus.COMPLETED -> palette.SuccessCol
+        io.github.spectordev9.opencode.chat.TaskStatus.FAILED -> palette.DangerCol
+        io.github.spectordev9.opencode.chat.TaskStatus.INTERRUPTED -> palette.Muted2
+        io.github.spectordev9.opencode.chat.TaskStatus.IDLE -> palette.Muted2
+    }
+    Surface(
+        shape = RoundedCornerShape(7.dp),
+        color = palette.Panel3,
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderStrong),
+    ) {
+        Text(
+            label,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            fontSize = 10.sp,
+            color = color,
+        )
     }
 }
 
@@ -1592,10 +1646,46 @@ private fun SessionSheet(
     onDismiss: () -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
+    val context = LocalContext.current
+    val importScope = rememberCoroutineScope()
     var menuSessionID by remember { mutableStateOf<String?>(null) }
     var renameSessionID by remember { mutableStateOf<String?>(null) }
     var renameTitle by remember { mutableStateOf("") }
     var deleteSessionID by remember { mutableStateOf<String?>(null) }
+    var importMessage by remember { mutableStateOf<String?>(null) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            importScope.launch {
+                importMessage = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val bytes = context.contentResolver.openInputStream(uri)?.use { input ->
+                            val output = ByteArrayOutputStream()
+                            val buffer = ByteArray(64 * 1024)
+                            var total = 0
+                            while (true) {
+                                val read = input.read(buffer)
+                                if (read < 0) break
+                                total += read
+                                if (total > MAX_SESSION_EXPORT_BYTES) {
+                                    throw IllegalArgumentException("Session import exceeds the 20 MiB limit")
+                                }
+                                output.write(buffer, 0, read)
+                            }
+                            output.toByteArray()
+                        } ?: throw IllegalArgumentException("The selected file could not be opened")
+                        val imported = decodeSessionExport(String(bytes, Charsets.UTF_8)).getOrThrow()
+                        "Validated import: ${imported.sourceSummary}. " +
+                            "It is not restored automatically; review it before reusing content."
+                    }.fold(
+                        onSuccess = { it },
+                        onFailure = { "Import rejected: ${it.message}" },
+                    )
+                }
+            }
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = palette.Panel2,
@@ -1608,7 +1698,12 @@ private fun SessionSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Sessions", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
-                TextButton(onClick = onNew) { Text("＋ New session", color = palette.Accent) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }) {
+                        Text("Import", color = palette.Muted, fontSize = 12.sp)
+                    }
+                    TextButton(onClick = onNew) { Text("＋ New session", color = palette.Accent) }
+                }
             }
             LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
                 items(state.sessions, key = { it.id }) { session ->
@@ -1748,6 +1843,20 @@ private fun SessionSheet(
             dismissButton = {
                 TextButton(onClick = { deleteSessionID = null }) {
                     Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
+    }
+    val message = importMessage
+    if (message != null) {
+        AlertDialog(
+            onDismissRequest = { importMessage = null },
+            containerColor = palette.Panel2,
+            title = { Text("Session import", color = palette.TextCol) },
+            text = { Text(message, color = palette.Muted, fontSize = 12.sp) },
+            confirmButton = {
+                TextButton(onClick = { importMessage = null }) {
+                    Text("Close", color = palette.Accent)
                 }
             },
         )

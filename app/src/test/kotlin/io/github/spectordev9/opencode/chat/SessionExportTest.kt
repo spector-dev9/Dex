@@ -98,4 +98,83 @@ class SessionExportTest {
 
         assertTrue(error.message.orEmpty().contains("20 MiB"))
     }
+
+    @Test
+    fun `round trips a validated export without restoring it`() {
+        val session = Session(
+            id = "ses_1",
+            slug = "sample",
+            projectID = "prj_1",
+            directory = "/workspace",
+            title = "Sample session",
+            version = "1.19.3",
+            time = SessionTime(created = 1, updated = 2),
+        )
+        val message = Message(
+            info = MessageInfo(
+                id = "msg_1",
+                sessionID = "ses_1",
+                role = "user",
+                time = Json.parseToJsonElement("""{"created":3}""").jsonObject,
+            ),
+            parts = listOf(
+                Part(
+                    id = "prt_1",
+                    sessionID = "ses_1",
+                    messageID = "msg_1",
+                    type = "text",
+                    text = "Ship it",
+                ),
+            ),
+        )
+
+        val imported = decodeSessionExport(
+            encodeSessionExport(session, listOf(message), exportedAtEpochMillis = 1234L),
+        ).getOrThrow()
+
+        assertEquals("ses_1", imported.session.id)
+        assertEquals(1, imported.messages.size)
+        assertEquals(1234L, imported.exportedAtEpochMillis)
+        assertEquals(SESSION_EXPORT_SCHEMA_VERSION, imported.schemaVersion)
+    }
+
+    @Test
+    fun `rejects unexpected formats, cross-session messages and oversize input`() {
+        val session = Session(
+            id = "ses_1",
+            slug = "sample",
+            projectID = "prj_1",
+            directory = "/workspace",
+            title = "Sample session",
+            version = "1.19.3",
+            time = SessionTime(created = 1, updated = 2),
+        )
+        val message = Message(
+            info = MessageInfo(
+                id = "msg_1",
+                sessionID = "ses_other",
+                role = "user",
+                time = Json.parseToJsonElement("""{"created":3}""").jsonObject,
+            ),
+            parts = listOf(
+                Part(
+                    id = "prt_1",
+                    sessionID = "ses_other",
+                    messageID = "msg_1",
+                    type = "text",
+                    text = "Nope",
+                ),
+            ),
+        )
+
+        assertTrue(
+            runCatching {
+                decodeSessionExport(
+                    encodeSessionExport(session, listOf(message), exportedAtEpochMillis = 1234L),
+                ).getOrThrow()
+            }.isFailure,
+        )
+        assertTrue(decodeSessionExport("""{"format":"other"}""").isFailure)
+        assertTrue(decodeSessionExport("x".repeat(MAX_SESSION_EXPORT_BYTES + 1)).isFailure)
+    }
 }

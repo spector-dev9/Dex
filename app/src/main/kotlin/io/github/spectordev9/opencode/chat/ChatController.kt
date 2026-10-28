@@ -41,6 +41,7 @@ const val MAX_PROMPT_ATTACHMENTS = 5
 
 private const val REPLY_POLL_INTERVAL_MS = 1_500L
 private const val REPLY_POLL_TIMEOUT_MS = 180_000L
+private const val MAX_COMMAND_NAME_CHARS = 128
 
 private val emptyPermissionRules: MutableStateFlow<Map<String, PermissionResponse>> = MutableStateFlow(emptyMap())
 const val MAX_PROMPT_ATTACHMENT_BYTES = 5 * 1024 * 1024
@@ -70,10 +71,37 @@ interface ChatSessionStore {
  * list, a message stream with tool cards, permission prompts above the
  * composer and a mode/model-aware composer.
  */
+fun interface ChatTaskEventListener {
+    fun onTaskEvent(event: ChatTaskEvent)
+}
+
+enum class ChatTaskEventKind {
+    COMPLETED,
+    PERMISSION,
+    FAILED,
+}
+
+data class ChatTaskEvent(
+    val kind: ChatTaskEventKind,
+    val title: String,
+    val body: String,
+    val sessionID: String? = null,
+)
+
+enum class TaskStatus {
+    IDLE,
+    RUNNING,
+    WAITING_APPROVAL,
+    COMPLETED,
+    FAILED,
+    INTERRUPTED,
+}
+
 class ChatController(
     private val scope: CoroutineScope,
     private val sessionStore: ChatSessionStore? = null,
     private val permissionRules: PermissionRuleStore? = null,
+    private val taskEvents: ChatTaskEventListener? = null,
 ) {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -135,7 +163,39 @@ class ChatController(
         replyPollJob?.cancel()
         replyPollJob = null
         client = null
-        _state.update { ChatUiState(mode = it.mode) }
+        _state.update {
+            val interrupted = it.taskStatus == TaskStatus.RUNNING ||
+                it.taskStatus == TaskStatus.WAITING_APPROVAL
+            ChatUiState(
+                mode = it.mode,
+                taskStatus = if (interrupted) TaskStatus.INTERRUPTED else TaskStatus.IDLE,
+            )
+        }
+    }
+
+    /**
+     * Re-queries authoritative server state after a foreground resume or SSE
+     * reconnect (F48/F49). Prompts are never resent automatically.
+     */
+    suspend fun reconcile() {
+        val activeClient = client ?: return
+        listSessions(activeClient)
+        val activeSession = _state.value.activeSessionId
+        if (activeSession != null && _state.value.sessions.none { it.id == activeSession }) {
+            _state.update { it.copy(activeSessionId = null, messages = emptyList()) }
+        }
+        if (_state.value.activeSessionId == null) {
+            val saved = sessionStore?.activeSessionId(directory)
+            if (saved != null && _state.value.sessions.any { it.id == saved }) {
+                selectSession(saved)
+            } else {
+                pickLatestSession()
+            }
+        } else {
+            loadMessages()
+        }
+        loadAgents(activeClient)
+        runCatching { loadProviders(activeClient) }
     }
 
     private suspend fun refresh() {
@@ -189,6 +249,7 @@ class ChatController(
                 sessionDiffs = emptyList(),
                 diffError = null,
                 diffLoading = false,
+                taskStatus = TaskStatus.IDLE,
                 permissions = it.permissions.filter { p -> p.sessionID == sessionID },
             )
         }
@@ -464,6 +525,7 @@ class ChatController(
                 _state.update {
                     it.copy(
                         sending = true,
+                        taskStatus = TaskStatus.RUNNING,
                         error = null,
                         // Optimistic echo; replaced when the server round-trips.
                         messages = if (trimmed.isEmpty()) it.messages else {
@@ -478,6 +540,53 @@ class ChatController(
             is ApiResult.Failure -> {
                 _state.update { it.copy(error = result.error.message) }
                 return false
+            }
+        }
+    }
+
+    /**
+     * Invokes a server command or skill against the active session (F53).
+     * The server remains authoritative for whether the command exists.
+     */
+    suspend fun runCommand(command: String, arguments: String = ""): Boolean {
+        val cleanCommand = command.trim()
+        if (cleanCommand.isEmpty() || cleanCommand.length > MAX_COMMAND_NAME_CHARS ||
+            cleanCommand.any { it.isWhitespace() || it.isISOControl() }
+        ) {
+            _state.update { it.copy(error = "Command name is invalid") }
+            return false
+        }
+        if (_state.value.sending) {
+            _state.update { it.copy(error = "Wait for the current response to finish") }
+            return false
+        }
+        val activeClient = client ?: return false
+        val sessionID = _state.value.activeSessionId ?: return false
+        val result = activeClient.runCommand(
+            sessionID = sessionID,
+            directory = directory,
+            command = cleanCommand,
+            arguments = arguments,
+            agent = _state.value.mode,
+            model = resolvePromptModel(),
+        )
+        return when (result) {
+            is ApiResult.Success -> {
+                _state.update {
+                    it.copy(
+                        sending = true,
+                        taskStatus = TaskStatus.RUNNING,
+                        error = null,
+                        messages = (it.messages + result.value).distinctBy { message -> message.info.id },
+                    )
+                }
+                replyPollJob?.cancel()
+                replyPollJob = scope.launch { awaitReply(sessionID) }
+                true
+            }
+            is ApiResult.Failure -> {
+                _state.update { it.copy(error = result.error.message) }
+                false
             }
         }
     }
@@ -503,6 +612,7 @@ class ChatController(
             if (it.activeSessionId == sessionID && it.sending) {
                 it.copy(
                     sending = false,
+                    taskStatus = if (it.error == null) TaskStatus.FAILED else it.taskStatus,
                     error = it.error ?: "The assistant did not reply in time",
                 )
             } else {
@@ -578,7 +688,7 @@ class ChatController(
                 if (current.activeSessionId != sessionID || !current.sending) {
                     current
                 } else if (result.value) {
-                    current.copy(sending = false, error = null)
+                    current.copy(sending = false, taskStatus = TaskStatus.INTERRUPTED, error = null)
                 } else {
                     current.copy(error = "Server did not acknowledge the cancellation request")
                 }
@@ -681,6 +791,12 @@ class ChatController(
     }
 
     private suspend fun onEvent(event: ServerEvent) {
+        if (event.type == "server.connected") {
+            // SSE reconnects can miss events; resynchronize instead of
+            // replaying or resending an in-flight prompt (F49/F81).
+            reconcile()
+            return
+        }
         val payload = event.payload as? JsonObject ?: return
         val activeSession = _state.value.activeSessionId
         when {
@@ -690,10 +806,20 @@ class ChatController(
                     json.decodeFromJsonElement(PermissionRequest.serializer(), permission)
                 }.getOrNull() ?: return
                 if (decoded.sessionID == activeSession) {
+                    val isNew = _state.value.permissions.none { it.id == decoded.id }
                     _state.update {
                         it.copy(
                             permissions = it.permissions
                                 .filter { p -> p.id != decoded.id } + decoded,
+                            taskStatus = TaskStatus.WAITING_APPROVAL,
+                        )
+                    }
+                    if (isNew) {
+                        notifyTask(
+                            ChatTaskEventKind.PERMISSION,
+                            "Approval needed",
+                            decoded.permission,
+                            decoded.sessionID,
                         )
                     }
                     maybeAutoAnswer(decoded)
@@ -702,23 +828,50 @@ class ChatController(
             event.type == "permission.replied" -> {
                 val permissionID = payload.string("permissionID") ?: return
                 _state.update {
-                    it.copy(permissions = it.permissions.filter { p -> p.id != permissionID })
+                    it.copy(
+                        permissions = it.permissions.filter { p -> p.id != permissionID },
+                        taskStatus = if (it.sending) TaskStatus.RUNNING else it.taskStatus,
+                    )
                 }
             }
             event.type == "session.idle" -> {
                 if (payload.string("sessionID") == activeSession) {
-                    _state.update { it.copy(sending = false) }
-                    if (_state.value.error == null) reloadChannel.trySend(Unit)
+                    val wasSending = _state.value.sending
+                    _state.update {
+                        it.copy(
+                            sending = false,
+                            taskStatus = if (it.error == null) TaskStatus.COMPLETED else TaskStatus.FAILED,
+                        )
+                    }
+                    if (_state.value.error == null) {
+                        reloadChannel.trySend(Unit)
+                        if (wasSending) {
+                            notifyTask(
+                                ChatTaskEventKind.COMPLETED,
+                                "Task completed",
+                                "The assistant finished responding.",
+                                activeSession,
+                            )
+                        }
+                    }
                 }
             }
             event.type == "session.error" -> {
                 if (payload.string("sessionID") == activeSession) {
+                    val description = describeSessionError(payload["error"] as? JsonObject)
                     _state.update {
                         it.copy(
                             sending = false,
-                            error = describeSessionError(payload["error"] as? JsonObject),
+                            taskStatus = TaskStatus.FAILED,
+                            error = description,
                         )
                     }
+                    notifyTask(
+                        ChatTaskEventKind.FAILED,
+                        "Task failed",
+                        description,
+                        activeSession,
+                    )
                 }
             }
             event.type.startsWith("message.") -> {
@@ -746,6 +899,27 @@ class ChatController(
                 }
             }
         }
+    }
+
+    private fun notifyTask(
+        kind: ChatTaskEventKind,
+        title: String,
+        body: String,
+        sessionID: String?,
+    ) {
+        val listener = taskEvents ?: return
+        val sessionTitle = _state.value.sessions
+            .firstOrNull { it.id == sessionID }
+            ?.title
+            ?.takeIf { it.isNotBlank() }
+        listener.onTaskEvent(
+            ChatTaskEvent(
+                kind = kind,
+                title = title,
+                body = if (sessionTitle == null) body else "$sessionTitle: $body",
+                sessionID = sessionID,
+            ),
+        )
     }
 
     private fun describeSessionError(error: JsonObject?): String {
@@ -839,6 +1013,7 @@ data class ChatUiState(
     val selectedModel: PromptModel? = null,
     val mode: String = "build",
     val sending: Boolean = false,
+    val taskStatus: TaskStatus = TaskStatus.IDLE,
     val permissions: List<PermissionRequest> = emptyList(),
     val error: String? = null,
     val authMessage: String? = null,

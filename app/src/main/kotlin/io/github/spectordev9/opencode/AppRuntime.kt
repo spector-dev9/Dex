@@ -2,9 +2,22 @@ package io.github.spectordev9.opencode
 
 import android.content.Context
 import io.github.spectordev9.opencode.chat.ChatController
+import io.github.spectordev9.opencode.chat.ChatTaskEvent
+import io.github.spectordev9.opencode.chat.ChatTaskEventListener
 import io.github.spectordev9.opencode.chat.FilesController
 import io.github.spectordev9.opencode.chat.SharedPreferencesChatSessionStore
 import io.github.spectordev9.opencode.core.common.ApiResult
+import io.github.spectordev9.opencode.core.diagnostics.DiagnosticLevel
+import io.github.spectordev9.opencode.features.AdvancedTools
+import io.github.spectordev9.opencode.features.BuildController
+import io.github.spectordev9.opencode.features.DeviceCompatibility
+import io.github.spectordev9.opencode.features.DiagnosticsController
+import io.github.spectordev9.opencode.features.ProjectEnvironmentStore
+import io.github.spectordev9.opencode.features.ServerExtensionsController
+import io.github.spectordev9.opencode.features.TaskNotification
+import io.github.spectordev9.opencode.features.TaskNotificationKind
+import io.github.spectordev9.opencode.features.TaskNotifier
+import io.github.spectordev9.opencode.features.WorkspaceCatalog
 import io.github.spectordev9.opencode.server.MockLlmServer
 import io.github.spectordev9.opencode.core.runtime.RuntimeState
 import io.github.spectordev9.opencode.core.supervisor.ServerState
@@ -66,10 +79,27 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     private val sessionStore = SharedPreferencesChatSessionStore(this.context)
 
+    val diagnostics = DiagnosticsController(this.context)
+
+    val notifier = TaskNotifier(this.context)
+
+    val projects = WorkspaceCatalog(
+        this.context,
+        RuntimePaths.serverWorkspaceDirectory(this.context).also {
+            Files.createDirectories(it)
+        },
+    )
+
+    val environment = ProjectEnvironmentStore(
+        this.context,
+        AndroidKeystoreSecretStore(this.context),
+    )
+
     val chat = ChatController(
         scope,
         sessionStore,
         io.github.spectordev9.opencode.chat.SharedPrefsPermissionRuleStore(this.context),
+        ChatTaskEventListener { event -> onChatTaskEvent(event) },
     )
     val files = FilesController(scope)
     private val workspaceDirectory = RuntimePaths.workspaceDirectory(this.context).also {
@@ -99,9 +129,32 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
     /** Individual data-cleanup actions (F78). */
     val cleaner = io.github.spectordev9.opencode.chat.DeviceDataCleaner(this.context, sessionStore, profiles)
 
+    val extensions = ServerExtensionsController(scope)
+
+    val builds = BuildController(
+        scope = scope,
+        ptyService = terminal,
+        workspaceDirectory = workspaceDirectory,
+        environment = { environment.resolve(projects.activeDirectory()) },
+    )
+
+    val advanced = AdvancedTools(
+        extensions = extensions,
+        projects = projects,
+        environment = environment,
+        builds = builds,
+        diagnostics = diagnostics,
+        notifier = notifier,
+        selectProject = ::selectProject,
+        createProject = ::createProject,
+        compatibilityProbe = { DeviceCompatibility.probe(this.context) },
+    )
+
     private var lastAttachedEndpoint: String? = null
+    private var currentClient: io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient? = null
 
     init {
+        notifier.ensureChannel()
         // The mock provider must be listening before the server's first prompt.
         mockLlm.start()
         scope.launch {
@@ -121,15 +174,98 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
                 baseUrl = endpointKey,
                 password = password,
             )
-            val workspace = RuntimePaths.serverWorkspaceDirectory(context).toString()
-            chat.attach(client, workspace)
-            files.attach(client, workspace)
+            currentClient = client
+            attachWorkspace(client)
             lastAttachedEndpoint = endpointKey
+            diagnostics.record(
+                DiagnosticLevel.INFO,
+                "server",
+                "Connected to loopback server",
+            )
         } else {
+            if (lastAttachedEndpoint != null) {
+                diagnostics.record(
+                    DiagnosticLevel.WARN,
+                    "server",
+                    "Server connection lost",
+                )
+            }
             chat.detach()
             files.detach()
+            extensions.detach()
+            currentClient = null
             lastAttachedEndpoint = null
         }
+    }
+
+    private fun attachWorkspace(client: io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient) {
+        val directory = projects.activeDirectory()
+        chat.attach(client, directory)
+        files.attach(client, directory)
+        extensions.attach(client, directory)
+    }
+
+    /** Switches the active local project folder and reattaches chat/files (F10). */
+    fun selectProject(id: String): ApiResult<io.github.spectordev9.opencode.features.ProjectWorkspace> {
+        val result = projects.select(id)
+        if (result is ApiResult.Success) {
+            currentClient?.let(::attachWorkspace)
+            builds.clear()
+        }
+        return result
+    }
+
+    /** Creates and selects a project folder inside the server workspace (F10). */
+    fun createProject(name: String): ApiResult<io.github.spectordev9.opencode.features.ProjectWorkspace> {
+        val result = projects.create(name)
+        if (result is ApiResult.Success) {
+            currentClient?.let(::attachWorkspace)
+            builds.clear()
+        }
+        return result
+    }
+
+    /** Reconciles authoritative state after the app returns to the foreground (F48). */
+    fun onForeground() {
+        if (supervisor.state.value.status ==
+            io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY
+        ) {
+            scope.launch { chat.reconcile() }
+        } else {
+            diagnostics.record(DiagnosticLevel.WARN, "lifecycle", "Foreground resume without a healthy server")
+            ensureRunning()
+        }
+    }
+
+    private fun onChatTaskEvent(event: ChatTaskEvent) {
+        notifier.notify(
+            TaskNotification(
+                kind = when (event.kind) {
+                    io.github.spectordev9.opencode.chat.ChatTaskEventKind.COMPLETED ->
+                        TaskNotificationKind.COMPLETED
+                    io.github.spectordev9.opencode.chat.ChatTaskEventKind.PERMISSION ->
+                        TaskNotificationKind.PERMISSION
+                    io.github.spectordev9.opencode.chat.ChatTaskEventKind.FAILED ->
+                        TaskNotificationKind.FAILED
+                },
+                title = event.title,
+                body = event.body,
+                sessionID = event.sessionID,
+            ),
+        )
+        diagnostics.record(
+            level = when (event.kind) {
+                io.github.spectordev9.opencode.chat.ChatTaskEventKind.FAILED -> DiagnosticLevel.ERROR
+                io.github.spectordev9.opencode.chat.ChatTaskEventKind.PERMISSION -> DiagnosticLevel.WARN
+                io.github.spectordev9.opencode.chat.ChatTaskEventKind.COMPLETED -> DiagnosticLevel.INFO
+            },
+            category = "task",
+            message = event.title,
+            attributes = mapOf(
+                "kind" to event.kind.name,
+                "session" to (event.sessionID ?: "none"),
+            ),
+        )
     }
 
     private val ensureMutex = Mutex()
