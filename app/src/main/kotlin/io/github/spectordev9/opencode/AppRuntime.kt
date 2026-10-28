@@ -15,6 +15,7 @@ import io.github.spectordev9.opencode.security.AndroidKeystoreSecretStore
 import io.github.spectordev9.opencode.server.LoopbackSecrets
 import io.github.spectordev9.opencode.server.ProductionServerLauncher
 import io.github.spectordev9.opencode.terminal.ProductionPtyService
+import java.nio.file.Files
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -69,6 +70,9 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         io.github.spectordev9.opencode.chat.SharedPrefsPermissionRuleStore(this.context),
     )
     val files = FilesController(scope)
+    private val workspaceDirectory = RuntimePaths.workspaceDirectory(this.context).also {
+        Files.createDirectories(it)
+    }
 
     /** Guest-shell git for the workspace repository (F31–F35, F36). */
     val git = io.github.spectordev9.opencode.chat.GitController(
@@ -78,7 +82,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         ),
         repositoryPath = io.github.spectordev9.opencode.git.GuestGitRunner.GUEST_WORKSPACE,
         workspace = io.github.spectordev9.opencode.core.workspace.impl.FileWorkspaceService(
-            RuntimePaths.workspaceDirectory(this.context),
+            workspaceDirectory,
         ),
     )
 
