@@ -112,8 +112,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.spectordev9.opencode.chat.ChatController
 import io.github.spectordev9.opencode.chat.ChatUiState
+import io.github.spectordev9.opencode.chat.ConflictKeep
 import io.github.spectordev9.opencode.chat.DiffLineKind
+import io.github.spectordev9.opencode.chat.DestructiveCommandDetector
 import io.github.spectordev9.opencode.chat.FilesController
+import io.github.spectordev9.opencode.chat.GitController
+import io.github.spectordev9.opencode.chat.GitUiState
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENT_BYTES
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES

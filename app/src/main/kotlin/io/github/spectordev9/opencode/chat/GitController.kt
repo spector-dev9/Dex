@@ -454,6 +454,8 @@ class GitController(
         val error: String? = null,
     )
 
+    private fun ok() = MutationOutcome(success = true)
+
     private fun notice(text: String) = MutationOutcome(success = true, notice = text)
 
     private fun fail(error: ApiError): MutationOutcome = MutationOutcome(success = false, error = describe(error))

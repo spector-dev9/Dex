@@ -610,16 +610,16 @@ class ChatController(
                 it.copy(authMessage = null, error = result.error.message)
             }
         }
+    }
 
-        suspend fun testConnection(): String {
-            val activeClient = client
-                ?: return "Connection test failed: server client is not connected"
-            return when (val result = activeClient.health()) {
-                is ApiResult.Success ->
-                    "Connected to OpenCode ${result.value.version} on port ${result.value.endpointPort}"
-                is ApiResult.Failure ->
-                    "Connection test failed: ${result.error.message}"
-            }
+    suspend fun testConnection(): String {
+        val activeClient = client
+            ?: return "Connection test failed: server client is not connected"
+        return when (val result = activeClient.health()) {
+            is ApiResult.Success ->
+                "Connected to OpenCode ${result.value.version} on port ${result.value.endpointPort}"
+            is ApiResult.Failure ->
+                "Connection test failed: ${result.error.message}"
         }
     }
 
