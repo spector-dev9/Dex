@@ -2659,6 +2659,7 @@ internal fun terminalFailureMessage(message: String): String {
 }
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 private fun GitScreen(
     modifier: Modifier = Modifier,
     git: GitController?,
@@ -3040,7 +3041,7 @@ private fun GitScreen(
                     onClick = {
                         showCommitDialog = false
                         scope.launch {
-                            git.commit(commitMessage)
+                            git?.commit(commitMessage)
                             commitMessage = ""
                         }
                     },
@@ -3075,7 +3076,7 @@ private fun GitScreen(
                     onClick = {
                         val paths = discardPaths ?: emptyList()
                         discardPaths = null
-                        scope.launch { git.discard(paths) }
+                        scope.launch { git?.discard(paths) }
                     },
                 ) {
                     Text("Discard", color = palette.DangerCol)
@@ -3101,7 +3102,7 @@ private fun GitScreen(
                     onClick = {
                         val ref = checkoutTarget ?: ""
                         checkoutTarget = null
-                        scope.launch { git.checkout(ref) }
+                        scope.launch { git?.checkout(ref) }
                     },
                 ) {
                     Text("Switch", color = palette.Accent)
@@ -3118,6 +3119,7 @@ private fun GitScreen(
 }
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 private fun ConflictResolveSheet(
     git: GitController?,
     gitState: GitUiState,

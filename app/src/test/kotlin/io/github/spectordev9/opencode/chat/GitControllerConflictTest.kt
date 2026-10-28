@@ -4,16 +4,17 @@ import io.github.spectordev9.opencode.app.bridge.FakeGitService
 import io.github.spectordev9.opencode.app.bridge.FakeWorkspaceService
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.workspace.Precondition
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class GitControllerConflictTest {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
 
     private val conflictFile = listOf(
         "line before",
@@ -28,7 +29,6 @@ class GitControllerConflictTest {
 
     private fun controller(): Pair<GitController, FakeWorkspaceService> {
         val workspace = FakeWorkspaceService()
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val git = GitController(
             scope = scope,
             git = FakeGitService(),

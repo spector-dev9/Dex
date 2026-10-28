@@ -139,7 +139,8 @@ class GitController(
     suspend fun stage(paths: List<String>) {
         mutate {
             when (val result = git.stage(repositoryPath, paths)) {
-                is ApiResult.Success -> ok()
+                is ApiResult.Success ->
+                    notice("Staged ${paths.size} ${if (paths.size == 1) "file" else "files"}")
 
                 is ApiResult.Failure -> fail(result.error)
             }
@@ -151,7 +152,8 @@ class GitController(
     suspend fun unstage(paths: List<String>) {
         mutate {
             when (val result = git.unstage(repositoryPath, paths)) {
-                is ApiResult.Success -> ok()
+                is ApiResult.Success ->
+                    notice("Unstaged ${paths.size} ${if (paths.size == 1) "file" else "files"}")
 
                 is ApiResult.Failure -> fail(result.error)
             }

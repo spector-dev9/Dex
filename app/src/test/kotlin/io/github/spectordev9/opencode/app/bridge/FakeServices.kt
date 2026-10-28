@@ -24,6 +24,7 @@ import io.github.spectordev9.opencode.core.gateway.ServerEvent
 import io.github.spectordev9.opencode.core.git.GitBranch
 import io.github.spectordev9.opencode.core.git.GitChange
 import io.github.spectordev9.opencode.core.git.GitChangeKind
+import io.github.spectordev9.opencode.core.git.GitCommit
 import io.github.spectordev9.opencode.core.git.GitCommitResult
 import io.github.spectordev9.opencode.core.git.GitDiff
 import io.github.spectordev9.opencode.core.git.GitService
