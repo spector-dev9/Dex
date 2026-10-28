@@ -5,7 +5,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 /**
  * Guards the production runtime install path (RT-3): everything
@@ -15,48 +21,62 @@ import org.json.JSONObject
  */
 class PinnedRuntimeManifestTest {
 
-    private val manifest: JSONObject by lazy {
+    private val manifest: JsonObject by lazy {
         val file = locateManifest()
-        JSONObject(file.readText())
+        Json.parseToJsonElement(file.readText()).jsonObject
     }
+
+    private fun string(objectValue: JsonObject, key: String): String =
+        ((objectValue[key] as? JsonPrimitive)?.contentOrNull)
+            ?: fail("missing string field: $key")
+
+    private fun objectValue(objectValue: JsonObject, key: String): JsonObject =
+        objectValue[key]?.jsonObject ?: fail("missing object field: $key")
+
+    private fun array(objectValue: JsonObject, key: String): JsonArray =
+        objectValue[key]?.jsonArray ?: fail("missing array field: $key")
 
     /** CI stages runtime/manifest.json at the repo root; walk up from the test working dir. */
     private fun locateManifest(): File {
-        var dir: File? = File(System.getProperty("user.dir")).absoluteFile
+        val workingDirectory = System.getProperty("user.dir")
+            ?: fail("user.dir system property is unavailable")
+        var dir = File(workingDirectory).absoluteFile
         repeat(6) {
             val candidate = File(dir, "runtime/manifest.json")
             if (candidate.isFile) return candidate
-            dir = dir?.parentFile
+            dir = dir.parentFile ?: return@repeat
         }
         fail("runtime/manifest.json not found above ${System.getProperty("user.dir")}")
     }
 
     @Test
     fun `manifest carries a well formed pinned version`() {
-        val version = manifest.getString("version")
+        val version = string(manifest, "version")
         assertTrue(version.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+")), "version=$version")
     }
 
     @Test
     fun `artifact and alpine entries are complete`() {
-        val artifact = manifest.getJSONObject("artifact")
-        assertTrue(artifact.getString("url").startsWith("https://"))
-        assertTrue(artifact.getString("sha256").matches(Regex("[a-fA-F0-9]{64}")))
+        val artifact = objectValue(manifest, "artifact")
+        assertTrue(string(artifact, "url").startsWith("https://"))
+        assertTrue(string(artifact, "sha256").matches(Regex("[a-fA-F0-9]{64}")))
 
-        val alpine = manifest.getJSONObject("alpine")
-        assertTrue(alpine.getString("url").startsWith("https://"))
-        assertTrue(alpine.getString("sha256").matches(Regex("[a-fA-F0-9]{64}")))
+        val alpine = objectValue(manifest, "alpine")
+        assertTrue(string(alpine, "url").startsWith("https://"))
+        assertTrue(string(alpine, "sha256").matches(Regex("[a-fA-F0-9]{64}")))
     }
 
     @Test
     fun `binary pin matches the required executable`() {
-        assertEquals("opencode", manifest.getString("binary"))
+        assertEquals("opencode", string(manifest, "binary"))
         assertTrue(
-            manifest.getString("binarySha256").matches(Regex("[a-fA-F0-9]{64}")),
+            string(manifest, "binarySha256").matches(Regex("[a-fA-F0-9]{64}")),
         )
-        val required = manifest.getJSONArray("required")
-        assertEquals(1, required.length())
-        assertEquals("opencode", required.getString(0))
+        val required = array(manifest, "required")
+        assertEquals(1, required.size)
+        val requiredName = (required[0] as? JsonPrimitive)?.contentOrNull
+            ?: fail("required entry is not a string")
+        assertEquals("opencode", requiredName)
     }
 
     @Test
@@ -66,36 +86,36 @@ class PinnedRuntimeManifestTest {
             "libgcc" to "libgcc_s.so.1",
             "libstdc++" to "libstdc++.so.6",
         )
-        val packages = manifest.getJSONArray("alpineRuntimePackages")
-        for (index in 0 until packages.length()) {
-            val spec = packages.getJSONObject(index)
-            val name = spec.getString("name")
+        val packages = array(manifest, "alpineRuntimePackages")
+        for (element in packages) {
+            val spec = element.jsonObject
+            val name = string(spec, "name")
             assertTrue(supported.containsKey(name), "unsupported pinned package: $name")
-            assertTrue(spec.getString("url").startsWith("https://"))
-            assertTrue(spec.getString("sha256").matches(Regex("[a-fA-F0-9]{64}")))
+            assertTrue(string(spec, "url").startsWith("https://"))
+            assertTrue(string(spec, "sha256").matches(Regex("[a-fA-F0-9]{64}")))
         }
     }
 
     @Test
     fun `node runtime packages install a real executable`() {
-        val node = manifest.getJSONObject("nodeRuntime")
-        val executable = node.getString("executable")
+        val node = objectValue(manifest, "nodeRuntime")
+        val executable = string(node, "executable")
         assertTrue(executable.startsWith("usr/bin/"), "executable=$executable")
-        val packages = node.getJSONArray("packages")
-        assertTrue(packages.length() >= 1, "nodeRuntime needs at least the nodejs package")
-        for (index in 0 until packages.length()) {
-            val spec = packages.getJSONObject(index)
-            assertTrue(spec.getString("url").startsWith("https://"))
-            assertTrue(spec.getString("sha256").matches(Regex("[a-fA-F0-9]{64}")))
+        val packages = array(node, "packages")
+        assertTrue(packages.isNotEmpty(), "nodeRuntime needs at least the nodejs package")
+        for (element in packages) {
+            val spec = element.jsonObject
+            assertTrue(string(spec, "url").startsWith("https://"))
+            assertTrue(string(spec, "sha256").matches(Regex("[a-fA-F0-9]{64}")))
         }
     }
 
     @Test
     fun `runtime libraries are unique and well named`() {
-        val libraries = manifest.getJSONArray("runtimeLibraries")
+        val libraries = array(manifest, "runtimeLibraries")
         val names = mutableSetOf<String>()
-        for (index in 0 until libraries.length()) {
-            val name = libraries.getString(index)
+        for (element in libraries) {
+            val name = (element as? JsonPrimitive)?.contentOrNull ?: fail("invalid library name")
             assertTrue(
                 name.matches(Regex("[A-Za-z0-9_.+-]+")),
                 "invalid runtime library name: $name",

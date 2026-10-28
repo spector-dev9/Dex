@@ -210,7 +210,7 @@ fun OpenCodeShell(
                         }
                     },
                     actions = {
-                        TextButton(onClick = { showSettings = true }, enabled = chatState?.connected == true) {
+                        TextButton(onClick = { showSettings = true }) {
                             Text("Settings", color = Muted, fontSize = 12.sp)
                         }
                         TextButton(onClick = onOpenLicenses) {
@@ -268,6 +268,7 @@ fun OpenCodeShell(
             SettingsSheet(
                 chat = chat,
                 state = chatState ?: ChatUiState(),
+                isConnected = chatState?.connected == true,
                 onDismiss = { showSettings = false },
             )
         }
@@ -1038,6 +1039,7 @@ private data class QuickProvider(
 private fun SettingsSheet(
     chat: ChatController,
     state: ChatUiState,
+    isConnected: Boolean,
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -1058,8 +1060,18 @@ private fun SettingsSheet(
                 fontSize = 11.sp,
                 color = Muted2,
             )
+            if (!isConnected) {
+                Text(
+                    "The server is not connected. API keys can be saved when the server is ready.",
+                    fontSize = 11.sp,
+                    color = WarningCol,
+                )
+            }
             if (state.authMessage != null) {
                 Text(state.authMessage, fontSize = 11.sp, color = SuccessCol)
+            }
+            if (state.error != null) {
+                Text(state.error, fontSize = 11.sp, color = DangerCol)
             }
             QUICK_PROVIDERS.forEach { provider ->
                 var key by remember(provider.id) { mutableStateOf("") }
@@ -1102,7 +1114,7 @@ private fun SettingsSheet(
                         )
                         TextButton(
                             onClick = { scope.launch { chat.saveApiKey(provider.id, key) } },
-                            enabled = key.isNotBlank(),
+                            enabled = key.isNotBlank() && isConnected,
                         ) {
                             Text("Save", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
