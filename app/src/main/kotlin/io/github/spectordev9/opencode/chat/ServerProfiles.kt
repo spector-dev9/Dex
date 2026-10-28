@@ -20,7 +20,13 @@ data class ServerProfile(
     val url: String,
     val hasToken: Boolean = false,
     val active: Boolean = false,
-)
+    /** Server-side project directory; never resolved against the device filesystem (F73). */
+    val directory: String = DEFAULT_REMOTE_DIRECTORY,
+) {
+    companion object {
+        const val DEFAULT_REMOTE_DIRECTORY = "."
+    }
+}
 
 /**
  * Persists named server endpoints (F72). Ordinary configuration (name, URL)
@@ -31,7 +37,12 @@ interface ServerProfileStore {
     val profiles: StateFlow<List<ServerProfile>>
 
     /** Validates and saves (or updates) a profile; the token is optional. */
-    suspend fun add(name: String, url: String, token: String?): ApiResult<ServerProfile>
+    suspend fun add(
+        name: String,
+        url: String,
+        token: String?,
+        directory: String = ServerProfile.DEFAULT_REMOTE_DIRECTORY,
+    ): ApiResult<ServerProfile>
 
     /** Marks exactly one profile active; every other profile becomes inactive. */
     suspend fun select(name: String): ApiResult<Unit>
@@ -83,7 +94,12 @@ class SharedPrefsServerProfileStore(context: Context) : ServerProfileStore {
         editor.apply()
     }
 
-    override suspend fun add(name: String, url: String, token: String?): ApiResult<ServerProfile> {
+    override suspend fun add(
+        name: String,
+        url: String,
+        token: String?,
+        directory: String,
+    ): ApiResult<ServerProfile> {
         val cleanName = validateProfileName(name)
             ?: return ApiResult.Failure(ApiError(ErrorCode.E_PATH_DENIED, "Profile name is empty or too long"))
         val cleanUrl = validateProfileEndpoint(url)
@@ -93,12 +109,24 @@ class SharedPrefsServerProfileStore(context: Context) : ServerProfileStore {
                     "URL must use HTTPS for remote hosts or HTTP only for loopback",
                 ),
             )
+        val cleanDirectory = validateRemoteDirectory(directory)
+            ?: return ApiResult.Failure(
+                ApiError(ErrorCode.E_PATH_DENIED, "Remote directory contains invalid characters"),
+            )
         if (!prefs.contains(key(cleanName)) && _profiles.value.size >= MAX_PROFILES) {
             return ApiResult.Failure(ApiError(ErrorCode.E_TOO_LARGE, "Too many profiles (max $MAX_PROFILES)"))
         }
         val updated = _profiles.value
             .filterNot { it.name == cleanName }
-            .plus(ServerProfile(name = cleanName, url = cleanUrl, hasToken = !token.isNullOrBlank(), active = false))
+            .plus(
+                ServerProfile(
+                    name = cleanName,
+                    url = cleanUrl,
+                    hasToken = !token.isNullOrBlank(),
+                    active = false,
+                    directory = cleanDirectory,
+                ),
+            )
             .sortedBy { it.name.lowercase(Locale.US) }
         persist(updated)
         val editor = tokenPrefs.edit()
@@ -155,6 +183,7 @@ class SharedPrefsServerProfileStore(context: Context) : ServerProfileStore {
         const val KEY_LIST = "list"
         const val MAX_PROFILES = 24
         const val MAX_NAME_LENGTH = 64
+        const val MAX_REMOTE_DIRECTORY_LENGTH = 512
 
         /** Trims and validates a profile name; null when invalid. */
         fun validateProfileName(raw: String?): String? {
@@ -174,6 +203,14 @@ class SharedPrefsServerProfileStore(context: Context) : ServerProfileStore {
                 return null
             }
             return normalized
+        }
+
+        /** Validates a remote server directory without treating it as a local path (F10/F73). */
+        fun validateRemoteDirectory(raw: String?): String? {
+            val directory = raw?.trim()?.takeIf { it.isNotEmpty() } ?: ServerProfile.DEFAULT_REMOTE_DIRECTORY
+            if (directory.length > MAX_REMOTE_DIRECTORY_LENGTH) return null
+            if (directory.any { it == '\u0000' || it.isISOControl() }) return null
+            return directory
         }
 
         /** True for host names and literals that never leave the device. */

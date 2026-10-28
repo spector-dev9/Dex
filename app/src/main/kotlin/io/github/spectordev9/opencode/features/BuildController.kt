@@ -76,6 +76,9 @@ class BuildController(
     val presets: List<BuildPreset> = listOf(
         BuildPreset("unit", "Run unit tests", "./gradlew test --offline", requiresAndroidSdk = true),
         BuildPreset("assemble", "Assemble debug APK", "./gradlew :app:assembleDebug --offline", requiresAndroidSdk = true),
+        BuildPreset("install-git", "Install Git", "apk add --no-cache git"),
+        BuildPreset("install-node", "Install Node.js", "apk add --no-cache nodejs npm"),
+        BuildPreset("install-python", "Install Python", "apk add --no-cache python3 py3-pip"),
         BuildPreset("npm-test", "npm test", "npm test --silent"),
         BuildPreset("npm-build", "npm run build", "npm run build --silent"),
         BuildPreset("custom", "Custom command", ""),
@@ -236,7 +239,7 @@ internal fun scanBuildArtifacts(root: Path): List<BuildArtifact> {
     val normalizedRoot = root.toAbsolutePath().normalize()
     return runCatching {
         Files.walk(normalizedRoot, BuildController.MAX_SCAN_DEPTH).use { stream ->
-            stream
+            val scanned = stream
                 .filter { path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) }
                 .filter { path -> !Files.isSymbolicLink(path) }
                 .filter { path -> isArtifactPath(path) }
@@ -251,9 +254,9 @@ internal fun scanBuildArtifacts(root: Path): List<BuildArtifact> {
                         }.getOrDefault(0L),
                     )
                 }
-                .sortedByDescending { it.modifiedAtEpochMillis }
-                .limit(BuildController.MAX_ARTIFACTS.toLong())
                 .collect(java.util.stream.Collectors.toList())
+            scanned.sortedByDescending { it.modifiedAtEpochMillis }
+                .take(BuildController.MAX_ARTIFACTS)
         }
     }.getOrDefault(emptyList())
 }

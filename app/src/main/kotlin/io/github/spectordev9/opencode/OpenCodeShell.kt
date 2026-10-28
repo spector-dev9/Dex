@@ -187,6 +187,8 @@ fun OpenCodeShell(
     cleaner: DeviceDataCleaner? = null,
     workspace: WorkspaceService? = null,
     advanced: AdvancedTools? = null,
+    onConnectProfile: (suspend (String) -> String)? = null,
+    onDisconnectProfile: (() -> Unit)? = null,
     runtimeStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.runtime.RuntimeState>? = null,
     serverStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.supervisor.ServerState>? = null,
     onOpenLicenses: () -> Unit,
@@ -417,6 +419,8 @@ fun OpenCodeShell(
                 cleaner = cleaner,
                 workspace = workspace,
                 isConnected = chatState?.connected == true,
+                onConnectProfile = onConnectProfile,
+                onDisconnectProfile = onDisconnectProfile,
                 onDismiss = { showSettings = false },
             )
         }
@@ -1653,6 +1657,7 @@ private fun SessionSheet(
     var renameTitle by remember { mutableStateOf("") }
     var deleteSessionID by remember { mutableStateOf<String?>(null) }
     var importMessage by remember { mutableStateOf<String?>(null) }
+    var sessionQuery by remember { mutableStateOf("") }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
@@ -1705,8 +1710,36 @@ private fun SessionSheet(
                     TextButton(onClick = onNew) { Text("＋ New session", color = palette.Accent) }
                 }
             }
+            BasicTextField(
+                value = sessionQuery,
+                onValueChange = { sessionQuery = it },
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = palette.TextCol,
+                    fontSize = 12.sp,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                decorationBox = { inner ->
+                    if (sessionQuery.isEmpty()) {
+                        Text("Search sessions", color = palette.Muted2, fontSize = 12.sp)
+                    }
+                    inner()
+                },
+            )
+            val visibleSessions = state.sessions.filter { session ->
+                sessionQuery.isBlank() ||
+                    session.title.contains(sessionQuery.trim(), ignoreCase = true) ||
+                    session.slug.contains(sessionQuery.trim(), ignoreCase = true) ||
+                    session.id.contains(sessionQuery.trim(), ignoreCase = true)
+            }
+            if (visibleSessions.isEmpty()) {
+                Text("No matching sessions.", color = palette.Muted, fontSize = 12.sp)
+            }
             LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
-                items(state.sessions, key = { it.id }) { session ->
+                items(visibleSessions, key = { it.id }) { session ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2041,6 +2074,8 @@ private fun SettingsSheet(
     cleaner: DeviceDataCleaner?,
     workspace: WorkspaceService?,
     isConnected: Boolean,
+    onConnectProfile: (suspend (String) -> String)? = null,
+    onDisconnectProfile: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
@@ -2067,7 +2102,7 @@ private fun SettingsSheet(
                 HorizontalDivider(color = palette.BorderCol)
             }
             if (profiles != null) {
-                ServerProfilesSection(profiles)
+                ServerProfilesSection(profiles, onConnectProfile, onDisconnectProfile)
                 HorizontalDivider(color = palette.BorderCol)
             }
             if (chat != null) {
@@ -2300,13 +2335,18 @@ private fun InstructionsSection(workspace: WorkspaceService) {
 
 /** Saved server endpoints (F72). */
 @Composable
-private fun ServerProfilesSection(store: ServerProfileStore) {
+private fun ServerProfilesSection(
+    store: ServerProfileStore,
+    onConnectProfile: (suspend (String) -> String)? = null,
+    onDisconnectProfile: (() -> Unit)? = null,
+) {
     val palette = LocalOpencodePalette.current
     val scope = rememberCoroutineScope()
     val profiles = store.profiles.collectAsState().value
     var name by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var token by remember { mutableStateOf("") }
+    var remoteDirectory by remember { mutableStateOf(".") }
     var message by remember { mutableStateOf<String?>(null) }
     var messageError by remember { mutableStateOf(false) }
     var pendingRemove by remember { mutableStateOf<String?>(null) }
@@ -2353,6 +2393,18 @@ private fun ServerProfilesSection(store: ServerProfileStore) {
                         fontFamily = FontFamily.Monospace,
                     )
                 }
+                if (onConnectProfile != null) {
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                message = onConnectProfile(profile.name)
+                                messageError = !message.orEmpty().startsWith("Connected")
+                            }
+                        },
+                    ) {
+                        Text("Connect", color = palette.Accent, fontSize = 12.sp)
+                    }
+                }
                 TextButton(
                     onClick = {
                         scope.launch {
@@ -2377,6 +2429,11 @@ private fun ServerProfilesSection(store: ServerProfileStore) {
                 }
             }
         }
+        if (onDisconnectProfile != null) {
+            TextButton(onClick = onDisconnectProfile) {
+                Text("Use local runtime", color = palette.Muted, fontSize = 12.sp)
+            }
+        }
         HorizontalDivider(color = palette.BorderCol)
         Text("Add profile", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = palette.TextCol)
         ProfileInputField(
@@ -2389,7 +2446,13 @@ private fun ServerProfilesSection(store: ServerProfileStore) {
             label = "URL",
             value = url,
             onValueChange = { url = it },
-            placeholder = "http://host:port",
+            placeholder = "https://host:port (http only for loopback)",
+        )
+        ProfileInputField(
+            label = "Server directory",
+            value = remoteDirectory,
+            onValueChange = { remoteDirectory = it },
+            placeholder = ".",
         )
         ProfileInputField(
             label = "Token (optional)",
@@ -2402,11 +2465,12 @@ private fun ServerProfilesSection(store: ServerProfileStore) {
             TextButton(
                 onClick = {
                     scope.launch {
-                        when (val result = store.add(name, url, token.ifBlank { null })) {
+                        when (val result = store.add(name, url, token.ifBlank { null }, remoteDirectory)) {
                             is ApiResult.Success -> {
                                 name = ""
                                 url = ""
                                 token = ""
+                                remoteDirectory = "."
                                 message = "Saved profile: ${result.value.name}"
                                 messageError = false
                             }

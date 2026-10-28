@@ -46,6 +46,15 @@ class ServerProfileValidationTest {
     }
 
     @Test
+    fun `remote directories are validated without local path resolution`() {
+        assertEquals(".", SharedPrefsServerProfileStore.validateRemoteDirectory(null))
+        assertEquals("/srv/projects/demo", SharedPrefsServerProfileStore.validateRemoteDirectory(" /srv/projects/demo "))
+        assertEquals("../server/path", SharedPrefsServerProfileStore.validateRemoteDirectory("../server/path"))
+        assertNull(SharedPrefsServerProfileStore.validateRemoteDirectory("bad\u0000path"))
+        assertNull(SharedPrefsServerProfileStore.validateRemoteDirectory("x".repeat(513)))
+    }
+
+    @Test
     fun `loopback detection handles literals and local aliases`() {
         assertEquals(true, SharedPrefsServerProfileStore.isLoopbackHost("localhost"))
         assertEquals(true, SharedPrefsServerProfileStore.isLoopbackHost("127.0.0.1"))

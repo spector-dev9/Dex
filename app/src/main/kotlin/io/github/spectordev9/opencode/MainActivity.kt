@@ -31,6 +31,8 @@ class MainActivity : ComponentActivity() {
                 cleaner = appRuntime.cleaner,
                 workspace = appRuntime.workspace,
                 advanced = appRuntime.advanced,
+                onConnectProfile = { name -> appRuntime.connectProfile(name) },
+                onDisconnectProfile = { appRuntime.disconnectProfile() },
                 runtimeStateFlow = appRuntime.runtimeState,
                 serverStateFlow = appRuntime.serverState,
                 onOpenLicenses = {

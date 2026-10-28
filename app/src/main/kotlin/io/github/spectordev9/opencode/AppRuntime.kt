@@ -152,6 +152,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     private var lastAttachedEndpoint: String? = null
     private var currentClient: io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient? = null
+    private var remoteProfileName: String? = null
 
     init {
         notifier.ensureChannel()
@@ -163,6 +164,9 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
     }
 
     private fun onServerState(state: ServerState) {
+        // An explicitly connected remote profile stays authoritative until the
+        // user switches back to the local runtime (F73).
+        if (remoteProfileName != null) return
         val endpoint = state.endpoint
         if (state.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY &&
             endpoint != null
@@ -198,15 +202,88 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         }
     }
 
-    private fun attachWorkspace(client: io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient) {
-        val directory = projects.activeDirectory()
+    private fun attachWorkspace(
+        client: io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient,
+        directoryOverride: String? = null,
+    ) {
+        val directory = directoryOverride ?: projects.activeDirectory()
         chat.attach(client, directory)
         files.attach(client, directory)
         extensions.attach(client, directory)
     }
 
+    /**
+     * Connects to a saved remote OpenCode endpoint (F30/F72-F74). The remote
+     * directory is treated as a server-side path and is never resolved on the
+     * device. Credentials are used only for the HTTP client.
+     */
+    suspend fun connectProfile(name: String): String {
+        val profile = profiles.profiles.value.firstOrNull { it.name == name }
+            ?: return "Profile not found: $name"
+        val path = runCatching { java.net.URI(profile.url).path }.getOrNull().orEmpty()
+        if (path.isNotBlank() && path != "/") {
+            return "Custom base paths are not supported; use scheme://host:port"
+        }
+        val token = profiles.tokenFor(name).orEmpty()
+        val client = io.github.spectordev9.opencode.core.opencode.client.OpenCodeHttpClient(
+            baseUrl = profile.url,
+            password = token.ifBlank { "opencode" },
+        )
+        return when (val health = client.health()) {
+            is ApiResult.Success -> {
+                remoteProfileName = name
+                currentClient = client
+                lastAttachedEndpoint = null
+                attachWorkspace(client, profile.directory.ifBlank { "." })
+                profiles.select(name)
+                diagnostics.record(
+                    DiagnosticLevel.INFO,
+                    "server",
+                    "Connected to remote profile",
+                    mapOf("profile" to name),
+                )
+                "Connected to ${profile.name} (OpenCode ${health.value.version})"
+            }
+            is ApiResult.Failure -> {
+                diagnostics.record(
+                    DiagnosticLevel.ERROR,
+                    "server",
+                    "Remote connection failed",
+                    mapOf("profile" to name, "reason" to (health.error.message ?: "unknown")),
+                )
+                "Remote connection failed: ${health.error.message}"
+            }
+        }
+    }
+
+    /** Returns to the supervised local runtime (F73). */
+    fun disconnectProfile() {
+        remoteProfileName = null
+        currentClient = null
+        chat.detach()
+        files.detach()
+        extensions.detach()
+        lastAttachedEndpoint = null
+        val state = supervisor.state.value
+        if (state.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY) {
+            onServerState(state)
+        } else {
+            ensureRunning()
+        }
+    }
+
+    fun activeRemoteProfile(): String? = remoteProfileName
+
     /** Switches the active local project folder and reattaches chat/files (F10). */
     fun selectProject(id: String): ApiResult<io.github.spectordev9.opencode.features.ProjectWorkspace> {
+        if (remoteProfileName != null) {
+            return ApiResult.Failure(
+                io.github.spectordev9.opencode.core.common.ApiError(
+                    io.github.spectordev9.opencode.core.common.ErrorCode.E_CONFLICT,
+                    "Disconnect the remote profile before switching local projects",
+                ),
+            )
+        }
         val result = projects.select(id)
         if (result is ApiResult.Success) {
             currentClient?.let(::attachWorkspace)
@@ -217,6 +294,14 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     /** Creates and selects a project folder inside the server workspace (F10). */
     fun createProject(name: String): ApiResult<io.github.spectordev9.opencode.features.ProjectWorkspace> {
+        if (remoteProfileName != null) {
+            return ApiResult.Failure(
+                io.github.spectordev9.opencode.core.common.ApiError(
+                    io.github.spectordev9.opencode.core.common.ErrorCode.E_CONFLICT,
+                    "Disconnect the remote profile before creating local projects",
+                ),
+            )
+        }
         val result = projects.create(name)
         if (result is ApiResult.Success) {
             currentClient?.let(::attachWorkspace)
@@ -227,6 +312,10 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     /** Reconciles authoritative state after the app returns to the foreground (F48). */
     fun onForeground() {
+        if (remoteProfileName != null) {
+            scope.launch { chat.reconcile() }
+            return
+        }
         if (supervisor.state.value.status ==
             io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY
         ) {
