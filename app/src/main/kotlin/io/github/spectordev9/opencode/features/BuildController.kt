@@ -81,7 +81,7 @@ class BuildController(
             "Gradle debug build",
             "if [ -x ./gradlew ]; then ./gradlew :app:assembleDebug; " +
                 "else echo 'No Gradle wrapper in this project' >&2; exit 127; fi",
-            isCustom = true,
+            requiresAndroidSdk = true,
         ),
         BuildPreset("install-git", "Install Git", "apk add --no-cache git"),
         BuildPreset("install-node", "Install Node.js", "apk add --no-cache nodejs npm"),
