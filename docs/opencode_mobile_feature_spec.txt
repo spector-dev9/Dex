@@ -372,7 +372,6 @@ The feature has passed its relevant tests and acceptance criteria, with evidence
 Do not mark a feature verified solely because its unit tests pass if it also requires device-level testing. Runtime and lifecycle features need relevant Android-device evidence.
 
 A frozen child process, missing executable, or unsupported PTY must be classified with a specific runtime or platform diagnosis. Do not automatically label it as an AI request failure. Also distinguish platform limitations from genuine bugs in the app itself.
-
 CURRENT IMPLEMENTATION LEDGER
 Snapshot: 2026-10-28. Status reflects the current repository implementation, not a
 claim that every acceptance criterion has passed. Device-dependent behavior must
