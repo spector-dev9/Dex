@@ -24,6 +24,9 @@ class MainActivity : ComponentActivity() {
                 files = appRuntime.files,
                 git = appRuntime.git,
                 uiPrefs = appRuntime.uiPrefs,
+                profiles = appRuntime.profiles,
+                cleaner = appRuntime.cleaner,
+                workspace = appRuntime.workspace,
                 runtimeStateFlow = appRuntime.runtimeState,
                 serverStateFlow = appRuntime.serverState,
                 onOpenLicenses = {

@@ -64,15 +64,21 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     val terminal: ProductionPtyService = ProductionPtyService(this.context)
 
+    private val sessionStore = SharedPreferencesChatSessionStore(this.context)
+
     val chat = ChatController(
         scope,
-        SharedPreferencesChatSessionStore(this.context),
+        sessionStore,
         io.github.spectordev9.opencode.chat.SharedPrefsPermissionRuleStore(this.context),
     )
     val files = FilesController(scope)
     private val workspaceDirectory = RuntimePaths.workspaceDirectory(this.context).also {
         Files.createDirectories(it)
     }
+
+    /** Local workspace service (F52 instruction editing, git conflict flows). */
+    val workspace: io.github.spectordev9.opencode.core.workspace.WorkspaceService =
+        io.github.spectordev9.opencode.core.workspace.impl.FileWorkspaceService(workspaceDirectory)
 
     /** Guest-shell git for the workspace repository (F31–F35, F36). */
     val git = io.github.spectordev9.opencode.chat.GitController(
@@ -81,13 +87,17 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
             io.github.spectordev9.opencode.git.GuestGitRunner(this.context),
         ),
         repositoryPath = io.github.spectordev9.opencode.git.GuestGitRunner.GUEST_WORKSPACE,
-        workspace = io.github.spectordev9.opencode.core.workspace.impl.FileWorkspaceService(
-            workspaceDirectory,
-        ),
+        workspace = workspace,
     )
 
     /** User-interface preferences (theme mode, font sizes) persisted on-device. */
     val uiPrefs = io.github.spectordev9.opencode.ui.UiPrefs(this.context)
+
+    /** Saved server endpoints (F72); tokens stay in a separate preference file. */
+    val profiles = io.github.spectordev9.opencode.chat.SharedPrefsServerProfileStore(this.context)
+
+    /** Individual data-cleanup actions (F78). */
+    val cleaner = io.github.spectordev9.opencode.chat.DeviceDataCleaner(this.context, sessionStore, profiles)
 
     private var lastAttachedEndpoint: String? = null
 

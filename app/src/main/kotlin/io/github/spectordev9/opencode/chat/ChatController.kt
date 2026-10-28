@@ -52,6 +52,9 @@ interface ChatSessionStore {
     fun activeSessionId(directory: String): String?
 
     fun setActiveSessionId(directory: String, sessionID: String?)
+
+    /** Clears every cached entry; returns the number removed (F78). */
+    fun clearAll(): Int = 0
 }
 
 /**

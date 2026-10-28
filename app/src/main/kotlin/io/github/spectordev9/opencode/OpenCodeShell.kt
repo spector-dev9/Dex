@@ -117,6 +117,7 @@ import io.github.spectordev9.opencode.chat.ChatUiState
 import io.github.spectordev9.opencode.chat.ConflictKeep
 import io.github.spectordev9.opencode.chat.DiffLineKind
 import io.github.spectordev9.opencode.chat.DestructiveCommandDetector
+import io.github.spectordev9.opencode.chat.DeviceDataCleaner
 import io.github.spectordev9.opencode.chat.FilesController
 import io.github.spectordev9.opencode.chat.GitController
 import io.github.spectordev9.opencode.chat.GitUiState
@@ -124,10 +125,15 @@ import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENT_BYTES
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES
 import io.github.spectordev9.opencode.chat.PromptAttachment
+import io.github.spectordev9.opencode.chat.ServerProfileStore
 import io.github.spectordev9.opencode.chat.flattenFileTree
 import io.github.spectordev9.opencode.chat.messageUsageSummary
 import io.github.spectordev9.opencode.chat.classifyDiffLine
+import io.github.spectordev9.opencode.core.common.ApiError
 import io.github.spectordev9.opencode.core.common.ApiResult
+import io.github.spectordev9.opencode.core.common.ErrorCode
+import io.github.spectordev9.opencode.core.workspace.Precondition
+import io.github.spectordev9.opencode.core.workspace.WorkspaceService
 import io.github.spectordev9.opencode.core.model.FileEntryType
 import io.github.spectordev9.opencode.core.model.Message
 import io.github.spectordev9.opencode.core.model.Part
@@ -173,6 +179,9 @@ fun OpenCodeShell(
     files: FilesController? = null,
     git: GitController? = null,
     uiPrefs: UiPrefs? = null,
+    profiles: ServerProfileStore? = null,
+    cleaner: DeviceDataCleaner? = null,
+    workspace: WorkspaceService? = null,
     runtimeStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.runtime.RuntimeState>? = null,
     serverStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.supervisor.ServerState>? = null,
     onOpenLicenses: () -> Unit,
@@ -385,6 +394,9 @@ fun OpenCodeShell(
                 chat = chat,
                 state = chatState ?: ChatUiState(),
                 uiPrefs = uiPrefs,
+                profiles = profiles,
+                cleaner = cleaner,
+                workspace = workspace,
                 isConnected = chatState?.connected == true,
                 onDismiss = { showSettings = false },
             )
@@ -1916,6 +1928,9 @@ private fun SettingsSheet(
     chat: ChatController?,
     state: ChatUiState,
     uiPrefs: UiPrefs?,
+    profiles: ServerProfileStore?,
+    cleaner: DeviceDataCleaner?,
+    workspace: WorkspaceService?,
     isConnected: Boolean,
     onDismiss: () -> Unit,
 ) {
@@ -1938,8 +1953,20 @@ private fun SettingsSheet(
                 AppearanceSection(uiPrefs)
                 HorizontalDivider(color = palette.BorderCol)
             }
+            if (workspace != null) {
+                InstructionsSection(workspace)
+                HorizontalDivider(color = palette.BorderCol)
+            }
+            if (profiles != null) {
+                ServerProfilesSection(profiles)
+                HorizontalDivider(color = palette.BorderCol)
+            }
             if (chat != null) {
                 PermissionRulesSection(chat)
+                HorizontalDivider(color = palette.BorderCol)
+            }
+            if (cleaner != null) {
+                DataCleanupSection(cleaner)
                 HorizontalDivider(color = palette.BorderCol)
             }
             TextButton(
@@ -2017,17 +2044,467 @@ private fun SettingsSheet(
                                 }
                             },
                         )
-                        TextButton(
-                            onClick = { scope.launch { chat?.saveApiKey(provider.id, key) } },
-                            enabled = key.isNotBlank() && isConnected && chat != null,
-                        ) {
-                            Text("Save", color = palette.Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
+                         TextButton(
+                             onClick = { scope.launch { chat?.saveApiKey(provider.id, key) } },
+                             enabled = key.isNotBlank() && isConnected && chat != null,
+                         ) {
+                             Text("Save", color = palette.Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                         }
+                     }
+                 }
+                 HorizontalDivider(color = palette.BorderCol)
+             }
+         }
+     }
+ }
+
+private const val INSTRUCTIONS_PATH = "AGENTS.md"
+private const val INSTRUCTIONS_MAX_BYTES = 1 shl 20
+private const val WORKSPACE_READ_CHUNK_BYTES = 64 * 1024
+
+/** Reads a workspace text file in chunks; null value means the file does not exist. */
+private suspend fun readWorkspaceText(service: WorkspaceService, path: String): ApiResult<String?> {
+    val output = java.io.ByteArrayOutputStream()
+    var offset = 0L
+    while (output.size() <= INSTRUCTIONS_MAX_BYTES) {
+        when (val chunk = service.readRange(path, offset, WORKSPACE_READ_CHUNK_BYTES)) {
+            is ApiResult.Success -> {
+                output.write(chunk.value.bytes)
+                offset += chunk.value.bytes.size
+                if (chunk.value.endOfFile) {
+                    return ApiResult.Success(output.toString(Charsets.UTF_8))
                 }
-                HorizontalDivider(color = palette.BorderCol)
+                if (chunk.value.bytes.isEmpty()) {
+                    return ApiResult.Success(output.toString(Charsets.UTF_8))
+                }
+            }
+
+            is ApiResult.Failure -> {
+                return if (offset == 0L && chunk.error.code == ErrorCode.E_PATH_DENIED) {
+                    ApiResult.Success(null) // no instructions file yet (F52)
+                } else {
+                    ApiResult.Failure(chunk.error)
+                }
             }
         }
+    }
+    return ApiResult.Failure(ApiError(ErrorCode.E_TOO_LARGE, "File exceeds $INSTRUCTIONS_MAX_BYTES bytes"))
+}
+
+/** Project instruction editing (F52): AGENTS.md inside the workspace. */
+@Composable
+private fun InstructionsSection(workspace: WorkspaceService) {
+    val palette = LocalOpencodePalette.current
+    val scope = rememberCoroutineScope()
+    var text by remember { mutableStateOf("") }
+    var loaded by remember { mutableStateOf(false) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var missing by remember { mutableStateOf(false) }
+    var reloadKey by remember { mutableIntStateOf(0) }
+    var message by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(reloadKey) {
+        loaded = false
+        missing = false
+        loadError = null
+        message = null
+        when (val result = readWorkspaceText(workspace, INSTRUCTIONS_PATH)) {
+            is ApiResult.Success -> {
+                text = result.value ?: ""
+                missing = result.value == null
+                loaded = true
+            }
+
+            is ApiResult.Failure -> {
+                loadError = result.error.message ?: result.error.code.name
+                loaded = true
+            }
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Custom instructions", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+        Text(
+            "Edits $INSTRUCTIONS_PATH in the workspace (F52). Existing content is loaded " +
+                "unchanged; it is only replaced when you tap Save.",
+            fontSize = 11.sp,
+            color = palette.Muted,
+        )
+        if (!loaded) {
+            Text("Loading…", fontSize = 12.sp, color = palette.Muted2)
+        } else {
+            if (missing) {
+                Text("No $INSTRUCTIONS_PATH yet — saving creates it.", fontSize = 12.sp, color = palette.Muted2)
+            }
+            loadError?.let {
+                Text("Load failed: $it", fontSize = 11.sp, color = palette.DangerCol)
+            }
+            BasicTextField(
+                value = text,
+                onValueChange = { next -> text = next },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 160.dp)
+                    .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                    .padding(8.dp),
+                textStyle = TextStyle(
+                    color = palette.TextCol,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 12.sp,
+                ),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            val result = workspace.write(
+                                INSTRUCTIONS_PATH,
+                                text.toByteArray(Charsets.UTF_8),
+                                Precondition.None,
+                            )
+                            message = when (result) {
+                                is ApiResult.Success ->
+                                    "Saved $INSTRUCTIONS_PATH (${result.value.sizeBytes} bytes)."
+
+                                is ApiResult.Failure ->
+                                    "Save failed: ${result.error.message ?: result.error.code.name}"
+                            }
+                        }
+                    },
+                ) {
+                    Text("Save", color = palette.Accent, fontWeight = FontWeight.SemiBold)
+                }
+                TextButton(onClick = { reloadKey++ }) {
+                    Text("Reload", color = palette.Muted)
+                }
+            }
+            message?.let {
+                Text(
+                    it,
+                    fontSize = 11.sp,
+                    color = if (it.startsWith("Saved")) palette.SuccessCol else palette.DangerCol,
+                )
+            }
+        }
+    }
+}
+
+/** Saved server endpoints (F72). */
+@Composable
+private fun ServerProfilesSection(store: ServerProfileStore) {
+    val palette = LocalOpencodePalette.current
+    val scope = rememberCoroutineScope()
+    val profiles = store.profiles.collectAsState().value
+    var name by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var token by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
+    var messageError by remember { mutableStateOf(false) }
+    var pendingRemove by remember { mutableStateOf<String?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Server profiles", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+        Text(
+            "Named OpenCode endpoints (F72). Tokens are stored in a separate preferences " +
+                "file from ordinary configuration and are never displayed after saving.",
+            fontSize = 11.sp,
+            color = palette.Muted,
+        )
+        if (profiles.isEmpty()) {
+            Text("No profiles saved yet.", fontSize = 12.sp, color = palette.Muted2)
+        }
+        profiles.forEach { profile ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            profile.name,
+                            fontSize = 12.sp,
+                            color = palette.TextCol,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                        if (profile.active) {
+                            ChipBadge("ACTIVE", palette.SuccessCol)
+                        }
+                        if (profile.hasToken) {
+                            ChipBadge("TOKEN", palette.Accent)
+                        }
+                    }
+                    Text(
+                        profile.url,
+                        fontSize = 10.sp,
+                        color = palette.Muted2,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            when (val result = store.select(profile.name)) {
+                                is ApiResult.Success -> {
+                                    message = "Active profile: ${profile.name}"
+                                    messageError = false
+                                }
+
+                                is ApiResult.Failure -> {
+                                    message = result.error.message ?: "Select failed"
+                                    messageError = true
+                                }
+                            }
+                        }
+                    },
+                ) {
+                    Text("Select", color = palette.Accent, fontSize = 12.sp)
+                }
+                TextButton(onClick = { pendingRemove = profile.name }) {
+                    Text("Delete", color = palette.DangerCol, fontSize = 12.sp)
+                }
+            }
+        }
+        HorizontalDivider(color = palette.BorderCol)
+        Text("Add profile", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = palette.TextCol)
+        ProfileInputField(
+            label = "Friendly name",
+            value = name,
+            onValueChange = { name = it },
+            placeholder = "e.g. Homelab",
+        )
+        ProfileInputField(
+            label = "URL",
+            value = url,
+            onValueChange = { url = it },
+            placeholder = "http://host:port",
+        )
+        ProfileInputField(
+            label = "Token (optional)",
+            value = token,
+            onValueChange = { token = it },
+            placeholder = "Access token",
+            password = true,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        when (val result = store.add(name, url, token.ifBlank { null })) {
+                            is ApiResult.Success -> {
+                                name = ""
+                                url = ""
+                                token = ""
+                                message = "Saved profile: ${result.value.name}"
+                                messageError = false
+                            }
+
+                            is ApiResult.Failure -> {
+                                message = result.error.message ?: "Save failed"
+                                messageError = true
+                            }
+                        }
+                    }
+                },
+                enabled = name.isNotBlank() && url.isNotBlank(),
+            ) {
+                Text("Save profile", color = palette.Accent, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        message?.let {
+            Text(
+                it,
+                fontSize = 11.sp,
+                color = if (messageError) palette.DangerCol else palette.SuccessCol,
+            )
+        }
+        Text(
+            "Profiles are saved for future remote connections; the app currently " +
+                "supervises its on-device server automatically.",
+            fontSize = 10.sp,
+            color = palette.Muted2,
+        )
+    }
+    pendingRemove?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingRemove = null },
+            title = {
+                Text("Delete profile?", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.TextCol)
+            },
+            text = {
+                Text(
+                    "\"$target\" and its stored token will be removed from this device.",
+                    fontSize = 12.sp,
+                    color = palette.Muted,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val chosen = target
+                        pendingRemove = null
+                        scope.launch {
+                            when (val result = store.remove(chosen)) {
+                                is ApiResult.Success -> {
+                                    message = "Deleted profile: $chosen"
+                                    messageError = false
+                                }
+
+                                is ApiResult.Failure -> {
+                                    message = result.error.message ?: "Delete failed"
+                                    messageError = true
+                                }
+                            }
+                        }
+                    },
+                ) {
+                    Text("Delete", color = palette.DangerCol)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemove = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+            containerColor = palette.Panel2,
+        )
+    }
+}
+
+private enum class CleanupTarget(val title: String, val detail: String) {
+    MESSAGES(
+        "Clear cached messages?",
+        "Removes on-device cached session pointers. Server-side history is untouched.",
+    ),
+    TEMP(
+        "Clear temporary files?",
+        "Deletes everything under the app cache directory.",
+    ),
+    SERVER_PROFILES(
+        "Clear server profiles?",
+        "Removes every saved server profile and its stored token from this device.",
+    ),
+    CREDENTIALS(
+        "Clear stored credentials?",
+        "Removes stored profile tokens only. Saved profiles stay.",
+    ),
+}
+
+/** Individual data-cleanup actions (F78), each confirmed before running. */
+@Composable
+private fun DataCleanupSection(cleaner: DeviceDataCleaner) {
+    val palette = LocalOpencodePalette.current
+    val scope = rememberCoroutineScope()
+    var result by remember { mutableStateOf<String?>(null) }
+    var pendingAction by remember { mutableStateOf<CleanupTarget?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Data cleanup", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+        Text(
+            "Clears data stored on this device only. Server-side history is untouched (F78).",
+            fontSize = 11.sp,
+            color = palette.Muted,
+        )
+        CleanupTarget.entries.forEach { target ->
+            TextButton(onClick = { pendingAction = target }) {
+                Text(target.title.removeSuffix("?"), color = palette.TextCol, fontSize = 12.sp)
+            }
+        }
+        result?.let {
+            Text(it, fontSize = 11.sp, color = palette.Muted2)
+        }
+    }
+    pendingAction?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingAction = null },
+            title = {
+                Text(target.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.TextCol)
+            },
+            text = {
+                Text(target.detail, fontSize = 12.sp, color = palette.Muted)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val chosen = target
+                        pendingAction = null
+                        scope.launch {
+                            result = when (chosen) {
+                                CleanupTarget.MESSAGES ->
+                                    "Removed ${cleaner.clearCachedMessages()} cached session entries."
+
+                                CleanupTarget.TEMP ->
+                                    "Freed ${formatBytes(cleaner.clearTemporaryFiles())} of temporary files."
+
+                                CleanupTarget.SERVER_PROFILES ->
+                                    "Removed ${cleaner.clearServerProfiles()} server profiles."
+
+                                CleanupTarget.CREDENTIALS ->
+                                    "Removed ${cleaner.clearStoredCredentials()} stored tokens."
+                            }
+                        }
+                    },
+                ) {
+                    Text("Clear", color = palette.DangerCol)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingAction = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+            containerColor = palette.Panel2,
+        )
+    }
+}
+
+private fun formatBytes(bytes: Long): String = when {
+    bytes >= 1 shl 20 -> "%.1f MB".format(bytes.toDouble() / (1 shl 20))
+    bytes >= 1 shl 10 -> "%.1f KB".format(bytes.toDouble() / (1 shl 10))
+    else -> "$bytes B"
+}
+
+@Composable
+private fun ProfileInputField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    password: Boolean = false,
+) {
+    val palette = LocalOpencodePalette.current
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(label, fontSize = 10.sp, color = palette.Muted2)
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                .padding(horizontal = 10.dp, vertical = 9.dp),
+            singleLine = true,
+            textStyle = TextStyle(
+                color = palette.TextCol,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+            ),
+            keyboardOptions = if (password) {
+                KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
+            } else {
+                KeyboardOptions(imeAction = ImeAction.Next)
+            },
+            decorationBox = { innerTextField ->
+                Box {
+                    if (value.isEmpty()) {
+                        Text(placeholder, color = palette.Muted2, fontSize = 12.sp)
+                    }
+                    innerTextField()
+                }
+            },
+        )
     }
 }
 

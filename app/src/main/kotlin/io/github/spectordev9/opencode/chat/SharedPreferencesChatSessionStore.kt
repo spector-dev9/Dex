@@ -23,6 +23,12 @@ class SharedPreferencesChatSessionStore(context: Context) : ChatSessionStore {
         editor.apply()
     }
 
+    override fun clearAll(): Int {
+        val count = preferences.all.size
+        preferences.edit().clear().apply()
+        return count
+    }
+
     private fun preferenceKey(directory: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(directory.toByteArray(StandardCharsets.UTF_8))
