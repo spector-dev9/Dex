@@ -133,9 +133,9 @@ class MockLlmServer : AutoCloseable {
         writeHeaders(output, "text/event-stream")
         chunks.forEachIndexed { index, chunk ->
             if (index > 0) runCatching { Thread.sleep(CHUNK_DELAY_MS) }
-            output.write(sseChunk(created, chunk))
+            output.write(sseChunk(created, chunk).toByteArray(Charsets.UTF_8))
         }
-        output.write(sseStop(created))
+        output.write(sseStop(created).toByteArray(Charsets.UTF_8))
         output.write("data: [DONE]\n\n".toByteArray(Charsets.UTF_8))
         output.flush()
     }

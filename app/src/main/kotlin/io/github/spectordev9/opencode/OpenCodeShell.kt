@@ -178,7 +178,9 @@ fun OpenCodeShell(
             containerColor = DarkBg,
             topBar = {
                 TopAppBar(
-                    containerColor = TopbarBg,
+                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                        containerColor = TopbarBg,
+                    ),
                     title = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
