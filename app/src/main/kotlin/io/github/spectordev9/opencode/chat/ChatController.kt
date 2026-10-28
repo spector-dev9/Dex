@@ -32,6 +32,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
@@ -668,16 +669,23 @@ class ChatController(
             event.type == "session.idle" -> {
                 if (payload.string("sessionID") == activeSession) {
                     _state.update { it.copy(sending = false) }
+                    reloadChannel.trySend(Unit)
                 }
             }
             event.type == "session.error" -> {
                 if (payload.string("sessionID") == activeSession) {
-                    _state.update { it.copy(sending = false) }
+                    _state.update {
+                        it.copy(
+                            sending = false,
+                            error = describeSessionError(payload["error"] as? JsonObject),
+                        )
+                    }
+                    reloadChannel.trySend(Unit)
                 }
             }
             event.type.startsWith("message.") -> {
                 val affected = payload.string("sessionID")
-                    ?: (payload["info"] as? JsonObject)?.string("id")
+                    ?: (payload["info"] as? JsonObject)?.string("sessionID")
                     ?: (payload["part"] as? JsonObject)?.string("sessionID")
                 if (affected != null && affected == activeSession) {
                     reloadChannel.trySend(Unit)
@@ -699,6 +707,19 @@ class ChatController(
                     }
                 }
             }
+        }
+    }
+
+    private fun describeSessionError(error: JsonObject?): String {
+        if (error == null) return "The assistant run failed"
+        val name = error.string("name") ?: "OpenCode error"
+        val data = error["data"] as? JsonObject
+        val message = data?.string("message")
+        val statusCode = (data?.get("statusCode") as? JsonPrimitive)?.intOrNull
+        return buildString {
+            append(name)
+            if (!message.isNullOrBlank()) append(": ").append(message)
+            if (statusCode != null) append(" (HTTP ").append(statusCode).append(')')
         }
     }
 
