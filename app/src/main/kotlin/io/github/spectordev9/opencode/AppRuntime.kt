@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.spectordev9.opencode.chat.ChatController
 import io.github.spectordev9.opencode.chat.FilesController
 import io.github.spectordev9.opencode.core.common.ApiResult
+import io.github.spectordev9.opencode.server.MockLlmServer
 import io.github.spectordev9.opencode.core.runtime.RuntimeState
 import io.github.spectordev9.opencode.core.supervisor.ServerState
 import io.github.spectordev9.opencode.core.supervisor.impl.ProcessServerSupervisor
@@ -44,12 +45,16 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         processLauncher = processLauncher,
     )
 
+    /** On-device OpenAI-compatible stand-in; the default config model routes here. */
+    private val mockLlm = MockLlmServer()
+
     private val secrets = LoopbackSecrets(AndroidKeystoreSecretStore(this.context))
 
     private val serverLauncher = ProductionServerLauncher(
         context = this.context,
         processLauncher = processLauncher,
         secrets = secrets,
+        mockPort = mockLlm.port,
     )
 
     val supervisor = ProcessServerSupervisor(scope, serverLauncher)
@@ -62,6 +67,8 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
     private var lastAttachedEndpoint: String? = null
 
     init {
+        // The mock provider must be listening before the server's first prompt.
+        mockLlm.start()
         scope.launch {
             supervisor.state.collect { state -> onServerState(state) }
         }

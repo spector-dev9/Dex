@@ -1,5 +1,10 @@
 package io.github.spectordev9.opencode
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,9 +20,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,9 +36,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -45,7 +52,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -56,6 +62,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -73,14 +80,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.spectordev9.opencode.chat.ChatController
 import io.github.spectordev9.opencode.chat.ChatUiState
 import io.github.spectordev9.opencode.chat.FilesController
-import io.github.spectordev9.opencode.chat.FilesUiState
 import io.github.spectordev9.opencode.core.common.ApiResult
-import io.github.spectordev9.opencode.core.model.FileEntry
 import io.github.spectordev9.opencode.core.model.FileEntryType
 import io.github.spectordev9.opencode.core.model.Message
 import io.github.spectordev9.opencode.core.model.Part
@@ -95,18 +101,39 @@ import io.github.spectordev9.opencode.core.terminal.PtySpec
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-private val Ink = Color(0xFF202A27)
-private val Paper = Color(0xFFF3F1E9)
-private val Moss = Color(0xFF23745E)
-private val Citrus = Color(0xFFE7B64A)
-private val Clay = Color(0xFFB95F43)
-private val TerminalBlack = Color(0xFF111916)
-private val TerminalGreen = Color(0xFFB8E6C5)
+/* Design tokens mirroring the reference mobile client (`Test` App.css). */
+private val DarkBg = Color(0xFF10111B)
+private val Panel = Color(0xFF191A29)
+private val Panel2 = Color(0xFF1E1F30)
+private val Panel3 = Color(0xFF24253A)
+private val BorderCol = Color(0xFF2B2C42)
+private val BorderStrong = Color(0xFF3D3E5A)
+private val TextCol = Color(0xFFF7F6FF)
+private val Muted = Color(0xFFA7A5BC)
+private val Muted2 = Color(0xFF8E8CA6)
+private val Accent = Color(0xFF8B72F8)
+private val AccentStrong = Color(0xFF7B60EF)
+private val AccentSoft = Color(0xFF248B72F8)
+private val Highlight = Color(0xFFC084FC)
+private val SuccessCol = Color(0xFF68D6A4)
+private val WarningCol = Color(0xFFE6B86B)
+private val DangerCol = Color(0xFFF08B9D)
+private val UserBubbleBg = Color(0xFF2A2456)
+private val UserBubbleBorder = Color(0xFF4D8274EA)
+private val ToolChipBg = Color(0xFF19191E)
+private val ToolChipBorder = Color(0xFF303038)
+private val CodeBg = Color(0xFF14151F)
+private val CodeBorder = Color(0xFF32334E)
+private val CodeText = Color(0xFFD8D6EA)
+private val InlineCodeText = Color(0xFFE6C07B)
+private val TopbarBg = Color(0xFF151518)
+private val TerminalBlack = Color(0xFF0B0E14)
+private val TerminalGreen = Color(0xFF68D6A4)
 
 private enum class AppTab(val label: String, val glyph: String) {
-    Chat("Chat", "01"),
-    Files("Files", "02"),
-    Terminal("Terminal", "03"),
+    Chat("Chat", "◈"),
+    Files("Files", "◫"),
+    Terminal("Terminal", "⌨"),
 }
 
 private data class VerificationTest(
@@ -127,51 +154,96 @@ fun OpenCodeShell(
 ) {
     val runtimeState = runtimeStateFlow?.collectAsState()?.value
     val serverState = serverStateFlow?.collectAsState()?.value
+    val chatState = chat?.state?.collectAsState()?.value
     var selectedTab by remember { mutableStateOf(AppTab.Chat) }
+    var showSettings by remember { mutableStateOf(false) }
 
     MaterialTheme(
-        colorScheme = lightColorScheme(
-            primary = Moss,
+        colorScheme = darkColorScheme(
+            primary = Accent,
             onPrimary = Color.White,
-            secondary = Clay,
+            secondary = AccentStrong,
             onSecondary = Color.White,
-            tertiary = Citrus,
-            background = Paper,
-            surface = Color(0xFFFFFEFA),
-            onSurface = Ink,
-            onBackground = Ink,
-            surfaceVariant = Color(0xFFE8E7DD),
-            onSurfaceVariant = Color(0xFF535D58),
+            tertiary = Highlight,
+            background = DarkBg,
+            surface = Panel,
+            onSurface = TextCol,
+            onBackground = TextCol,
+            surfaceVariant = Panel3,
+            onSurfaceVariant = Muted,
+            error = DangerCol,
         ),
     ) {
         Scaffold(
-            containerColor = Paper,
+            containerColor = DarkBg,
             topBar = {
                 TopAppBar(
+                    containerColor = TopbarBg,
                     title = {
-                        Column {
-                            Text("OPENCODE", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text(
-                                "MOBILE WORKSPACE",
-                                fontSize = 10.sp,
-                                letterSpacing = 1.4.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text("◈", color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Column {
+                                Text("OPENCODE", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "MOBILE WORKSPACE",
+                                    fontSize = 9.sp,
+                                    letterSpacing = 1.4.sp,
+                                    color = Muted2,
+                                )
+                            }
+                            val online = serverState?.status ==
+                                io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY
+                            Box(
+                                Modifier
+                                    .padding(start = 4.dp)
+                                    .size(7.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(
+                                        when {
+                                            online -> SuccessCol
+                                            runtimeState?.status ==
+                                                io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED
+                                                -> DangerCol
+                                            else -> WarningCol
+                                        },
+                                    ),
                             )
                         }
                     },
                     actions = {
-                        TextButton(onClick = onOpenLicenses) { Text("Licenses") }
+                        TextButton(onClick = { showSettings = true }, enabled = chatState?.connected == true) {
+                            Text("Settings", color = Muted, fontSize = 12.sp)
+                        }
+                        TextButton(onClick = onOpenLicenses) {
+                            Text("Licenses", color = Muted, fontSize = 12.sp)
+                        }
                     },
                 )
             },
             bottomBar = {
-                NavigationBar(containerColor = Color(0xFFFFFEFA)) {
+                NavigationBar(containerColor = Panel) {
                     AppTab.entries.forEach { tab ->
+                        val selected = selectedTab == tab
                         NavigationBarItem(
-                            selected = selectedTab == tab,
+                            selected = selected,
                             onClick = { selectedTab = tab },
-                            icon = { Text(tab.glyph, fontSize = 11.sp) },
-                            label = { Text(tab.label) },
+                            icon = {
+                                Text(
+                                    tab.glyph,
+                                    fontSize = 15.sp,
+                                    color = if (selected) Accent else Muted2,
+                                )
+                            },
+                            label = {
+                                Text(
+                                    tab.label,
+                                    fontSize = 10.sp,
+                                    color = if (selected) TextCol else Muted2,
+                                )
+                            },
                         )
                     }
                 }
@@ -194,6 +266,14 @@ fun OpenCodeShell(
                 )
             }
         }
+
+        if (showSettings && chat != null) {
+            SettingsSheet(
+                chat = chat,
+                state = chatState ?: ChatUiState(),
+                onDismiss = { showSettings = false },
+            )
+        }
     }
 }
 
@@ -215,28 +295,44 @@ private fun ChatHome(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = banner.container,
+            shape = RoundedCornerShape(10.dp),
+            color = Panel,
+            border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(banner.label, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(banner.detail, fontSize = 12.sp)
-                }
                 Box(
                     Modifier
-                        .padding(top = 3.dp)
-                        .sizeIn(minWidth = 8.dp, minHeight = 8.dp)
+                        .size(7.dp)
                         .clip(RoundedCornerShape(50))
                         .background(banner.dotColor),
                 )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 10.dp),
+                ) {
+                    Text(banner.label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextCol)
+                    Text(banner.detail, fontSize = 12.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (banner.version != null) {
+                    Surface(
+                        shape = RoundedCornerShape(7.dp),
+                        color = Panel3,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderStrong),
+                    ) {
+                        Text(
+                            "v${banner.version}",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            fontSize = 10.sp,
+                            color = Muted,
+                        )
+                    }
+                }
             }
         }
 
@@ -278,59 +374,84 @@ private fun ChatScreen(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Color(0xFFE6E4DA),
+                shape = RoundedCornerShape(9.dp),
+                color = Panel2,
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
                 modifier = Modifier
                     .weight(1f, fill = false)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(9.dp))
                     .clickable { showSessions = true },
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
                         activeSession?.title?.ifBlank { "Untitled session" } ?: "New session",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f, fill = false),
+                        color = TextCol,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
-                    Text("  ▾", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text("▾", color = Muted2, fontSize = 12.sp)
                 }
             }
-            TextButton(onClick = { scope.launch { chat.newSession() } }) {
-                Text("+ New", fontSize = 13.sp)
-            }
-        }
-
-        if (state.sending) {
-            LinearProgressIndicator(
+            Spacer(Modifier.weight(1f))
+            Surface(
+                shape = RoundedCornerShape(9.dp),
+                color = Panel2,
+                border = androidx.compose.foundation.BorderStroke(1.dp, AccentStrong.copy(alpha = 0.45f)),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.dp),
-                color = Moss,
-                trackColor = Color(0xFFE6E4DA),
-            )
+                    .clip(RoundedCornerShape(9.dp))
+                    .clickable { showModelPicker = true },
+            ) {
+                val model = state.selectedModel ?: state.defaultModel
+                Text(
+                    model?.let { "${it.providerID}/${it.modelID}" } ?: "Model",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    fontSize = 11.sp,
+                    color = Muted,
+                    maxLines = 1,
+                )
+            }
+            TextButton(
+                onClick = { scope.launch { chat.newSession() } },
+                enabled = !state.sending,
+            ) {
+                Text("＋", color = Accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
         if (state.error != null) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0xFFF6E7E4),
+                color = Color(0x12DF7B7B),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x52DF7B7B)),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    state.error,
+                Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    fontSize = 12.sp,
-                    color = Color(0xFFB3261E),
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        state.error,
+                        modifier = Modifier.weight(1f),
+                        fontSize = 12.sp,
+                        color = Color(0xFFE8B7B7),
+                    )
+                    TextButton(
+                        onClick = { scope.launch { chat.selectSession(state.activeSessionId ?: return@launch) } },
+                        enabled = state.activeSessionId != null,
+                    ) {
+                        Text("Retry", color = Accent, fontSize = 12.sp)
+                    }
+                }
             }
         }
 
@@ -339,23 +460,52 @@ private fun ChatScreen(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             if (state.messages.isEmpty() && !state.sending) {
                 item {
-                    Text(
-                        "What should we work on?",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(AccentSoft)
+                                .border(1.dp, AccentStrong.copy(alpha = 0.4f), RoundedCornerShape(50)),
+                        ) {
+                            Text(
+                                "✳",
+                                modifier = Modifier.align(Alignment.Center),
+                                color = Accent,
+                                fontSize = 20.sp,
+                            )
+                        }
+                        Text("What should we work on?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextCol)
+                        Text(
+                            "Send the first prompt to start this session.",
+                            fontSize = 12.sp,
+                            color = Muted,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("◈ Server online", fontSize = 10.sp, color = Muted2)
+                            Text("⌁ ${modelLabel(state)}", fontSize = 10.sp, color = Muted2, maxLines = 1)
+                            Text("◫ workspace", fontSize = 10.sp, color = Muted2)
+                        }
+                    }
                 }
                 items(SUGGESTIONS) { suggestion ->
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFEAF0EE),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Panel2,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .clickable {
                                 draft = TextFieldValue()
                                 scope.launch { chat.sendOrStart(suggestion) }
@@ -363,15 +513,26 @@ private fun ChatScreen(
                     ) {
                         Text(
                             suggestion,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
                             fontSize = 13.sp,
-                            color = Moss,
+                            color = Muted,
                         )
                     }
                 }
             }
             items(state.messages, key = { it.info.id }) { message ->
                 MessageRow(message)
+            }
+            if (state.sending) {
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(9.dp),
+                    ) {
+                        TypingDots()
+                        Text("OpenCode is working…", fontSize = 11.sp, color = Muted2)
+                    }
+                }
             }
         }
 
@@ -385,87 +546,81 @@ private fun ChatScreen(
         }
 
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, Color(0xFFD0D0C5), RoundedCornerShape(10.dp)),
-            shape = RoundedCornerShape(10.dp),
-            color = Color(0xFFFFFEFA),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(15.dp),
+            color = Panel2,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF41414A)),
         ) {
-            Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.padding(horizontal = 13.dp, vertical = 10.dp)) {
+                BasicTextField(
+                    value = draft,
+                    onValueChange = { next -> draft = next },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 140.dp),
+                    enabled = true,
+                    textStyle = TextStyle(color = Color(0xFFF3F3F6), fontSize = 14.sp, lineHeight = 20.sp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
+                    decorationBox = { innerTextField ->
+                        Box(Modifier.heightIn(min = 40.dp)) {
+                            if (draft.text.isEmpty()) {
+                                Text(
+                                    "Ask OpenCode to inspect, explain, or change this project…",
+                                    color = Color(0xFF777782),
+                                    fontSize = 13.sp,
+                                )
+                            }
+                            innerTextField()
+                        }
+                    },
+                )
+                Row(
+                    modifier = Modifier.padding(top = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     listOf("build", "plan").forEach { mode ->
                         val selected = state.mode == mode
                         Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (selected) Color(0xFFE7F3EE) else Color(0xFFE6E4DA),
+                            shape = RoundedCornerShape(7.dp),
+                            color = if (selected) AccentSoft else Color.Transparent,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (selected) AccentStrong.copy(alpha = 0.5f) else BorderCol,
+                            ),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
+                                .clip(RoundedCornerShape(7.dp))
                                 .clickable { scope.launch { chat.setMode(mode) } },
                         ) {
                             Text(
                                 mode.replaceFirstChar { it.uppercase() },
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                                 fontSize = 11.sp,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (selected) Moss else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (selected) Color(0xFFD9D2FF) else Muted2,
                             )
                         }
                     }
                     Spacer(Modifier.weight(1f))
-                    val model = state.selectedModel ?: state.defaultModel
+                    val canSend = !state.sending && draft.text.isNotBlank()
                     Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFFE6E4DA),
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (canSend) Accent else Panel3,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { showModelPicker = true },
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable(enabled = canSend) {
+                                val text = draft.text.take(MAX_COMPOSER_CHARS)
+                                draft = TextFieldValue()
+                                scope.launch { chat.sendOrStart(text) }
+                            },
                     ) {
-                        Text(
-                            model?.let { "${it.providerID}/${it.modelID}" } ?: "Model",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.padding(top = 6.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                ) {
-                    BasicTextField(
-                        value = draft,
-                        onValueChange = { next -> draft = next },
-                        modifier = Modifier.weight(1f),
-                        enabled = true,
-                        textStyle = TextStyle(color = Ink, fontSize = 14.sp, lineHeight = 19.sp),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
-                        decorationBox = { innerTextField ->
-                            Box {
-                                if (draft.text.isEmpty()) {
-                                    Text(
-                                        "Send a message…",
-                                        color = Color(0xFF838A84),
-                                        fontSize = 14.sp,
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        },
-                    )
-                    TextButton(
-                        onClick = {
-                            val text = draft.text.take(MAX_COMPOSER_CHARS)
-                            draft = TextFieldValue()
-                            scope.launch { chat.sendOrStart(text) }
-                        },
-                        enabled = !state.sending && draft.text.isNotBlank(),
-                    ) {
-                        Text("Send", fontWeight = FontWeight.SemiBold)
-                    }
-                    if (state.sending) {
-                        TextButton(onClick = { scope.launch { chat.abort() } }) {
-                            Text("Stop", color = Clay, fontWeight = FontWeight.SemiBold)
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                if (state.sending) "•" else "➤",
+                                color = if (canSend) Color.White else Muted2,
+                                fontSize = 15.sp,
+                            )
                         }
                     }
                 }
@@ -500,6 +655,33 @@ private fun ChatScreen(
     }
 }
 
+private fun modelLabel(state: ChatUiState): String =
+    (state.selectedModel ?: state.defaultModel)?.let { "${it.providerID}/${it.modelID}" } ?: "no model"
+
+@Composable
+private fun TypingDots() {
+    val transition = rememberInfiniteTransition(label = "typing")
+    val alpha by transition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 700),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "typing-dot",
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        repeat(3) {
+            Box(
+                Modifier
+                    .size(4.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Accent.copy(alpha = alpha)),
+            )
+        }
+    }
+}
+
 @Composable
 private fun MessageRow(message: Message) {
     val isUser = message.info.role == "user"
@@ -512,55 +694,65 @@ private fun MessageRow(message: Message) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        horizontalAlignment = if (isUser) {
-            androidx.compose.ui.Alignment.End
-        } else {
-            androidx.compose.ui.Alignment.Start
-        },
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
     ) {
-        Text(
-            text = if (isUser) "You" else (message.info.agent ?: "Assistant"),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                if (isUser) "You" else "OpenCode",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFBDBDC8),
+            )
+            if (!isUser && message.info.modelID != null) {
+                Text(message.info.modelID.orEmpty(), fontSize = 10.sp, color = Color(0xFF7E7E8A))
+            }
+        }
         if (isUser) {
             Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Moss,
+                shape = RoundedCornerShape(
+                    topStart = 14.dp, topEnd = 14.dp, bottomStart = 14.dp, bottomEnd = 4.dp,
+                ),
+                color = UserBubbleBg,
+                border = androidx.compose.foundation.BorderStroke(1.dp, UserBubbleBorder),
             ) {
                 Text(
                     text = text,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
                     fontSize = 14.sp,
-                    color = Color.White,
+                    color = Color(0xFFF1EFFF),
+                    lineHeight = 20.sp,
                 )
             }
         } else {
             if (text.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     splitCodeFences(text).forEach { segment ->
                         when (segment) {
                             is TextSegment.Plain -> Text(
                                 text = segment.text,
                                 fontSize = 14.sp,
-                                lineHeight = 19.sp,
+                                lineHeight = 22.sp,
+                                color = Color(0xFFE2E2E9),
                             )
                             is TextSegment.Code -> Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = TerminalBlack,
+                                shape = RoundedCornerShape(10.dp),
+                                color = CodeBg,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CodeBorder),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Text(
                                     text = segment.text.trimEnd(),
                                     modifier = Modifier
                                         .horizontalScroll(rememberScrollState())
-                                        .padding(10.dp),
-                                    color = TerminalGreen,
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    color = CodeText,
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 12.sp,
-                                    lineHeight = 17.sp,
+                                    lineHeight = 18.sp,
                                 )
                             }
                         }
@@ -569,11 +761,18 @@ private fun MessageRow(message: Message) {
             }
             tools.forEach { part -> ToolCard(part) }
             errors.forEach { part ->
-                Text(
-                    text = part.text.orEmpty().ifBlank { "Task failed" },
-                    fontSize = 12.sp,
-                    color = Color(0xFFB3261E),
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0x12DF7B7B),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x52DF7B7B)),
+                ) {
+                    Text(
+                        text = part.text.orEmpty().ifBlank { "Task failed" },
+                        modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
+                        fontSize = 11.sp,
+                        color = Color(0xFFE8B7B7),
+                    )
+                }
             }
         }
     }
@@ -587,17 +786,18 @@ private fun ToolCard(part: Part) {
         ?: part.tool?.replaceFirstChar { it.uppercase() }
         ?: "Tool"
     Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = Color(0xFFEAF0EE),
+        shape = RoundedCornerShape(7.dp),
+        color = ToolChipBg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, ToolChipBorder),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(7.dp))
             .clickable { expanded = !expanded },
     ) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                Text(status, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(title, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFAAAAB6))
+                Text(status, fontSize = 10.sp, color = Color(0xFF81818D))
             }
             if (expanded) {
                 val output = part.state.stringField("output")
@@ -607,7 +807,7 @@ private fun ToolCard(part: Part) {
                         modifier = Modifier
                             .padding(top = 6.dp)
                             .fillMaxWidth(),
-                        color = Ink,
+                        color = CodeText,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
                         lineHeight = 15.sp,
@@ -625,15 +825,16 @@ private fun PermissionCard(
 ) {
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = Color(0xFFF3EAD6),
+        color = Color(0x5949371A),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x66D8A85B)),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
             Text(
                 "Permission · ${permission.permission}",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF8A6D1A),
+                color = Color(0xFFF1DDB8),
             )
             val command = permission.metadata.stringField("command")
             if (!command.isNullOrBlank()) {
@@ -641,34 +842,46 @@ private fun PermissionCard(
                     command,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
-                    color = Ink,
+                    color = Color(0xFFE6C07B),
                 )
             }
             if (permission.patterns.isNotEmpty()) {
-                Text(
-                    permission.patterns.joinToString("  "),
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    permission.patterns.take(4).forEach { pattern ->
+                        Surface(
+                            shape = RoundedCornerShape(5.dp),
+                            color = Color(0x29000000),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x40D8A85B)),
+                        ) {
+                            Text(
+                                pattern,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                fontSize = 9.sp,
+                                color = Color(0xFFD8C39C),
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                TextButton(
                     onClick = { onAnswer(PermissionResponse.ONCE) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Moss),
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD9D2FF)),
                 ) {
-                    Text("Once", fontSize = 13.sp)
+                    Text("Allow once", fontSize = 11.sp)
                 }
-                Button(
+                TextButton(
                     onClick = { onAnswer(PermissionResponse.ALWAYS) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B8568)),
+                    colors = ButtonDefaults.textButtonColors(contentColor = SuccessCol),
                 ) {
-                    Text("Always", fontSize = 13.sp)
+                    Text("Always allow", fontSize = 11.sp)
                 }
-                OutlinedButton(
+                TextButton(
                     onClick = { onAnswer(PermissionResponse.REJECT) },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Clay),
+                    colors = ButtonDefaults.textButtonColors(contentColor = DangerCol),
                 ) {
-                    Text("Reject", fontSize = 13.sp)
+                    Text("Reject", fontSize = 11.sp)
                 }
             }
         }
@@ -685,34 +898,42 @@ private fun SessionSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        containerColor = Panel2,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        Column(Modifier.padding(horizontal = 18.dp, vertical = 10.dp)) {
-            Text("Sessions", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            TextButton(onClick = onNew) { Text("+ New session") }
-            LazyColumn {
+        Column(Modifier.padding(horizontal = 18.dp, vertical = 8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Sessions", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextCol)
+                TextButton(onClick = onNew) { Text("＋ New session", color = Accent) }
+            }
+            LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
                 items(state.sessions, key = { it.id }) { session ->
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { onSelect(session.id) }
-                            .padding(vertical = 9.dp),
+                            .padding(vertical = 10.dp),
                     ) {
                         Text(
                             session.title.ifBlank { session.slug },
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
+                            color = TextCol,
                             maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             formatRelativeTime(session.time.updated),
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = Muted2,
                         )
                     }
-                    HorizontalDivider(color = Color(0xFFE6E4DA))
+                    HorizontalDivider(color = BorderCol)
                 }
             }
         }
@@ -727,17 +948,20 @@ private fun ModelPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Panel2,
+        titleContentColor = TextCol,
+        textContentColor = Muted,
         title = { Text("Model", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text("Close", color = Muted) }
         },
         text = {
             Box(Modifier.sizeIn(maxHeight = 380.dp)) {
                 if (state.providers.isEmpty()) {
                     Text(
-                        "No providers configured yet.\nAuthenticate a provider or set a model in the server config.",
+                        "No providers configured yet.\nThe on-device mock handles prompts until a real provider profile is added.",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Muted,
                     )
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -747,27 +971,29 @@ private fun ModelPickerDialog(
                                     provider.name,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Moss,
+                                    color = Accent,
                                 )
                             }
                             items(provider.models, key = { "${provider.id}/${it.id}" }) { model ->
                                 val selected = state.selectedModel?.providerID == provider.id &&
                                     state.selectedModel?.modelID == model.id
                                 Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = if (selected) Color(0xFFE7F3EE) else Color(0xFFE6E4DA),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selected) AccentSoft else Panel3,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (selected) AccentStrong else BorderCol,
+                                    ),
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            onPick(PromptModel(provider.id, model.id))
-                                        },
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { onPick(PromptModel(provider.id, model.id)) },
                                 ) {
                                     Text(
                                         model.name,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
                                         fontSize = 13.sp,
-                                        color = if (selected) Moss else Ink,
+                                        color = if (selected) Color(0xFFE5E1FF) else TextCol,
                                     )
                                 }
                             }
@@ -778,6 +1004,101 @@ private fun ModelPickerDialog(
         },
     )
 }
+
+private data class QuickProvider(
+    val id: String,
+    val name: String,
+)
+
+@Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+private fun SettingsSheet(
+    chat: ChatController,
+    state: ChatUiState,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Panel2,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 18.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text("Settings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextCol)
+            Text(
+                "Provider keys are stored on the device server (PUT /auth) and picked up by real provider profiles when they ship.",
+                fontSize = 11.sp,
+                color = Muted2,
+            )
+            if (state.authMessage != null) {
+                Text(state.authMessage, fontSize = 11.sp, color = SuccessCol)
+            }
+            QUICK_PROVIDERS.forEach { provider ->
+                var key by remember(provider.id) { mutableStateOf("") }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(provider.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextCol)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BasicTextField(
+                            value = key,
+                            onValueChange = { next -> key = next },
+                            modifier = Modifier
+                                .weight(1f)
+                                .border(
+                                    1.dp,
+                                    BorderStrong,
+                                    RoundedCornerShape(8.dp),
+                                )
+                                .padding(horizontal = 10.dp, vertical = 9.dp),
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                color = Color(0xFFF3F3F6),
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                            ),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done,
+                            ),
+                            decorationBox = { innerTextField ->
+                                Box {
+                                    if (key.isEmpty()) {
+                                        Text(
+                                            "${provider.id} API key",
+                                            color = Color(0xFF777782),
+                                            fontSize = 12.sp,
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            },
+                        )
+                        TextButton(
+                            onClick = { scope.launch { chat.saveApiKey(provider.id, key) } },
+                            enabled = key.isNotBlank(),
+                        ) {
+                            Text("Save", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+                HorizontalDivider(color = BorderCol)
+            }
+        }
+    }
+}
+
+private val QUICK_PROVIDERS = listOf(
+    QuickProvider("anthropic", "Anthropic"),
+    QuickProvider("openai", "OpenAI"),
+    QuickProvider("google", "Google"),
+    QuickProvider("openrouter", "OpenRouter"),
+    QuickProvider("groq", "Groq"),
+    QuickProvider("github-copilot", "GitHub Copilot"),
+)
 
 @Composable
 private fun DiagnosticsPanel(modifier: Modifier = Modifier) {
@@ -805,11 +1126,11 @@ private fun DiagnosticsPanel(modifier: Modifier = Modifier) {
             .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Diagnostics", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text("Diagnostics", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextCol)
         Text(
             "The checklist moves out of the way while the server is online.",
             fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Muted2,
         )
         val rows = tests.chunked(2)
         rows.forEach { row ->
@@ -822,9 +1143,9 @@ private fun DiagnosticsPanel(modifier: Modifier = Modifier) {
                     OutlinedButton(
                         onClick = { selectedTest = test.id },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isSelected) Color(0xFFE7F3EE) else Color(0xFFFFFEFA),
-                            contentColor = Ink,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isSelected) AccentSoft else Panel2,
+                            contentColor = if (isSelected) Color(0xFFE5E1FF) else Muted,
                         ),
                     ) {
                         Text(test.title)
@@ -837,14 +1158,15 @@ private fun DiagnosticsPanel(modifier: Modifier = Modifier) {
         }
         val selectedSummary = tests.firstOrNull { it.id == selectedTest }?.summary ?: "Select a test to verify."
         Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = Color(0xFFEAF0EE),
+            shape = RoundedCornerShape(10.dp),
+            color = Panel2,
+            border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Selected test", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(selectedTest, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(selectedSummary, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Selected test", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Muted2)
+                Text(selectedTest, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextCol)
+                Text(selectedSummary, fontSize = 12.sp, color = Muted)
             }
         }
     }
@@ -942,11 +1264,11 @@ private fun TerminalScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column {
-                Text("TERMINAL", fontSize = 20.sp, fontWeight = FontWeight.Black)
-                Text(status, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("TERMINAL", fontSize = 20.sp, fontWeight = FontWeight.Black, color = TextCol)
+                Text(status, fontSize = 12.sp, color = Muted2)
             }
             TextButton(onClick = { focusRequester.requestFocus() }, enabled = session != null) {
-                Text("Focus input")
+                Text("Focus input", color = Accent)
             }
         }
 
@@ -954,8 +1276,9 @@ private fun TerminalScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(12.dp),
             color = TerminalBlack,
+            border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
         ) {
             Text(
                 text = if (session == null) {
@@ -986,15 +1309,15 @@ private fun TerminalScreen(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, Color(0xFFD0D0C5), RoundedCornerShape(8.dp)),
-            shape = RoundedCornerShape(8.dp),
-            color = Color(0xFFFFFEFA),
+                .border(1.dp, Color(0xFF41414A), RoundedCornerShape(12.dp)),
+            shape = RoundedCornerShape(12.dp),
+            color = Panel2,
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("$", color = Moss, fontWeight = FontWeight.Bold)
+                Text("$", color = Accent, fontWeight = FontWeight.Bold)
                 BasicTextField(
                     value = input,
                     onValueChange = { next ->
@@ -1042,7 +1365,7 @@ private fun TerminalScreen(
                     enabled = session != null,
                     singleLine = true,
                     textStyle = TextStyle(
-                        color = Ink,
+                        color = TextCol,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 14.sp,
                     ),
@@ -1056,7 +1379,7 @@ private fun TerminalScreen(
                             if (input.text.isEmpty()) {
                                 Text(
                                     if (session == null) "Terminal unavailable" else "Type a command",
-                                    color = Color(0xFF838A84),
+                                    color = Color(0xFF777782),
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 14.sp,
                                 )
@@ -1065,7 +1388,9 @@ private fun TerminalScreen(
                         }
                     },
                 )
-                TextButton(onClick = ::submitInput, enabled = session != null) { Text("Send") }
+                TextButton(onClick = ::submitInput, enabled = session != null) {
+                    Text("Send", color = Accent)
+                }
             }
         }
     }
@@ -1077,9 +1402,10 @@ private fun RowScope.KeyButton(label: String, enabled: Boolean, onClick: () -> U
         modifier = Modifier
             .weight(1f)
             .sizeIn(minHeight = 40.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(7.dp))
+            .border(1.dp, if (enabled) BorderStrong else BorderCol, RoundedCornerShape(7.dp))
             .clickable(enabled = enabled, onClick = onClick),
-        color = if (enabled) Color(0xFFE1E7E0) else Color(0xFFE7E6DF),
+        color = if (enabled) Panel3 else Panel2,
     ) {
         Box(Modifier.padding(horizontal = 4.dp, vertical = 10.dp)) {
             Text(
@@ -1087,8 +1413,8 @@ private fun RowScope.KeyButton(label: String, enabled: Boolean, onClick: () -> U
                 modifier = Modifier.fillMaxWidth(),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (enabled) Moss else Color(0xFF999C96),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color = if (enabled) Color(0xFFD9D2FF) else Muted2,
+                textAlign = TextAlign.Center,
             )
         }
     }
@@ -1113,54 +1439,56 @@ private fun FilesScreen(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("FILES", fontSize = 20.sp, fontWeight = FontWeight.Black)
+                Text("FILES", fontSize = 20.sp, fontWeight = FontWeight.Black, color = TextCol)
                 Text(
                     filesState?.let { state ->
                         if (state.currentPath.isBlank()) "workspace/" else state.currentPath
                     } ?: "workspace",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Muted2,
                     fontFamily = FontFamily.Monospace,
                     maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             TextButton(
                 onClick = { scope.launch { files?.goUp() } },
                 enabled = filesState?.let { it.connected && it.currentPath.isNotBlank() } == true,
             ) {
-                Text("Up")
+                Text("Up", color = Accent)
             }
         }
 
         if (filesState == null || !filesState.connected) {
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFFE6E4DA),
+                shape = RoundedCornerShape(10.dp),
+                color = Panel,
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     "Files are available once the supervised server is online.",
                     modifier = Modifier.padding(12.dp),
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Muted,
                 )
             }
         } else {
             if (filesState.error != null) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFF6E7E4),
+                    color = Color(0x12DF7B7B),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x52DF7B7B)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
                         filesState.error,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         fontSize = 12.sp,
-                        color = Color(0xFFB3261E),
+                        color = Color(0xFFE8B7B7),
                     )
                 }
             }
@@ -1174,36 +1502,39 @@ private fun FilesScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(2.dp),
-                            color = Moss,
+                            color = Accent,
                         )
                     }
                 }
                 items(filesState.entries, key = { it.path }) { entry ->
                     val isDirectory = entry.type == FileEntryType.DIRECTORY
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFFFFEFA),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Panel,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable { scope.launch { files?.open(entry) } },
                     ) {
                         Row(
                             modifier = Modifier
-                                .padding(horizontal = 10.dp, vertical = 9.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 if (isDirectory) "▸" else "▤",
                                 fontSize = 13.sp,
-                                color = if (isDirectory) Moss else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (isDirectory) Accent else Muted2,
                             )
                             Text(
                                 entry.name,
                                 fontSize = 13.sp,
+                                color = TextCol,
                                 fontWeight = if (isDirectory) FontWeight.SemiBold else FontWeight.Normal,
                                 maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -1231,16 +1562,19 @@ private fun FilePreviewDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Panel2,
+        titleContentColor = TextCol,
+        textContentColor = CodeText,
         title = {
             Text(
                 path.substringAfterLast('/'),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                overflow = TextOverflow.Ellipsis,
             )
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close", color = Muted) } },
         text = {
             Box(
                 Modifier
@@ -1252,7 +1586,7 @@ private fun FilePreviewDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(2.dp),
-                        color = Moss,
+                        color = Accent,
                     )
                 } else {
                     Text(
@@ -1263,7 +1597,7 @@ private fun FilePreviewDialog(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp,
                         lineHeight = 17.sp,
-                        color = Ink,
+                        color = CodeText,
                     )
                 }
             }
@@ -1336,7 +1670,7 @@ private data class RuntimeBanner(
     val label: String,
     val detail: String,
     val dotColor: Color,
-    val container: Color,
+    val version: String?,
 )
 
 private fun runtimeBanner(
@@ -1346,8 +1680,8 @@ private fun runtimeBanner(
     val offline = RuntimeBanner(
         label = "RUNTIME OFFLINE",
         detail = "Sessions and tools are unavailable",
-        dotColor = Clay,
-        container = Color(0xFFE4EEE7),
+        dotColor = DangerCol,
+        version = null,
     )
     return when {
         runtimeState == null -> offline
@@ -1357,15 +1691,15 @@ private fun runtimeBanner(
             -> RuntimeBanner(
                 label = "RUNTIME INSTALLING",
                 detail = runtimeState.reason ?: "Pinned runtime is being verified and installed",
-                dotColor = Citrus,
-                container = Color(0xFFE4EEE7),
+                dotColor = WarningCol,
+                version = null,
             )
         runtimeState.status == io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED
             -> RuntimeBanner(
                 label = "RUNTIME FAILED",
                 detail = runtimeState.reason ?: "Runtime installation or verification failed",
-                dotColor = Color(0xFFB3261E),
-                container = Color(0xFFF6E7E4),
+                dotColor = DangerCol,
+                version = null,
             )
         else -> {
             val endpoint = serverState?.endpoint
@@ -1376,10 +1710,9 @@ private fun runtimeBanner(
                         detail = buildString {
                             if (endpoint != null) append("${endpoint.host}:${endpoint.port}")
                             append(" · supervised opencode server")
-                            serverState.version?.takeIf { it.isNotBlank() }?.let { append(" · v$it") }
                         },
-                        dotColor = Moss,
-                        container = Color(0xFFE7F3EE),
+                        dotColor = SuccessCol,
+                        version = serverState.version?.takeIf { it.isNotBlank() },
                     )
                 io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.STARTING,
                 io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.BACKOFF,
@@ -1389,22 +1722,22 @@ private fun runtimeBanner(
                         label = "SERVER RECOVERING",
                         detail = serverState.reason
                             ?: "Supervised server is starting or retrying on loopback",
-                        dotColor = Citrus,
-                        container = Color(0xFFE4EEE7),
+                        dotColor = WarningCol,
+                        version = null,
                     )
                 io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.DEGRADED ->
                     RuntimeBanner(
                         label = "SERVER DEGRADED",
                         detail = serverState.reason ?: "Supervised server is degraded",
-                        dotColor = Citrus,
-                        container = Color(0xFFE4EEE7),
+                        dotColor = WarningCol,
+                        version = null,
                     )
                 else ->
                     RuntimeBanner(
                         label = "SERVER STOPPED",
                         detail = "Runtime is ready; the supervised server is not running",
-                        dotColor = Clay,
-                        container = Color(0xFFE4EEE7),
+                        dotColor = DangerCol,
+                        version = null,
                     )
             }
         }

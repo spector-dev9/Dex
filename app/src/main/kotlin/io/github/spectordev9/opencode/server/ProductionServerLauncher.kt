@@ -33,6 +33,7 @@ class ProductionServerLauncher(
     private val context: Context,
     private val processLauncher: RuntimeProcessLauncher,
     private val secrets: LoopbackSecrets,
+    private val mockPort: Int,
 ) : ServerLauncher {
 
     override suspend fun nextEndpoint(): ApiResult<ServerEndpoint> = withContext(Dispatchers.IO) {
@@ -72,7 +73,10 @@ class ProductionServerLauncher(
                     home.resolve(".cache"), tmp).forEach { Files.createDirectories(it) }
 
                 val configFile = serverDir.resolve("opencode.json")
-                Files.write(configFile, SERVER_CONFIG.toByteArray())
+                Files.write(
+                    configFile,
+                    serverConfig("http://127.0.0.1:$mockPort/v1").toByteArray(),
+                )
 
                 val loader = File(context.applicationInfo.nativeLibraryDir, "libldmusl.so")
                 val runtimeDirectory = RuntimePaths.runtimeDirectory(root)
@@ -190,23 +194,24 @@ class ProductionServerLauncher(
 
         /**
          * The server starts with a deterministic local model configuration so
-         * that prompt round trips never leave the device; real provider
-         * profiles arrive with the D4 remote-profile work.
+         * that prompt round trips work offline; the mock provider is served by
+         * [MockLlmServer] on loopback and real provider profiles arrive with
+         * the D4 remote-profile work.
          */
-        val SERVER_CONFIG = """
+        fun serverConfig(mockBaseUrl: String): String = """
             {
               "model": "opencode-mobile-mock/mock",
               "provider": {
                 "opencode-mobile-mock": {
                   "npm": "@ai-sdk/openai-compatible",
-                  "name": "OpenCode Mobile local placeholder",
+                  "name": "OpenCode Mobile on-device mock",
                   "options": {
-                    "baseURL": "http://127.0.0.1:9/v1",
+                    "baseURL": "$mockBaseUrl",
                     "apiKey": "placeholder-not-a-secret"
                   },
                   "models": {
                     "mock": {
-                      "name": "OpenCode Mobile placeholder model",
+                      "name": "On-device mock model",
                       "limit": { "context": 8192, "output": 1024 }
                     }
                   }

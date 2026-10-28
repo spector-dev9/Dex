@@ -8,7 +8,9 @@ import io.github.spectordev9.opencode.core.gateway.GatewayRequest
 import io.github.spectordev9.opencode.core.gateway.HttpMethod
 import io.github.spectordev9.opencode.core.gateway.ServerEvent
 import io.github.spectordev9.opencode.core.model.Message
+import io.github.spectordev9.opencode.core.model.MessageInfo
 import io.github.spectordev9.opencode.core.model.PermissionRequest
+import io.github.spectordev9.opencode.core.model.Part
 import io.github.spectordev9.opencode.core.model.Session
 import io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient
 import io.github.spectordev9.opencode.core.opencode.client.PermissionResponse
@@ -225,7 +227,16 @@ class ChatController(
             ),
         )
         when (result) {
-            is ApiResult.Success -> _state.update { it.copy(sending = true, error = null) }
+            is ApiResult.Success -> {
+                _state.update {
+                    it.copy(
+                        sending = true,
+                        error = null,
+                        // Optimistic echo; replaced when the server round-trips.
+                        messages = it.messages + optimisticUserMessage(sessionID, trimmed),
+                    )
+                }
+            }
             is ApiResult.Failure -> _state.update { it.copy(error = result.error.message) }
         }
     }
@@ -271,6 +282,41 @@ class ChatController(
         }
     }
 
+    /**
+     * Stores an API key for [providerID] on the server (PUT /auth) so real
+     * provider profiles can route prompts once the D4 remote-profile work
+     * enables them.
+     */
+    suspend fun saveApiKey(providerID: String, apiKey: String) {
+        val activeClient = client ?: return
+        if (providerID.isBlank() || apiKey.isBlank()) return
+        val payload = org.json.JSONObject()
+            .put("type", "api")
+            .put("key", apiKey.trim())
+        val operation = GatewayOperation<Boolean>(
+            name = "auth.set",
+            request = GatewayRequest(
+                method = HttpMethod.PUT,
+                path = "/auth/$providerID",
+                body = payload.toString().toByteArray(Charsets.UTF_8),
+                contentType = "application/json",
+            ),
+            timeoutClass = TimeoutClass.LIST_GET,
+            decoder = GatewayResponseDecoder { _, _ -> true },
+        )
+        when (val result = activeClient.call(operation)) {
+            is ApiResult.Success -> _state.update {
+                it.copy(
+                    authMessage = "Key saved for $providerID",
+                    error = null,
+                )
+            }
+            is ApiResult.Failure -> _state.update {
+                it.copy(authMessage = null, error = result.error.message)
+            }
+        }
+    }
+
     private suspend fun onEvent(event: ServerEvent) {
         val payload = event.payload as? JsonObject ?: return
         val activeSession = _state.value.activeSessionId
@@ -296,6 +342,11 @@ class ChatController(
                 }
             }
             event.type == "session.idle" -> {
+                if (payload.string("sessionID") == activeSession) {
+                    _state.update { it.copy(sending = false) }
+                }
+            }
+            event.type == "session.error" -> {
                 if (payload.string("sessionID") == activeSession) {
                     _state.update { it.copy(sending = false) }
                 }
@@ -327,6 +378,19 @@ class ChatController(
         }
     }
 
+    private fun optimisticUserMessage(sessionID: String, text: String): Message =
+        Message(
+            info = MessageInfo(
+                id = "local-${System.currentTimeMillis()}",
+                sessionID = sessionID,
+                role = "user",
+                time = JsonObject(emptyMap()),
+            ),
+            parts = listOf(
+                Part(id = "local-part-$text.hashCode()", sessionID = sessionID, messageID = "local", type = "text", text = text),
+            ),
+        )
+
     private fun JsonObject.string(name: String): String? =
         (this[name] as? JsonPrimitive)?.contentOrNull
 }
@@ -356,6 +420,7 @@ data class ChatUiState(
     val sending: Boolean = false,
     val permissions: List<PermissionRequest> = emptyList(),
     val error: String? = null,
+    val authMessage: String? = null,
 )
 
 /** GET /config/providers returning raw text; parsed defensively upstream. */
