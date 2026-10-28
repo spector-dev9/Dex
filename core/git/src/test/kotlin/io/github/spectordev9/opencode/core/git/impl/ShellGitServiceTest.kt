@@ -148,8 +148,8 @@ class ShellGitServiceTest {
         val big = "x".repeat(200_000)
         val runner = FakeRunner(
             mapOf(
-                "git diff  -- 'big'" to ShellOutcome(0, big, ""),
-                "git diff  -- 'binary'" to ShellOutcome(0, "Binary files a/x and b/x differ\n", ""),
+                "git diff -- 'big'" to ShellOutcome(0, big, ""),
+                "git diff -- 'binary'" to ShellOutcome(0, "Binary files a/x and b/x differ\n", ""),
             ),
         )
         val truncated = service(runner).diff("/repo", path = "big").valueOrNull()!!
