@@ -38,7 +38,7 @@ class SecretRedactingScrubber : LogScrubber {
             Regex("""\bsk-[A-Za-z0-9_-]{8,}""") to "sk-$REDACTED",
             Regex("""(?i)([?&](?:api[_-]?key|token|secret|password)=)[^&\s]+""") to "$1$REDACTED",
             Regex(
-                """(?i)\b(api[_-]?key|token|secret|password|passwd|pass)\b\s*[:=]\s*("[^"]*"|'[^']*'|\S+)""",
+                """(?i)\b(api[_-]?key|token|secret|password|passwd|pass)\b\s*[:=]\s*("[^"]*"|'[^']*'|[^\s&]+)""",
             ) to "$1=$REDACTED",
             Regex("""(?i)\bOPENCODE_LOOPBACK_PASSWORD\s*=\s*\S+""") to
                 "OPENCODE_LOOPBACK_PASSWORD=$REDACTED",
