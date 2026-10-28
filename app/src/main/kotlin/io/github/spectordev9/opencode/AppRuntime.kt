@@ -63,7 +63,11 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     val terminal: ProductionPtyService = ProductionPtyService(this.context)
 
-    val chat = ChatController(scope, SharedPreferencesChatSessionStore(this.context))
+    val chat = ChatController(
+        scope,
+        SharedPreferencesChatSessionStore(this.context),
+        io.github.spectordev9.opencode.chat.SharedPrefsPermissionRuleStore(this.context),
+    )
     val files = FilesController(scope)
 
     /** Guest-shell git for the workspace repository (F31–F35, F36). */

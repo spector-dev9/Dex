@@ -1399,26 +1399,65 @@ private fun PermissionCard(
     onAnswer: (PermissionResponse) -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
+    val command = permission.metadata.stringField("command")
+    // F40: flag large-scale destructive actions and gate them behind a second
+    // confirmation with an explicit consequence statement.
+    val destructiveMatch = DestructiveCommandDetector.match(command.orEmpty())
+    val destructive = destructiveMatch != null
+    var pendingAnswer by remember { mutableStateOf<PermissionResponse?>(null) }
+
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = palette.WarningCol.copy(alpha = 0.25f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, palette.WarningCol.copy(alpha = 0.55f)),
+        color = if (destructive) {
+            palette.DangerCol.copy(alpha = 0.25f)
+        } else {
+            palette.WarningCol.copy(alpha = 0.25f)
+        },
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (destructive) palette.DangerCol.copy(alpha = 0.6f) else palette.WarningCol.copy(alpha = 0.55f),
+        ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Text(
-                "Permission · ${permission.permission}",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = palette.WarningCol,
-            )
-            val command = permission.metadata.stringField("command")
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Permission · ${permission.permission}",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (destructive) palette.DangerCol else palette.WarningCol,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (destructive) {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = palette.DangerCol,
+                    ) {
+                        Text(
+                            "DESTRUCTIVE",
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                            color = palette.DarkBg,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            }
             if (!command.isNullOrBlank()) {
                 Text(
                     command,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
                     color = palette.InlineCodeText,
+                )
+            }
+            if (destructive) {
+                Text(
+                    "Matched destructive pattern: ${destructiveMatch?.take(44)}",
+                    fontSize = 10.sp,
+                    color = palette.Muted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (permission.patterns.isNotEmpty()) {
@@ -1442,13 +1481,18 @@ private fun PermissionCard(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 TextButton(
-                    onClick = { onAnswer(PermissionResponse.ONCE) },
+                    onClick = {
+                        // Destructive commands require an extra confirmation step.
+                        if (destructive) pendingAnswer = PermissionResponse.ONCE else onAnswer(PermissionResponse.ONCE)
+                    },
                     colors = ButtonDefaults.textButtonColors(contentColor = palette.TextCol),
                 ) {
                     Text("Allow once", fontSize = 11.sp)
                 }
                 TextButton(
-                    onClick = { onAnswer(PermissionResponse.ALWAYS) },
+                    onClick = {
+                        if (destructive) pendingAnswer = PermissionResponse.ALWAYS else onAnswer(PermissionResponse.ALWAYS)
+                    },
                     colors = ButtonDefaults.textButtonColors(contentColor = palette.SuccessCol),
                 ) {
                     Text("Always allow", fontSize = 11.sp)
@@ -1461,6 +1505,51 @@ private fun PermissionCard(
                 }
             }
         }
+    }
+
+    if (pendingAnswer != null) {
+        AlertDialog(
+            onDismissRequest = { pendingAnswer = null },
+            containerColor = palette.Panel2,
+            title = { Text("Confirm destructive command", color = palette.DangerCol) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        command.orEmpty(),
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 12.sp,
+                        color = palette.TextCol,
+                    )
+                    Text(
+                        when (pendingAnswer) {
+                            PermissionResponse.ALWAYS ->
+                                "This looks destructive (deletes or overwrites data at scale). " +
+                                    "Allowing it ALWAYS also teaches the server to skip future " +
+                                    "prompts for this tool."
+                            else ->
+                                "This looks destructive (deletes or overwrites data at scale). " +
+                                    "It may be irreversible."
+                        },
+                        color = palette.Muted,
+                        fontSize = 12.sp,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val answer = pendingAnswer ?: PermissionResponse.ONCE
+                    pendingAnswer = null
+                    onAnswer(answer)
+                }) {
+                    Text("Run anyway", color = palette.DangerCol, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingAnswer = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
     }
 }
 
@@ -1835,6 +1924,10 @@ private fun SettingsSheet(
                 AppearanceSection(uiPrefs)
                 HorizontalDivider(color = palette.BorderCol)
             }
+            if (chat != null) {
+                PermissionRulesSection(chat)
+                HorizontalDivider(color = palette.BorderCol)
+            }
             TextButton(
                 onClick = {
                     scope.launch {
@@ -1925,6 +2018,45 @@ private fun SettingsSheet(
 }
 
 /** Appearance controls (F59): theme mode, dynamic colors, font sizes. */
+@Composable
+private fun PermissionRulesSection(chat: ChatController) {
+    val palette = LocalOpencodePalette.current
+    val rules = chat.rememberedPermissionRules.collectAsState().value
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Permission rules", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+        Text(
+            "Remembered per-tool choices for permission prompts (F39). The server remains " +
+                "authoritative: these only pre-answer prompts the server itself asks.",
+            fontSize = 11.sp,
+            color = palette.Muted,
+        )
+        if (rules.isEmpty()) {
+            Text("No remembered rules yet.", fontSize = 12.sp, color = palette.Muted2)
+        } else {
+            rules.entries.sortedBy { it.key }.forEach { (tool, response) ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(tool, fontSize = 12.sp, color = palette.TextCol, fontFamily = FontFamily.Monospace)
+                        Text(
+                            "Always " + if (response == PermissionResponse.ALWAYS) "allow" else response.name.lowercase(),
+                            fontSize = 10.sp,
+                            color = if (response == PermissionResponse.ALWAYS) palette.SuccessCol else palette.Muted2,
+                        )
+                    }
+                    TextButton(onClick = { chat.clearPermissionRule(tool) }) {
+                        Text("Clear", color = palette.DangerCol, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun AppearanceSection(uiPrefs: UiPrefs) {
     val palette = LocalOpencodePalette.current
@@ -2110,6 +2242,7 @@ private fun TerminalScreen(
     var commandHistory by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var historyExpanded by remember { mutableStateOf(false) }
     var restartGeneration by remember { mutableIntStateOf(0) }
+    var confirmClear by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val terminalTextSize = uiPrefs?.terminalTextSize?.collectAsState()?.value ?: 13
     val scrollState = rememberScrollState()
@@ -2267,7 +2400,7 @@ private fun TerminalScreen(
                 Text("Paste", color = palette.Accent)
             }
             TextButton(
-                onClick = { output = "" },
+                onClick = { confirmClear = true },
                 enabled = session != null,
             ) {
                 Text("Clear", color = palette.Accent)
@@ -2444,6 +2577,38 @@ private fun TerminalScreen(
                 }
             }
         }
+    }
+
+    // F40: clearing wipes the entire scrollback — confirm first.
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = { confirmClear = false },
+            containerColor = palette.Panel2,
+            title = { Text("Clear terminal scrollback?", color = palette.TextCol) },
+            text = {
+                Text(
+                    "The entire terminal output will be removed from view. " +
+                        "This cannot be undone and does not affect the session itself.",
+                    color = palette.Muted,
+                    fontSize = 12.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmClear = false
+                        output = ""
+                    },
+                ) {
+                    Text("Clear", color = palette.DangerCol, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClear = false }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
     }
 }
 

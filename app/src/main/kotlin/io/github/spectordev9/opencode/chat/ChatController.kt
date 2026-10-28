@@ -37,6 +37,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 const val MAX_PROMPT_ATTACHMENTS = 5
+
+private val emptyPermissionRules: MutableStateFlow<Map<String, PermissionResponse>> = MutableStateFlow(emptyMap())
 const val MAX_PROMPT_ATTACHMENT_BYTES = 5 * 1024 * 1024
 const val MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES = 10 * 1024 * 1024
 
@@ -64,6 +66,7 @@ interface ChatSessionStore {
 class ChatController(
     private val scope: CoroutineScope,
     private val sessionStore: ChatSessionStore? = null,
+    private val permissionRules: PermissionRuleStore? = null,
 ) {
     private val json = Json {
         ignoreUnknownKeys = true
@@ -533,13 +536,43 @@ class ChatController(
         }
     }
 
+    /** Remembered per-tool permission answers (F39); the server stays authoritative. */
+    val rememberedPermissionRules: StateFlow<Map<String, PermissionResponse>>
+        get() = permissionRules?.rules ?: emptyPermissionRules
+
+    fun clearPermissionRule(tool: String) {
+        permissionRules?.clearRule(tool)
+    }
+
     suspend fun answerPermission(permissionID: String, response: PermissionResponse) {
         val activeClient = client ?: return
         val sessionID = _state.value.activeSessionId ?: return
+        val permission = _state.value.permissions.firstOrNull { it.id == permissionID }
         val result = activeClient.replyPermission(sessionID, permissionID, directory, response)
         if (result is ApiResult.Success) {
+            // Remember the user's explicit "always" choice for future prompts (F39).
+            if (response == PermissionResponse.ALWAYS && permission != null) {
+                permissionRules?.setRule(permission.permission, PermissionResponse.ALWAYS)
+            }
             _state.update {
                 it.copy(permissions = it.permissions.filter { p -> p.id != permissionID })
+            }
+        }
+    }
+
+    /** Answers a pending permission according to a remembered rule, if any (F39). */
+    private fun maybeAutoAnswer(permission: PermissionRequest) {
+        val rule = permissionRules?.ruleFor(permission.permission) ?: return
+        if (rule != PermissionResponse.ALWAYS) return
+        // Destructive commands always require manual confirmation (F40).
+        val command = permission.metadata["command"]?.let { (it as? JsonPrimitive)?.contentOrNull }
+        if (DestructiveCommandDetector.match(command.orEmpty()) != null) return
+        scope.launch {
+            answerPermission(permission.id, rule)
+            _state.update {
+                it.copy(
+                    authMessage = "Auto-answered '${permission.permission}' per your remembered rule",
+                )
             }
         }
     }
@@ -606,6 +639,7 @@ class ChatController(
                                 .filter { p -> p.id != decoded.id } + decoded,
                         )
                     }
+                    maybeAutoAnswer(decoded)
                 }
             }
             event.type == "permission.replied" -> {
