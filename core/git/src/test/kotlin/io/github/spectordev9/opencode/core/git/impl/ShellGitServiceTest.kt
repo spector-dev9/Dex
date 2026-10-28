@@ -37,7 +37,7 @@ class ShellGitServiceTest {
             "# branch.ab +2 -1",
             "1 .M .N N 100644 100644 100644 abc def src/Main.kt",
             "1 A. N 100644 000000 100644 000 new/File.kt",
-            "2 RM N 100644 100644 100644 abc def old-name.kt\trenamed-new.kt",
+            "2 RM N 100644 100644 100644 abc def R100 renamed-new.kt\told-name.kt",
             "? stray.txt",
             "",
         ).joinToString("\n")
@@ -62,7 +62,7 @@ class ShellGitServiceTest {
 
     @Test
     fun conflictEntryIsClassified() = runBlocking {
-        val stdout = "u UU N 000000 000000 000000 000 000 file.txt\tours.txt\ttheirs.txt"
+        val stdout = "u UU N 100644 100644 100644 100644 abc def ghi file.txt"
         val runner = FakeRunner(mapOf("git status" to ShellOutcome(0, stdout, "")))
         val status = service(runner).status("/repo").valueOrNull()!!
         assertEquals(GitChangeKind.CONFLICT, status.changes.single().kind)
@@ -80,7 +80,7 @@ class ShellGitServiceTest {
 
     @Test
     fun missingGitBinaryIsDiagnosedSeparately() = runBlocking {
-        val runner = FakeRunner(mapOf<String, ShellOutcome>(), default = ShellOutcome(127, "", "sh: git: not found"))
+        val runner = FakeRunner(emptyMap(), default = ShellOutcome(127, "", "sh: git: not found"))
         val error = service(runner).status("/repo").errorOrNull()!!
         assertEquals(ErrorCode.E_RUNTIME_DOWN, error.code)
         assertTrue(error.message.orEmpty().contains("not installed"))
@@ -109,7 +109,7 @@ class ShellGitServiceTest {
 
     @Test
     fun emptyCommitMessageRejected() = runBlocking {
-        val runner = FakeRunner(mapOf<String, ShellOutcome>())
+        val runner = FakeRunner(mapOf())
         val error = service(runner).commit("/repo", "   ").errorOrNull()!!
         assertEquals(ErrorCode.E_CONFLICT, error.code)
         assertEquals(emptyList(), runner.commands)
@@ -118,7 +118,7 @@ class ShellGitServiceTest {
 
     @Test
     fun optionInjectionRejected() = runBlocking {
-        val runner = FakeRunner(mapOf<String, ShellOutcome>())
+        val runner = FakeRunner(mapOf())
         val error = service(runner).diff("/repo", path = "--upload-pack=evil").errorOrNull()!!
         assertEquals(ErrorCode.E_PATH_DENIED, error.code)
         val refError = service(runner).checkout("/repo", ref = "--exec=evil").errorOrNull()!!

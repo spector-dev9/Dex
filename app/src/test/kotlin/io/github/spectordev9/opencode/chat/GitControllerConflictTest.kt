@@ -14,8 +14,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 
 class GitControllerConflictTest {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
-
     private val conflictFile = listOf(
         "line before",
         "<<<<<<< HEAD",
@@ -27,15 +25,16 @@ class GitControllerConflictTest {
         "",
     ).joinToString("\n")
 
-    private fun controller(): Pair<GitController, FakeWorkspaceService> {
+    private fun controller(): Triple<GitController, FakeWorkspaceService, CoroutineScope> {
         val workspace = FakeWorkspaceService()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val git = GitController(
             scope = scope,
             git = FakeGitService(),
             repositoryPath = "/workspace",
             workspace = workspace,
         )
-        return git to workspace
+        return Triple(git, workspace, scope)
     }
 
     private fun seed(path: String, content: String, workspace: FakeWorkspaceService) {
@@ -45,7 +44,7 @@ class GitControllerConflictTest {
 
     @Test
     fun `openConflict parses both hunks`() = runBlocking {
-        val (git, workspace) = controller()
+        val (git, workspace, scope) = controller()
         seed("merged.txt", conflictFile, workspace)
 
         git.openConflict("merged.txt")
@@ -62,7 +61,7 @@ class GitControllerConflictTest {
 
     @Test
     fun `resolveBlock keeps chosen side and strips markers`() = runBlocking {
-        val (git, workspace) = controller()
+        val (git, workspace, scope) = controller()
         seed("merged.txt", conflictFile, workspace)
 
         git.openConflict("merged.txt")
@@ -78,7 +77,7 @@ class GitControllerConflictTest {
 
     @Test
     fun `saveResolved writes file and stages it`() = runBlocking {
-        val (git, workspace) = controller()
+        val (git, workspace, scope) = controller()
         seed("merged.txt", conflictFile, workspace)
         git.openConflict("merged.txt")
         git.resolveBlock(0, ConflictKeep.THEIRS)
@@ -98,7 +97,7 @@ class GitControllerConflictTest {
 
     @Test
     fun `saveResolved is blocked while markers remain`() = runBlocking {
-        val (git, workspace) = controller()
+        val (git, workspace, scope) = controller()
         seed("merged.txt", conflictFile, workspace)
         git.openConflict("merged.txt")
 

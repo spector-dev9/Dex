@@ -250,9 +250,13 @@ class ShellGitService(
         val stagedStatus = xy[0]
         val unstagedStatus = xy[1]
         val firstTab = body.indexOf('\t')
-        val segments = if (firstTab >= 0) body.substring(firstTab + 1).split('\t') else emptyList()
-        val path = if (firstTab >= 0) segments.first().trim() else body.substringAfterLast(' ', body).trim()
-        val origPath = segments.getOrNull(1)?.trim()?.takeIf { segments.size >= 2 }
+        val pathFields = if (firstTab >= 0) body.substring(0, firstTab) else body
+        val path = pathFields.substringAfterLast(' ', pathFields).trim()
+        val origPath = if (renamed && firstTab >= 0) {
+            body.substring(firstTab + 1).trim().takeIf { it.isNotEmpty() }
+        } else {
+            null
+        }
         val kind = when {
             conflict -> GitChangeKind.CONFLICT
             renamed -> GitChangeKind.RENAMED

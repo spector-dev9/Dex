@@ -407,9 +407,9 @@ class GitController(
             var separator = -1
             var end = -1
             var j = i + 1
-            while (j < lines.size && separator < 0 && end < 0) {
+            while (j < lines.size && end < 0) {
                 when {
-                    lines[j] == "=======" -> separator = j
+                    lines[j] == "=======" && separator < 0 -> separator = j
                     lines[j].startsWith(">>>>>>> ") && separator >= 0 -> end = j
                     lines[j].startsWith("<<<<<<< ") -> break // nested/unbalanced; stop
                 }
