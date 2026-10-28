@@ -20,6 +20,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             OpenCodeShell(
                 ptyService = appRuntime.terminal,
+                chat = appRuntime.chat,
+                files = appRuntime.files,
                 runtimeStateFlow = appRuntime.runtimeState,
                 serverStateFlow = appRuntime.serverState,
                 onOpenLicenses = {

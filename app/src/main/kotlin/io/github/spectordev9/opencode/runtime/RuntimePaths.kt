@@ -34,6 +34,14 @@ object RuntimePaths {
         File(context.filesDir, "workspace").toPath()
 
     /**
+     * The supervised server runs with its working directory under
+     * runtime-root/server (see ProductionServerLauncher); sessions, file
+     * listings and prompts are all scoped to that directory.
+     */
+    fun serverWorkspaceDirectory(context: Context): Path =
+        serverDirectory(runtimeRoot(context)).resolve("workspace")
+
+    /**
      * Base environment for processes spawned from the staged runtime. Callers
      * append their own entries (server config, password, guest shell TERM…).
      */

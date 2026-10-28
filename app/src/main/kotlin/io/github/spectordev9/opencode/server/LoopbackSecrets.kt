@@ -54,4 +54,13 @@ class LoopbackSecrets(
         val current = credential ?: return null
         return ByteArray(current.password.size) { current.password[it].code.toByte() }
     }
+
+    /**
+     * Copy of the current password as text for composing HTTP clients; the
+     * value must never be logged or persisted.
+     */
+    fun passwordText(): String? {
+        val current = credential ?: return null
+        return String(current.password)
+    }
 }

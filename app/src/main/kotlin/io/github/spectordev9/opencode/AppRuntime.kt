@@ -1,6 +1,8 @@
 package io.github.spectordev9.opencode
 
 import android.content.Context
+import io.github.spectordev9.opencode.chat.ChatController
+import io.github.spectordev9.opencode.chat.FilesController
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.runtime.RuntimeState
 import io.github.spectordev9.opencode.core.supervisor.ServerState
@@ -42,15 +44,51 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         processLauncher = processLauncher,
     )
 
+    private val secrets = LoopbackSecrets(AndroidKeystoreSecretStore(this.context))
+
     private val serverLauncher = ProductionServerLauncher(
         context = this.context,
         processLauncher = processLauncher,
-        secrets = LoopbackSecrets(AndroidKeystoreSecretStore(this.context)),
+        secrets = secrets,
     )
 
     val supervisor = ProcessServerSupervisor(scope, serverLauncher)
 
     val terminal: ProductionPtyService = ProductionPtyService(this.context)
+
+    val chat = ChatController(scope)
+    val files = FilesController(scope)
+
+    private var lastAttachedEndpoint: String? = null
+
+    init {
+        scope.launch {
+            supervisor.state.collect { state -> onServerState(state) }
+        }
+    }
+
+    private fun onServerState(state: ServerState) {
+        val endpoint = state.endpoint
+        if (state.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY &&
+            endpoint != null
+        ) {
+            val endpointKey = "http://${endpoint.host}:${endpoint.port}"
+            if (endpointKey == lastAttachedEndpoint) return // avoid re-attach churn
+            val password = secrets.passwordText() ?: return
+            val client = io.github.spectordev9.opencode.core.opencode.client.OpenCodeHttpClient(
+                baseUrl = endpointKey,
+                password = password,
+            )
+            val workspace = RuntimePaths.serverWorkspaceDirectory(context).toString()
+            chat.attach(client, workspace)
+            files.attach(client, workspace)
+            lastAttachedEndpoint = endpointKey
+        } else {
+            chat.detach()
+            files.detach()
+            lastAttachedEndpoint = null
+        }
+    }
 
     private val ensureMutex = Mutex()
 
