@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -70,6 +71,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -153,6 +155,7 @@ import java.io.IOException
 private enum class AppTab(val label: String, val glyph: String) {
     Chat("Chat", "◈"),
     Files("Files", "◫"),
+    Git("Git", "⑂"),
     Terminal("Terminal", "⌨"),
 }
 
@@ -162,6 +165,7 @@ fun OpenCodeShell(
     ptyService: PtyService? = null,
     chat: ChatController? = null,
     files: FilesController? = null,
+    git: GitController? = null,
     uiPrefs: UiPrefs? = null,
     runtimeStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.runtime.RuntimeState>? = null,
     serverStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.supervisor.ServerState>? = null,
@@ -294,6 +298,11 @@ fun OpenCodeShell(
                                         files = files,
                                         uiPrefs = uiPrefs,
                                     )
+                                    AppTab.Git -> GitScreen(
+                                        modifier = Modifier.weight(1f),
+                                        git = git,
+                                        uiPrefs = uiPrefs,
+                                    )
                                     else -> TerminalScreen(
                                         modifier = Modifier.weight(1f),
                                         ptyService = ptyService,
@@ -318,6 +327,11 @@ fun OpenCodeShell(
                                 AppTab.Files -> FilesScreen(
                                     modifier = Modifier.fillMaxSize(),
                                     files = files,
+                                    uiPrefs = uiPrefs,
+                                )
+                                AppTab.Git -> GitScreen(
+                                    modifier = Modifier.fillMaxSize(),
+                                    git = git,
                                     uiPrefs = uiPrefs,
                                 )
                                 AppTab.Terminal -> TerminalScreen(
@@ -2473,6 +2487,568 @@ internal fun terminalFailureMessage(message: String): String {
         else -> null
     }
     return if (guidance == null) message else "$message · $guidance"
+}
+
+@Composable
+private fun GitScreen(
+    modifier: Modifier = Modifier,
+    git: GitController?,
+    uiPrefs: UiPrefs? = null,
+) {
+    val palette = LocalOpencodePalette.current
+    val clipboard = LocalClipboardManager.current
+    val gitState = git?.state?.collectAsState()?.value
+    val scope = rememberCoroutineScope()
+    var showCommitDialog by rememberSaveable { mutableStateOf(false) }
+    var commitMessage by rememberSaveable { mutableStateOf("") }
+    var discardPaths by remember { mutableStateOf<List<String>?>(null) }
+    var checkoutTarget by rememberSaveable { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("GIT", fontSize = 20.sp, fontWeight = FontWeight.Black, color = palette.TextCol)
+                Text(
+                    gitState?.status?.branch ?: "no repository",
+                    fontSize = 12.sp,
+                    color = palette.Muted2,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                )
+            }
+            if (gitState?.initialized == true) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    TextButton(onClick = { scope.launch { git?.pull() } }, enabled = gitState?.busy == false) {
+                        Text("Pull", color = palette.Muted, fontSize = 12.sp)
+                    }
+                    TextButton(onClick = { scope.launch { git?.push() } }, enabled = gitState?.busy == false) {
+                        Text("Push", color = palette.Muted, fontSize = 12.sp)
+                    }
+                    TextButton(onClick = { scope.launch { git?.fetch() } }, enabled = gitState?.busy == false) {
+                        Text("Fetch", color = palette.Muted, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        val notice = gitState?.notice
+        if (notice != null) {
+            LaunchedEffect(notice) {
+                delay(2500)
+                git?.clearNotice()
+            }
+            Text("✓ $notice", color = palette.SuccessCol, fontSize = 11.sp)
+        }
+        val errorMessage = gitState?.error
+        if (errorMessage != null) {
+            LaunchedEffect(errorMessage) {
+                delay(4000)
+                git?.clearError()
+            }
+            Text("⚠ $errorMessage", color = palette.DangerCol, fontSize = 11.sp)
+        }
+
+        when {
+            git == null -> StatusPanel(
+                color = palette.Panel,
+                title = "Git unavailable",
+                detail = "The git controller was not attached.",
+            )
+
+            gitState?.initialized == false -> StatusPanel(
+                color = palette.Panel,
+                title = "No repository yet",
+                detail = "Initialize the workspace to start tracking changes.",
+            ) {
+                Button(
+                    onClick = { scope.launch { git.initializeRepository() } },
+                    colors = ButtonDefaults.buttonColors(containerColor = palette.Accent),
+                ) {
+                    Text("git init", color = palette.DarkBg, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            gitState != null -> {
+                val status = gitState.status
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Status card
+                    Surface(
+                        color = palette.Panel,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "⑂ ${status?.branch ?: "detached"}",
+                                    color = palette.Accent,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontFamily = FontFamily.Monospace,
+                                )
+                                val ahead = status?.ahead ?: 0
+                                val behind = status?.behind ?: 0
+                                if (ahead > 0) ChipBadge("↑$ahead", palette.SuccessCol)
+                                if (behind > 0) ChipBadge("↓$behind", palette.WarningCol)
+                                if (gitState.refreshing) {
+                                    Text("syncing…", color = palette.Muted2, fontSize = 10.sp)
+                                }
+                            }
+                            status?.commit?.let { commit ->
+                                Text(
+                                    commit.take(9),
+                                    color = palette.Muted2,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                )
+                            }
+                        }
+                    }
+
+                    if (gitState.busy) LinearProgressIndicator(Modifier.fillMaxWidth(), color = palette.Accent)
+
+                    // Changes
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("CHANGES", fontSize = 11.sp, letterSpacing = 1.2.sp, color = palette.Muted2)
+                        TextButton(
+                            onClick = { scope.launch { git.stageAll() } },
+                            enabled = !gitState.busy && gitState.status?.changes?.any { it.unstaged } == true,
+                        ) {
+                            Text("Stage all", color = palette.Accent, fontSize = 12.sp)
+                        }
+                        Button(
+                            onClick = { showCommitDialog = true },
+                            enabled = !gitState.busy && gitState.status?.changes?.any { it.staged } == true,
+                            colors = ButtonDefaults.buttonColors(containerColor = palette.Accent),
+                        ) {
+                            Text("Commit", color = palette.DarkBg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    val changes = gitState.status?.changes.orEmpty()
+                    if (changes.isEmpty()) {
+                        Text(
+                            "Working tree clean ✓",
+                            color = palette.SuccessCol,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(vertical = 6.dp),
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 120.dp)
+                                .weight(1f, fill = false),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            items(changes, key = { it.path + ":" + it.staged }) { change ->
+                                GitChangeRow(
+                                    change = change,
+                                    busy = gitState.busy,
+                                    onOpen = {
+                                        scope.launch { git.showWorkingDiff(change.path, staged = change.staged) }
+                                    },
+                                    onStage = { scope.launch { git.stage(listOf(change.path)) } },
+                                    onUnstage = { scope.launch { git.unstage(listOf(change.path)) } },
+                                    onDiscard = { discardPaths = listOf(change.path) },
+                                )
+                            }
+                        }
+                    }
+
+                    // Branches
+                    if (gitState.branches.isNotEmpty()) {
+                        Text("BRANCHES", fontSize = 11.sp, letterSpacing = 1.2.sp, color = palette.Muted2)
+                        gitState.branches.take(8).forEach { branch ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        if (!branch.current) checkoutTarget = branch.name
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    (if (branch.current) "● " else "○ ") + branch.name,
+                                    color = if (branch.current) palette.Accent else palette.TextCol,
+                                    fontSize = 12.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                if (branch.ahead > 0 || branch.behind > 0) {
+                                    Text(
+                                        buildString {
+                                            if (branch.ahead > 0) append("↑${branch.ahead} ")
+                                            if (branch.behind > 0) append("↓${branch.behind}")
+                                        },
+                                        color = palette.Muted2,
+                                        fontSize = 10.sp,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // History
+                    if (gitState.history.isNotEmpty()) {
+                        Text("HISTORY", fontSize = 11.sp, letterSpacing = 1.2.sp, color = palette.Muted2)
+                        gitState.history.take(10).forEach { commit ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        scope.launch {
+                                            git.showRevisionDiff(from = commit.hash + "~1", to = commit.hash)
+                                        }
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    commit.hash.take(7),
+                                    color = palette.Accent,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                )
+                                Column(Modifier.padding(start = 8.dp)) {
+                                    Text(
+                                        commit.subject,
+                                        color = palette.TextCol,
+                                        fontSize = 12.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        "${commit.author} · ${java.text.DateFormat.getDateTimeInstance(
+                                            java.text.DateFormat.SHORT,
+                                            java.text.DateFormat.SHORT,
+                                        ).format(java.util.Date(commit.timeEpochMillis))}",
+                                        color = palette.Muted2,
+                                        fontSize = 10.sp,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Diff overlay
+    val diff = gitState?.diff
+    if (diff != null) {
+        ModalBottomSheet(
+            onDismissRequest = { git.clearDiff() },
+            containerColor = palette.Panel2,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .heightIn(max = 560.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        gitState?.diffTitle ?: "diff",
+                        color = palette.TextCol,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { clipboard.setText(AnnotatedString(diff.patch)) }) {
+                        Text("Copy", color = palette.Accent, fontSize = 12.sp)
+                    }
+                    TextButton(onClick = { git.clearDiff() }) {
+                        Text("Close", color = palette.Muted, fontSize = 12.sp)
+                    }
+                }
+                if (diff.binary) {
+                    Text("Binary file — content not shown.", color = palette.Muted2, fontSize = 12.sp)
+                }
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp),
+                ) {
+                    items(diff.patch.lineSequence().filter { it.isNotBlank() }.toList()) { line ->
+                        val kind = classifyDiffLine(line)
+                        Text(
+                            line,
+                            color = when (kind) {
+                                DiffLineKind.ADDED -> palette.SuccessCol
+                                DiffLineKind.REMOVED -> palette.DangerCol
+                                DiffLineKind.HUNK -> palette.Accent
+                                DiffLineKind.FILE_HEADER -> palette.Muted2
+                                DiffLineKind.CONTEXT -> palette.TextCol
+                            },
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
+                }
+                if (diff.truncated) {
+                    Text("… patch truncated.", color = palette.WarningCol, fontSize = 11.sp)
+                }
+            }
+        }
+    }
+
+    // Commit dialog
+    if (showCommitDialog) {
+        AlertDialog(
+            onDismissRequest = { showCommitDialog = false },
+            containerColor = palette.Panel2,
+            title = { Text("Commit staged changes", color = palette.TextCol) },
+            text = {
+                Column {
+                    Text("Message:", color = palette.Muted, fontSize = 12.sp)
+                    BasicTextField(
+                        value = commitMessage,
+                        onValueChange = { commitMessage = it },
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = palette.TextCol,
+                            fontSize = 13.sp,
+                            fontFamily = FontFamily.Monospace,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(palette.Panel)
+                            .padding(10.dp),
+                        minLines = 3,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCommitDialog = false
+                        scope.launch {
+                            git.commit(commitMessage)
+                            commitMessage = ""
+                        }
+                    },
+                    enabled = commitMessage.isNotBlank() && gitState?.busy == false,
+                ) {
+                    Text("Commit", color = if (commitMessage.isBlank()) palette.Muted2 else palette.DangerCol)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCommitDialog = false }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
+    }
+
+    // Discard confirmation (destructive)
+    if (discardPaths != null) {
+        AlertDialog(
+            onDismissRequest = { discardPaths = null },
+            containerColor = palette.Panel2,
+            title = { Text("Discard changes?", color = palette.TextCol) },
+            text = {
+                Text(
+                    "Uncommitted edits in ${discardPaths?.joinToString()} will be permanently reverted.",
+                    color = palette.Muted,
+                    fontSize = 12.sp,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val paths = discardPaths ?: emptyList()
+                        discardPaths = null
+                        scope.launch { git.discard(paths) }
+                    },
+                ) {
+                    Text("Discard", color = palette.DangerCol)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { discardPaths = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
+    }
+
+    // Checkout confirmation
+    if (checkoutTarget != null) {
+        AlertDialog(
+            onDismissRequest = { checkoutTarget = null },
+            containerColor = palette.Panel2,
+            title = { Text("Checkout branch", color = palette.TextCol) },
+            text = { Text("Switch to \"$checkoutTarget\"?", color = palette.Muted, fontSize = 12.sp) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val ref = checkoutTarget ?: ""
+                        checkoutTarget = null
+                        scope.launch { git.checkout(ref) }
+                    },
+                ) {
+                    Text("Switch", color = palette.Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { checkoutTarget = null }) {
+                    Text("Cancel", color = palette.Muted)
+                }
+            },
+        )
+    }
+
+}
+
+@Composable
+private fun GitChangeRow(
+    change: io.github.spectordev9.opencode.core.git.GitChange,
+    busy: Boolean,
+    onOpen: () -> Unit,
+    onStage: () -> Unit,
+    onUnstage: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    val palette = LocalOpencodePalette.current
+    Surface(
+        color = palette.Panel,
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+        shape = RoundedCornerShape(9.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !busy, onClick = onOpen)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ChipBadge(
+                change.kind.name.take(3).uppercase(),
+                when (change.kind) {
+                    io.github.spectordev9.opencode.core.git.GitChangeKind.ADDED,
+                    io.github.spectordev9.opencode.core.git.GitChangeKind.RENAMED,
+                    -> palette.SuccessCol
+
+                    io.github.spectordev9.opencode.core.git.GitChangeKind.DELETED -> palette.DangerCol
+                    io.github.spectordev9.opencode.core.git.GitChangeKind.CONFLICT -> palette.WarningCol
+                    else -> palette.Muted2
+                },
+            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    change.path,
+                    color = palette.TextCol,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                change.oldPath?.let {
+                    Text(
+                        "← $it",
+                        color = palette.Muted2,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (change.staged) {
+                Text("S", color = palette.SuccessCol, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+            if (change.unstaged) {
+                Text("W", color = palette.WarningCol, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+            if (change.unstaged) {
+                TextButton(onClick = onStage, enabled = !busy, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                    Text("+", color = palette.SuccessCol, fontSize = 13.sp)
+                }
+            } else {
+                TextButton(onClick = onUnstage, enabled = !busy, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                    Text("−", color = palette.WarningCol, fontSize = 13.sp)
+                }
+            }
+            TextButton(onClick = onDiscard, enabled = !busy, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                Text("✕", color = palette.DangerCol, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChipBadge(text: String, color: androidx.compose.ui.graphics.Color) {
+    Text(
+        text,
+        color = color,
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(color.copy(alpha = 0.12f))
+            .padding(horizontal = 5.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+private fun StatusPanel(
+    color: androidx.compose.ui.graphics.Color,
+    title: String,
+    detail: String,
+    content: @Composable () -> Unit = {},
+) {
+    val palette = LocalOpencodePalette.current
+    Surface(
+        color = color,
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+        shape = RoundedCornerShape(10.dp),
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(title, color = palette.TextCol, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(detail, color = palette.Muted, fontSize = 12.sp)
+            content()
+        }
+    }
 }
 
 @Composable

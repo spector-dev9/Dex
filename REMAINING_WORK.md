@@ -23,7 +23,10 @@ section-7 criterion is present and cited (`scripts/check-g3-status.py`).
 1. **Runtime wiring** — install the pinned runtime, implement a real
    `AndroidRuntimeProcessLauncher`, start the supervised server, and connect the
    UI. Unblocks RT-1/2/3/4, STR-1..5, TERM-1..5, LC-1/2/4, SEC-4.
-2. **Git service** — implement `core/git-api` (WS-6).
+2. **Git service** — `core/git` (WS-6) is implemented: `ShellGitService`
+   runs git inside the guest shell (`GuestGitRunner`, PRoot), the Git tab
+   exposes status/stage/commit/branches/history/diff and pull/push/fetch.
+   Credentials (F36) and git config management remain open.
 3. **Release engineering** — signing config, two-build diffoscope comparison,
    upgrade/install docs (REL-1/2/3).
 4. **Supply chain** — osv-scanner and the GPL source offer (SEC-5).
