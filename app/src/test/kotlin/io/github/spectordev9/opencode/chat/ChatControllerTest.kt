@@ -57,6 +57,23 @@ class ChatControllerTest {
     }
 
     @Test
+    fun `uses a fallback model when provider metadata is unavailable`() = runBlocking {
+        val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
+        val client = FakeOpenCodeClient()
+        try {
+            val controller = ChatController(scope)
+            controller.attach(client, "/workspace")
+            controller.setModel(null)
+
+            assertTrue(controller.send("Do this verification"))
+            assertEquals("opencode-mobile-mock", client.lastPrompt?.model?.providerID)
+            assertEquals("mock", client.lastPrompt?.model?.modelID)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
     fun `restores saved session instead of selecting the most recently updated one`() = runBlocking {
         val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
         val client = FakeOpenCodeClient().apply {

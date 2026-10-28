@@ -341,14 +341,28 @@ class ChatController(
         if (result is ApiResult.Success) {
             val providers = parseProviders(json, result.value)
             val default = parseDefaultModel(json, result.value)
+            val resolved = default ?: fallbackPromptModel(providers)
             _state.update {
                 it.copy(
                     providers = providers,
-                    defaultModel = default,
-                    selectedModel = it.selectedModel ?: default,
+                    defaultModel = default ?: resolved,
+                    selectedModel = it.selectedModel ?: resolved,
                 )
             }
         }
+    }
+
+    private fun resolvePromptModel(): PromptModel {
+        return _state.value.selectedModel
+            ?: _state.value.defaultModel
+            ?: fallbackPromptModel(_state.value.providers)
+            ?: PromptModel("opencode-mobile-mock", "mock")
+    }
+
+    private fun fallbackPromptModel(providers: List<ProviderInfo>): PromptModel? {
+        val firstProvider = providers.firstOrNull() ?: return null
+        val firstModel = firstProvider.models.firstOrNull() ?: return null
+        return PromptModel(firstProvider.id, firstModel.id)
     }
 
     private suspend fun loadAgents(activeClient: OpenCodeClient) {
@@ -409,7 +423,7 @@ class ChatController(
         }
         val activeClient = client ?: return false
         val sessionID = _state.value.activeSessionId ?: return false
-        val model = _state.value.selectedModel ?: _state.value.defaultModel
+        val model = resolvePromptModel()
         val result = activeClient.promptAsync(
             sessionID = sessionID,
             directory = directory,
