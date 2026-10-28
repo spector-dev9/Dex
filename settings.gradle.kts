@@ -23,6 +23,7 @@ include(
     ":core:diagnostics-api",
     ":core:gateway-api",
     ":core:git-api",
+    ":core:git",
     ":core:model",
     ":core:opencode-client",
     ":core:runtime",

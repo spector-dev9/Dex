@@ -326,14 +326,28 @@ class FakeGitService : GitService {
 
     override suspend fun pull(repositoryPath: String, remote: String?, branch: String?): ApiResult<Unit> = ApiResult.Success(Unit)
 
+    override suspend fun push(repositoryPath: String, remote: String?, branch: String?): ApiResult<Unit> = ApiResult.Success(Unit)
+
     override suspend fun branches(repositoryPath: String): ApiResult<List<GitBranch>> = ApiResult.Success(
         listOf(GitBranch("main", true), GitBranch("feature/fake", false)),
     )
 
     override suspend fun checkout(repositoryPath: String, ref: String): ApiResult<Unit> = ApiResult.Success(Unit)
 
+    override suspend fun stage(repositoryPath: String, paths: List<String>): ApiResult<Unit> = ApiResult.Success(Unit)
+
+    override suspend fun unstage(repositoryPath: String, paths: List<String>): ApiResult<Unit> = ApiResult.Success(Unit)
+
+    override suspend fun discardChanges(repositoryPath: String, paths: List<String>): ApiResult<Unit> = ApiResult.Success(Unit)
+
     override suspend fun commit(repositoryPath: String, message: String, paths: List<String>): ApiResult<GitCommitResult> =
         ApiResult.Success(GitCommitResult(hash = "deadbeef", subject = message))
+
+    override suspend fun history(repositoryPath: String, limit: Int): ApiResult<List<GitCommit>> =
+        ApiResult.Success(emptyList())
+
+    override suspend fun diffRevision(repositoryPath: String, from: String, to: String): ApiResult<GitDiff> =
+        ApiResult.Success(GitDiff(path = null, patch = "# fake diff\n", binary = false, truncated = false))
 }
 
 class FakePtyService : PtyService {

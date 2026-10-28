@@ -49,6 +49,13 @@ data class GitCommitResult(
     val subject: String,
 )
 
+data class GitCommit(
+    val hash: String,
+    val subject: String,
+    val author: String,
+    val timeEpochMillis: Long,
+)
+
 data class GitCredential(
     val username: String,
     val secretRef: SecretRef,
@@ -73,13 +80,34 @@ interface GitService {
         branch: String? = null,
     ): ApiResult<Unit>
 
+    suspend fun push(
+        repositoryPath: String,
+        remote: String? = null,
+        branch: String? = null,
+    ): ApiResult<Unit>
+
     suspend fun branches(repositoryPath: String): ApiResult<List<GitBranch>>
 
     suspend fun checkout(repositoryPath: String, ref: String): ApiResult<Unit>
+
+    suspend fun stage(repositoryPath: String, paths: List<String>): ApiResult<Unit>
+
+    suspend fun unstage(repositoryPath: String, paths: List<String>): ApiResult<Unit>
+
+    /** Destructive: reverts working-tree changes for the given paths. */
+    suspend fun discardChanges(repositoryPath: String, paths: List<String>): ApiResult<Unit>
 
     suspend fun commit(
         repositoryPath: String,
         message: String,
         paths: List<String> = emptyList(),
     ): ApiResult<GitCommitResult>
+
+    suspend fun history(repositoryPath: String, limit: Int = 50): ApiResult<List<GitCommit>>
+
+    suspend fun diffRevision(
+        repositoryPath: String,
+        from: String,
+        to: String,
+    ): ApiResult<GitDiff>
 }

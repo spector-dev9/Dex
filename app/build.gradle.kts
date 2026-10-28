@@ -135,6 +135,7 @@ dependencies {
     implementation(project(":core:diagnostics-api"))
     implementation(project(":core:gateway-api"))
     implementation(project(":core:git-api"))
+    implementation(project(":core:git"))
     implementation(project(":core:opencode-client"))
     implementation(project(":core:runtime-api"))
     implementation(project(":core:runtime"))
