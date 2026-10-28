@@ -16,6 +16,7 @@ import io.github.spectordev9.opencode.server.ProductionServerLauncher
 import io.github.spectordev9.opencode.terminal.ProductionPtyService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -99,14 +100,21 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     private val ensureMutex = Mutex()
 
-    /** Idempotently installs the pinned runtime and starts the server. */
+    /** Idempotently installs the pinned runtime and starts the server.
+     *  Transient first-run download failures are retried with backoff. */
     fun ensureRunning(): Job = scope.launch {
         ensureMutex.withLock {
-            when (runtime.ensureReady()) {
-                is ApiResult.Failure -> return@withLock // state already FAILED
-                else -> Unit
+            var attempt = 0
+            while (true) {
+                val ready = runtime.ensureReady()
+                if (ready is ApiResult.Success) {
+                    supervisor.start() // failure reason is carried in ServerState
+                    break
+                }
+                if (attempt >= START_RETRIES) break
+                attempt++
+                delay(START_RETRY_BACKOFF_MS * attempt)
             }
-            supervisor.start() // failure reason is carried in ServerState
         }
     }
 
@@ -116,6 +124,9 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         get() = supervisor.state
 
     companion object {
+        private const val START_RETRIES = 2
+        private const val START_RETRY_BACKOFF_MS = 8_000L
+
         @Volatile
         private var instance: AppRuntime? = null
 

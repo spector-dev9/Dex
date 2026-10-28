@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
                 onOpenLicenses = {
                     startActivity(android.content.Intent(this, LicensesActivity::class.java))
                 },
+                onRetryRuntime = { appRuntime.ensureRunning() },
             )
         }
     }

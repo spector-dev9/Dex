@@ -45,7 +45,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -136,12 +135,6 @@ private enum class AppTab(val label: String, val glyph: String) {
     Terminal("Terminal", "⌨"),
 }
 
-private data class VerificationTest(
-    val id: String,
-    val title: String,
-    val summary: String,
-)
-
 @Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun OpenCodeShell(
@@ -151,6 +144,7 @@ fun OpenCodeShell(
     runtimeStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.runtime.RuntimeState>? = null,
     serverStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.supervisor.ServerState>? = null,
     onOpenLicenses: () -> Unit,
+    onRetryRuntime: () -> Unit = {},
 ) {
     val runtimeState = runtimeStateFlow?.collectAsState()?.value
     val serverState = serverStateFlow?.collectAsState()?.value
@@ -257,6 +251,7 @@ fun OpenCodeShell(
                     chat = chat,
                     runtimeState = runtimeState,
                     serverState = serverState,
+                    onRetryRuntime = onRetryRuntime,
                 )
                 AppTab.Files -> FilesScreen(
                     modifier = Modifier.padding(padding),
@@ -285,6 +280,7 @@ private fun ChatHome(
     chat: ChatController?,
     runtimeState: io.github.spectordev9.opencode.core.runtime.RuntimeState?,
     serverState: io.github.spectordev9.opencode.core.supervisor.ServerState?,
+    onRetryRuntime: () -> Unit = {},
 ) {
     val banner = runtimeBanner(runtimeState, serverState)
     val chatState = chat?.state?.collectAsState()?.value
@@ -345,7 +341,13 @@ private fun ChatHome(
                 modifier = Modifier.weight(1f),
             )
         } else {
-            DiagnosticsPanel(modifier = Modifier.weight(1f))
+            RuntimeOfflinePanel(
+                modifier = Modifier.weight(1f),
+                banner = banner,
+                showRetry = runtimeState?.status ==
+                    io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED,
+                onRetry = onRetryRuntime,
+            )
         }
     }
 }
@@ -1122,72 +1124,48 @@ private val QUICK_PROVIDERS = listOf(
 )
 
 @Composable
-private fun DiagnosticsPanel(modifier: Modifier = Modifier) {
-    var selectedTest by remember { mutableStateOf("S1") }
-    val tests = listOf(
-        VerificationTest("S1", "S1", "Loader, health, and mock-provider prompt"),
-        VerificationTest("S2-cold", "S2 cold start", "Cold launch and profile-a startup"),
-        VerificationTest("S2-rss", "S2 idle RSS", "Idle memory footprint under load"),
-        VerificationTest("S2-git", "S2 git status", "10k-file git status check"),
-        VerificationTest("S2-npm", "S2 npm test", "npm validation on device"),
-        VerificationTest("S3", "S3", "Guest shell and native PTY match"),
-        VerificationTest("S6", "S6", "OpenCode 2.x contract check"),
-        VerificationTest("S7", "S7", "Background survival and service soak"),
-        VerificationTest("S8", "S8", "Gboard field-input test"),
-        VerificationTest("RT-1", "RT-1", "Offline installability"),
-        VerificationTest("RT-2", "RT-2", "Reference-device startup"),
-        VerificationTest("LC-2", "LC-2", "10-minute active-agent run"),
-        VerificationTest("TERM-5", "TERM-5", "Native terminal input with Gboard"),
-        VerificationTest("STR-5", "STR-5", "Live-device drop test"),
-    )
-
+private fun RuntimeOfflinePanel(
+    modifier: Modifier = Modifier,
+    banner: RuntimeBanner,
+    showRetry: Boolean,
+    onRetry: () -> Unit,
+) {
     Column(
-        modifier = modifier
-            .verticalScroll(rememberScrollState())
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Diagnostics", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextCol)
-        Text(
-            "The checklist moves out of the way while the server is online.",
-            fontSize = 12.sp,
-            color = Muted2,
-        )
-        val rows = tests.chunked(2)
-        rows.forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                row.forEach { test ->
-                    val isSelected = selectedTest == test.id
-                    OutlinedButton(
-                        onClick = { selectedTest = test.id },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isSelected) AccentSoft else Panel2,
-                            contentColor = if (isSelected) Color(0xFFE5E1FF) else Muted,
-                        ),
-                    ) {
-                        Text(test.title)
-                    }
-                }
-                if (row.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-        val selectedSummary = tests.firstOrNull { it.id == selectedTest }?.summary ?: "Select a test to verify."
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = Panel2,
-            border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
-            modifier = Modifier.fillMaxWidth(),
+        Box(
+            Modifier
+                .padding(top = 24.dp)
+                .size(46.dp)
+                .clip(RoundedCornerShape(50))
+                .background(AccentSoft)
+                .border(1.dp, AccentStrong.copy(alpha = 0.4f), RoundedCornerShape(50)),
         ) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Selected test", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Muted2)
-                Text(selectedTest, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextCol)
-                Text(selectedSummary, fontSize = 12.sp, color = Muted)
+            Text(
+                "✳",
+                modifier = Modifier.align(Alignment.Center),
+                color = Accent,
+                fontSize = 20.sp,
+            )
+        }
+        Text(banner.label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextCol)
+        Text(
+            banner.detail,
+            fontSize = 12.sp,
+            color = Muted,
+            textAlign = TextAlign.Center,
+        )
+        if (showRetry) {
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Accent,
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Retry install")
             }
         }
     }

@@ -38,7 +38,10 @@ class PinnedRuntimeInstaller(private val context: Context) {
         "libstdc++" to "libstdc++.so.6",
     )
 
-    fun install(progress: (String, Long, Long) -> Unit = { _, _, _ -> }): String {
+    fun install(
+        progress: (String, Long, Long) -> Unit = { _, _, _ -> },
+        phase: (String) -> Unit = { },
+    ): String {
         val nativeDirectory = Path.of(context.applicationInfo.nativeLibraryDir)
         listOf("libldmusl.so", "libproot.so", "libproot_loader.so").forEach { name ->
             if (!Files.isRegularFile(nativeDirectory.resolve(name), NOFOLLOW_LINKS)) {
@@ -111,6 +114,7 @@ class PinnedRuntimeInstaller(private val context: Context) {
         }
         val downloaded = downloadAll(downloadSpecs, progress)
         val openCodeArchive = downloaded.getValue("OpenCode $version")
+        phase("Extracting and verifying OpenCode $version")
         val runtimeDirectory = RuntimePaths.runtimeDirectory(root)
         val installedOpenCode = when (
             val result = RuntimeArtifactInstaller().install(
@@ -129,6 +133,7 @@ class PinnedRuntimeInstaller(private val context: Context) {
 
         val alpineArchive = downloaded.getValue("Alpine ${alpine.getString("version")}")
         val rootfs = RuntimePaths.alpineRootfs(root)
+        phase("Extracting and verifying Alpine ${alpine.getString("version")}")
         val installedAlpine = when (
             val result = AlpineRootfsInstaller().install(
                 archive = alpineArchive,
@@ -142,6 +147,7 @@ class PinnedRuntimeInstaller(private val context: Context) {
         }
 
         val packageEvidence = mutableListOf<String>()
+        phase("Installing pinned runtime packages")
         for (index in 0 until packages.length()) {
             val spec = packages.getJSONObject(index)
             val packageName = spec.getString("name")
@@ -177,6 +183,7 @@ class PinnedRuntimeInstaller(private val context: Context) {
         }
 
         val runtimeLibraries = manifest.getJSONArray("runtimeLibraries")
+        phase("Linking pinned runtime libraries")
         for (index in 0 until runtimeLibraries.length()) {
             val libraryName = runtimeLibraries.getString(index)
             if (!libraryName.matches(Regex("[A-Za-z0-9_.+-]+"))) {

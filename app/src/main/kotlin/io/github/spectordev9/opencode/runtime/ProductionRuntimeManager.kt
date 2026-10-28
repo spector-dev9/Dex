@@ -51,8 +51,23 @@ class ProductionRuntimeManager(
         )
         val installer = PinnedRuntimeInstaller(context)
         try {
-            stateFlow.value = RuntimeState(status = RuntimeStateStatus.INSTALLING, reason = null)
-            val summary = installer.install()
+        stateFlow.value = RuntimeState(status = RuntimeStateStatus.INSTALLING, reason = null)
+        val summary = installer.install(
+            progress = { item, received, total ->
+                // Keep the banner alive during the multi-minute first-run
+                // download; StateFlow dedupes identical values.
+                stateFlow.value = RuntimeState(
+                    status = RuntimeStateStatus.INSTALLING,
+                    reason = downloadProgressReason(item, received, total),
+                )
+            },
+            phase = { phase ->
+                stateFlow.value = RuntimeState(
+                    status = RuntimeStateStatus.INSTALLING,
+                    reason = phase,
+                )
+            },
+        )
             stateFlow.value = RuntimeState(
                 status = RuntimeStateStatus.READY,
                 version = manifestVersion(),
@@ -124,6 +139,16 @@ class ProductionRuntimeManager(
         ).getString("version")
     } catch (_: Throwable) {
         "unknown"
+    }
+
+    /** Banner-friendly download progress line ("Downloading X · 12 / 98 MiB"). */
+    private fun downloadProgressReason(item: String, received: Long, total: Long): String {
+        fun mib(bytes: Long) = "${bytes / (1024 * 1024)} MiB"
+        return if (total > 0) {
+            "Downloading $item · ${mib(received)} / ${mib(total)}"
+        } else {
+            "Downloading $item · ${mib(received)}"
+        }
     }
 
     private fun digestOf(path: java.nio.file.Path): String =
