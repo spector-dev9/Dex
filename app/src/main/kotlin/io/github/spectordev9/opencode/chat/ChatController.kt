@@ -39,6 +39,9 @@ import kotlinx.serialization.json.longOrNull
 
 const val MAX_PROMPT_ATTACHMENTS = 5
 
+private const val REPLY_POLL_INTERVAL_MS = 1_500L
+private const val REPLY_POLL_TIMEOUT_MS = 180_000L
+
 private val emptyPermissionRules: MutableStateFlow<Map<String, PermissionResponse>> = MutableStateFlow(emptyMap())
 const val MAX_PROMPT_ATTACHMENT_BYTES = 5 * 1024 * 1024
 const val MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES = 10 * 1024 * 1024
@@ -84,6 +87,7 @@ class ChatController(
     private var eventsJob: Job? = null
     private var reloadChannel = Channel<Unit>(Channel.CONFLATED)
     private var reloadJob: Job? = null
+    private var replyPollJob: Job? = null
 
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state
@@ -94,6 +98,8 @@ class ChatController(
         eventsJob = null
         reloadJob?.cancel()
         reloadJob = null
+        replyPollJob?.cancel()
+        replyPollJob = null
         this.client = client
         this.directory = directory
         _state.update {
@@ -126,6 +132,8 @@ class ChatController(
         eventsJob = null
         reloadJob?.cancel()
         reloadJob = null
+        replyPollJob?.cancel()
+        replyPollJob = null
         client = null
         _state.update { ChatUiState(mode = it.mode) }
     }
@@ -463,11 +471,42 @@ class ChatController(
                         },
                     )
                 }
+                replyPollJob?.cancel()
+                replyPollJob = scope.launch { awaitReply(sessionID) }
                 return true
             }
             is ApiResult.Failure -> {
                 _state.update { it.copy(error = result.error.message) }
                 return false
+            }
+        }
+    }
+
+    /**
+     * Polls the session message list while a prompt is in flight so replies
+     * appear even when the SSE feed is unavailable. The event feed still
+     * clears [ChatUiState.sending] as soon as `session.idle` arrives.
+     */
+    private suspend fun awaitReply(sessionID: String) {
+        val deadline = System.currentTimeMillis() + REPLY_POLL_TIMEOUT_MS
+        while (System.currentTimeMillis() < deadline) {
+            delay(REPLY_POLL_INTERVAL_MS)
+            val current = _state.value
+            if (current.activeSessionId != sessionID) return
+            if (!current.sending) {
+                if (current.error == null) loadMessages()
+                return
+            }
+            loadMessages()
+        }
+        _state.update {
+            if (it.activeSessionId == sessionID && it.sending) {
+                it.copy(
+                    sending = false,
+                    error = it.error ?: "The assistant did not reply in time",
+                )
+            } else {
+                it
             }
         }
     }
@@ -669,7 +708,7 @@ class ChatController(
             event.type == "session.idle" -> {
                 if (payload.string("sessionID") == activeSession) {
                     _state.update { it.copy(sending = false) }
-                    reloadChannel.trySend(Unit)
+                    if (_state.value.error == null) reloadChannel.trySend(Unit)
                 }
             }
             event.type == "session.error" -> {
@@ -680,7 +719,6 @@ class ChatController(
                             error = describeSessionError(payload["error"] as? JsonObject),
                         )
                     }
-                    reloadChannel.trySend(Unit)
                 }
             }
             event.type.startsWith("message.") -> {
