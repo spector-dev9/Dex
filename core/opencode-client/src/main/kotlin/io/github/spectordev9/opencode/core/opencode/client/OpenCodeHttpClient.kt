@@ -669,10 +669,10 @@ class OpenCodeHttpClient(
         }
 
     private fun httpError(statusCode: Int): ApiError = when (statusCode) {
-        401 -> ApiError(ErrorCode.E_AUTH, "OpenCode authentication failed", statusCode)
-        403 -> ApiError(ErrorCode.E_PATH_DENIED, "OpenCode denied the request", statusCode)
-        408, 504 -> ApiError(ErrorCode.E_TIMEOUT, "OpenCode request timed out", statusCode)
-        else -> ApiError(ErrorCode.E_UPSTREAM, "OpenCode request failed", statusCode)
+        401 -> ApiError(ErrorCode.E_AUTH, "OpenCode authentication failed (HTTP $statusCode)", statusCode)
+        403 -> ApiError(ErrorCode.E_PATH_DENIED, "OpenCode denied the request (HTTP $statusCode)", statusCode)
+        408, 504 -> ApiError(ErrorCode.E_TIMEOUT, "OpenCode request timed out (HTTP $statusCode)", statusCode)
+        else -> ApiError(ErrorCode.E_UPSTREAM, "OpenCode request failed (HTTP $statusCode)", statusCode)
     }
 
     private fun <T> operation(
