@@ -6,6 +6,8 @@ import io.github.spectordev9.opencode.core.gateway.ServerEvent
 import io.github.spectordev9.opencode.core.model.FileEntry
 import io.github.spectordev9.opencode.core.model.Message
 import io.github.spectordev9.opencode.core.model.Session
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -142,8 +144,10 @@ data class PromptInput(
     val variant: String? = null,
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class PromptPart(
+    @EncodeDefault
     val type: String = "text",
     val text: String? = null,
     val mime: String? = null,

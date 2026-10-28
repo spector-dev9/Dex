@@ -55,6 +55,10 @@ class OpenCodeHttpClientTest {
         )
         assertEquals(Credentials.basic("opencode", "test-password"), request.getHeader("Authorization"))
         assertEquals(
+            "text",
+            body.jsonObject["parts"]!!.jsonArray.first().jsonObject["type"]!!.jsonPrimitive.content,
+        )
+        assertEquals(
             "hello",
             body.jsonObject["parts"]!!.jsonArray.first().jsonObject["text"]!!.jsonPrimitive.content,
         )
