@@ -76,6 +76,13 @@ class BuildController(
     val presets: List<BuildPreset> = listOf(
         BuildPreset("unit", "Run unit tests", "./gradlew test --offline", requiresAndroidSdk = true),
         BuildPreset("assemble", "Assemble debug APK", "./gradlew :app:assembleDebug --offline", requiresAndroidSdk = true),
+        BuildPreset(
+            "gradle-debug",
+            "Gradle debug build",
+            "if [ -x ./gradlew ]; then ./gradlew :app:assembleDebug; " +
+                "else echo 'No Gradle wrapper in this project' >&2; exit 127; fi",
+            isCustom = true,
+        ),
         BuildPreset("install-git", "Install Git", "apk add --no-cache git"),
         BuildPreset("install-node", "Install Node.js", "apk add --no-cache nodejs npm"),
         BuildPreset("install-python", "Install Python", "apk add --no-cache python3 py3-pip"),
