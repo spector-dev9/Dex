@@ -2664,7 +2664,13 @@ private fun GitScreen(
                                     change = change,
                                     busy = gitState.busy,
                                     onOpen = {
-                                        scope.launch { git.showWorkingDiff(change.path, staged = change.staged) }
+                                        if (change.kind ==
+                                            io.github.spectordev9.opencode.core.git.GitChangeKind.CONFLICT
+                                        ) {
+                                            scope.launch { git.openConflict(change.path) }
+                                        } else {
+                                            scope.launch { git.showWorkingDiff(change.path, staged = change.staged) }
+                                        }
                                     },
                                     onStage = { scope.launch { git.stage(listOf(change.path)) } },
                                     onUnstage = { scope.launch { git.unstage(listOf(change.path)) } },
@@ -2825,6 +2831,14 @@ private fun GitScreen(
         }
     }
 
+    // Conflict resolution sheet (F36)
+    if (gitState?.conflictPath != null) {
+        ConflictResolveSheet(
+            git = git,
+            gitState = gitState,
+        )
+    }
+
     // Commit dialog
     if (showCommitDialog) {
         AlertDialog(
@@ -2932,6 +2946,180 @@ private fun GitScreen(
         )
     }
 
+}
+
+@Composable
+private fun ConflictResolveSheet(
+    git: GitController?,
+    gitState: GitUiState,
+) {
+    val palette = LocalOpencodePalette.current
+    var rawEdit by rememberSaveable { mutableStateOf(false) }
+    val conflictText = gitState.conflictText.orEmpty()
+
+    ModalBottomSheet(
+        onDismissRequest = { git?.closeConflict() },
+        containerColor = palette.Panel2,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .heightIn(max = 620.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("RESOLVE CONFLICT", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+                    Text(
+                        gitState.conflictPath.orEmpty(),
+                        color = palette.Muted2,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                TextButton(onClick = { git?.closeConflict() }) {
+                    Text("Close", color = palette.Muted, fontSize = 12.sp)
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = { rawEdit = false }, enabled = rawEdit) {
+                    Text(
+                        "Sections",
+                        color = if (!rawEdit) palette.Accent else palette.Muted2,
+                        fontSize = 12.sp,
+                    )
+                }
+                TextButton(onClick = { rawEdit = true }, enabled = !rawEdit) {
+                    Text(
+                        "Raw edit",
+                        color = if (rawEdit) palette.Accent else palette.Muted2,
+                        fontSize = 12.sp,
+                    )
+                }
+                if (gitState.conflictBlocks.isEmpty()) {
+                    Text("no conflict markers left", color = palette.SuccessCol, fontSize = 11.sp)
+                }
+            }
+
+            if (rawEdit) {
+                BasicTextField(
+                    value = conflictText,
+                    onValueChange = { git?.editConflictText(it) },
+                    textStyle = androidx.compose.ui.text.TextStyle(
+                        color = palette.TextCol,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(palette.Panel)
+                        .padding(10.dp),
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(gitState.conflictBlocks, key = { it.index }) { block ->
+                        Surface(
+                            color = palette.Panel,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                            shape = RoundedCornerShape(9.dp),
+                        ) {
+                            Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    ChipBadge("OURS", palette.SuccessCol)
+                                    Text(
+                                        block.oursLabel,
+                                        color = palette.Muted2,
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Text(
+                                    block.ours.joinToString("\n"),
+                                    color = palette.SuccessCol,
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    ChipBadge("THEIRS", palette.DangerCol)
+                                    Text(
+                                        block.theirsLabel,
+                                        color = palette.Muted2,
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Text(
+                                    block.theirs.joinToString("\n"),
+                                    color = palette.DangerCol,
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Button(
+                                        onClick = { git?.resolveBlock(block.index, ConflictKeep.OURS) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = palette.SuccessCol),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    ) {
+                                        Text("Keep ours", color = palette.DarkBg, fontSize = 11.sp)
+                                    }
+                                    Button(
+                                        onClick = { git?.resolveBlock(block.index, ConflictKeep.THEIRS) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = palette.DangerCol),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    ) {
+                                        Text("Take theirs", color = palette.DarkBg, fontSize = 11.sp)
+                                    }
+                                    TextButton(onClick = { git?.resolveBlock(block.index, ConflictKeep.BOTH) }) {
+                                        Text("Keep both", color = palette.Muted, fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Button(
+                    onClick = { git?.saveResolved() },
+                    enabled = gitState.conflictBlocks.isEmpty() && !gitState.busy,
+                    colors = ButtonDefaults.buttonColors(containerColor = palette.Accent),
+                ) {
+                    Text("Save & stage", color = palette.DarkBg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Text(
+                    "All markers must be resolved first.",
+                    color = palette.Muted2,
+                    fontSize = 10.sp,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
 }
 
 @Composable

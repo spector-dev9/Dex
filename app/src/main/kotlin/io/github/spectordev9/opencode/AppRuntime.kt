@@ -66,13 +66,16 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
     val chat = ChatController(scope, SharedPreferencesChatSessionStore(this.context))
     val files = FilesController(scope)
 
-    /** Guest-shell git for the workspace repository (F31–F35). */
+    /** Guest-shell git for the workspace repository (F31–F35, F36). */
     val git = io.github.spectordev9.opencode.chat.GitController(
         scope = scope,
         git = io.github.spectordev9.opencode.core.git.impl.ShellGitService(
             io.github.spectordev9.opencode.git.GuestGitRunner(this.context),
         ),
         repositoryPath = io.github.spectordev9.opencode.git.GuestGitRunner.GUEST_WORKSPACE,
+        workspace = io.github.spectordev9.opencode.core.workspace.impl.FileWorkspaceService(
+            RuntimePaths.workspaceDirectory(this.context),
+        ),
     )
 
     /** User-interface preferences (theme mode, font sizes) persisted on-device. */

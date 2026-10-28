@@ -8,6 +8,9 @@ import io.github.spectordev9.opencode.core.git.GitCommit
 import io.github.spectordev9.opencode.core.git.GitDiff
 import io.github.spectordev9.opencode.core.git.GitService
 import io.github.spectordev9.opencode.core.git.GitStatus
+import io.github.spectordev9.opencode.core.workspace.Precondition
+import io.github.spectordev9.opencode.core.workspace.WorkspaceService
+import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +32,26 @@ data class GitUiState(
     val refreshing: Boolean = false,
     val error: String? = null,
     val notice: String? = null,
+    val conflictPath: String? = null,
+    val conflictText: String? = null,
+    val conflictBlocks: List<ConflictBlock> = emptyList(),
 )
+
+/** One `<<<<<<<` conflict hunk within a conflicted file. */
+data class ConflictBlock(
+    val index: Int,
+    val startLine: Int,
+    val endLine: Int,
+    val oursLabel: String,
+    val theirsLabel: String,
+    val ours: List<String>,
+    val theirs: List<String>,
+)
+
+enum class ConflictKeep { OURS, THEIRS, BOTH }
+
+private const val READ_CHUNK_BYTES = 64 * 1024
+private const val MAX_CONFLICT_FILE_BYTES = 1 * 1024 * 1024
 
 /**
  * UI state driver for the Git tab (F31–F35).
@@ -42,6 +64,7 @@ class GitController(
     private val scope: CoroutineScope,
     private val git: GitService,
     private val repositoryPath: String,
+    private val workspace: WorkspaceService? = null,
 ) {
     private val mutex = Mutex()
 
@@ -242,6 +265,170 @@ class GitController(
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+    }
+
+    // F36: conflict resolution.
+
+    /** Opens a conflicted file and parses its `<<<<<<<` hunks for editing. */
+    suspend fun openConflict(path: String) {
+        val service = workspace ?: run {
+            _state.update { it.copy(error = "Workspace service is unavailable") }
+            return
+        }
+        mutex.withLock {
+            val text = readWholeFile(service, path)
+            if (text == null) {
+                _state.update { it.copy(error = "Could not read $path") }
+                return
+            }
+            _state.update {
+                it.copy(
+                    conflictPath = path,
+                    conflictText = text,
+                    conflictBlocks = parseConflictBlocks(text),
+                )
+            }
+        }
+    }
+
+    fun closeConflict() {
+        _state.update {
+            it.copy(conflictPath = null, conflictText = null, conflictBlocks = emptyList())
+        }
+    }
+
+    /** Replaces a conflict hunk with the chosen side (or both). */
+    fun resolveBlock(index: Int, keep: ConflictKeep) {
+        val text = _state.value.conflictText ?: return
+        val block = _state.value.conflictBlocks.firstOrNull { it.index == index } ?: return
+        val replacement = when (keep) {
+            ConflictKeep.OURS -> block.ours
+            ConflictKeep.THEIRS -> block.theirs
+            ConflictKeep.BOTH -> block.ours + block.theirs
+        }
+        val lines = text.split('\n').toMutableList()
+        val kept = lines.take(block.startLine).toList()
+        val newLines = kept + replacement + lines.drop(block.endLine + 1)
+        setText(newLines.joinToString("\n"))
+    }
+
+    /** Manual raw-text editing of the conflicted file (F36 "editing tools"). */
+    fun editConflictText(newText: String) {
+        setText(newText)
+    }
+
+    /** Persists the resolved text, stages the file and clears the editor. */
+    fun saveResolved() {
+        val path = _state.value.conflictPath ?: return
+        val text = _state.value.conflictText ?: return
+        if (_state.value.conflictBlocks.isNotEmpty()) {
+            _state.update { it.copy(error = "Resolve all conflict markers first") }
+            return
+        }
+        scope.launch {
+            mutex.withLock {
+                val service = workspace
+                if (service == null) {
+                    _state.update { it.copy(error = "Workspace service is unavailable") }
+                    return@withLock
+                }
+                when (
+                    val written =
+                        service.write(path, text.toByteArray(Charsets.UTF_8), Precondition.None)
+                ) {
+                    is ApiResult.Failure -> {
+                        _state.update { it.copy(error = describe(written.error)) }
+                        return@withLock
+                    }
+
+                    is ApiResult.Success -> Unit
+                }
+                when (val staged = git.stage(repositoryPath, listOf(path))) {
+                    is ApiResult.Failure -> {
+                        _state.update { it.copy(error = describe(staged.error)) }
+                        return@withLock
+                    }
+
+                    is ApiResult.Success -> Unit
+                }
+                _state.update {
+                    it.copy(
+                        conflictPath = null,
+                        conflictText = null,
+                        conflictBlocks = emptyList(),
+                        notice = "Resolved and staged $path",
+                    )
+                }
+                refresh()
+            }
+        }
+    }
+
+    private fun setText(newText: String) {
+        _state.update {
+            it.copy(conflictText = newText, conflictBlocks = parseConflictBlocks(newText))
+        }
+    }
+
+    private suspend fun readWholeFile(service: WorkspaceService, path: String): String? {
+        val output = ByteArrayOutputStream()
+        var offset = 0L
+        while (output.size() < MAX_CONFLICT_FILE_BYTES) {
+            when (val chunk = service.readRange(path, offset, READ_CHUNK_BYTES)) {
+                is ApiResult.Success -> {
+                    output.write(chunk.value.bytes)
+                    offset += chunk.value.bytes.size
+                    if (chunk.value.endOfFile) {
+                        return output.toString(Charsets.UTF_8)
+                    }
+                    if (chunk.value.bytes.isEmpty()) return null
+                }
+
+                is ApiResult.Failure -> return null
+            }
+        }
+        return null
+    }
+
+    private fun parseConflictBlocks(text: String): List<ConflictBlock> {
+        val lines = text.split('\n')
+        val blocks = mutableListOf<ConflictBlock>()
+        var index = 0
+        var i = 0
+        while (i < lines.size) {
+            if (!lines[i].startsWith("<<<<<<< ")) {
+                i++
+                continue
+            }
+            val oursLabel = lines[i].removePrefix("<<<<<<< ").trim()
+            val start = i
+            var separator = -1
+            var end = -1
+            var j = i + 1
+            while (j < lines.size && separator < 0 && end < 0) {
+                when {
+                    lines[j] == "=======" -> separator = j
+                    lines[j].startsWith(">>>>>>> ") && separator >= 0 -> end = j
+                    lines[j].startsWith("<<<<<<< ") -> break // nested/unbalanced; stop
+                }
+                j++
+            }
+            if (separator >= 0 && end >= 0) {
+                blocks += ConflictBlock(
+                    index = index++,
+                    startLine = start,
+                    endLine = end,
+                    oursLabel = oursLabel.ifEmpty { "ours" },
+                    theirsLabel = lines[end].removePrefix(">>>>>>> ").trim().ifEmpty { "theirs" },
+                    ours = lines.subList(start + 1, separator).toList(),
+                    theirs = lines.subList(separator + 1, end).toList(),
+                )
+                i = end + 1
+            } else {
+                i++
+            }
+        }
+        return blocks
     }
 
     private fun mutate(block: suspend () -> MutationOutcome) {
