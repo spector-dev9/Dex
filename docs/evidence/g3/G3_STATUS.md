@@ -35,7 +35,7 @@ runtime, PTY and auth paths; see [`spike-harness.md`](spike-harness.md).
 | STR-1 | PENDING | [probe](host-runtime-probe.md) | Heartbeat-only SSE observed; gateway request counter absent |
 | STR-2 | PENDING | — | No UI latency tracing |
 | STR-3 | PENDING | — | No Macrobenchmark; UI not wired |
-| STR-4 | PENDING | — | Cancel path not wired |
+| STR-4 | PARTIAL | [chat shell](../../app/src/main/kotlin/io/github/spectordev9/opencode/OpenCodeShell.kt), [chat controller](../../app/src/main/kotlin/io/github/spectordev9/opencode/chat/ChatController.kt) | Cancel wired: stop button aborts the streaming reply; on-device cancel run pending |
 | STR-5 | PARTIAL | `ui/src/bridge/resync.test.ts`, [probe](host-runtime-probe.md) | 500-trial simulation passes; live 500-drop run pending |
 | WS-1 | PASS | [host tests](host-tests.md) | 100,000-case path safety run passed |
 | WS-2 | PARTIAL | [stress](ws2-stress-300.log), [host tests](host-tests.md), [device quick](g3-device-quick-20261027.json) | 300/1000 host-JVM runs passed; spike quick 100/100 on device (corrupt=0, missing=0, sha verified); FULL 1000 SIGKILL device run pending |

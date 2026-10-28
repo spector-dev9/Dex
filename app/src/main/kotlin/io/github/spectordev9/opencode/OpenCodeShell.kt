@@ -605,22 +605,41 @@ private fun ChatScreen(
                     }
                     Spacer(Modifier.weight(1f))
                     val canSend = !state.sending && draft.text.isNotBlank()
+                    // STR-4: while the agent is streaming the send control
+                    // becomes the cancel affordance (abort() → session.idle).
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (canSend) Accent else Panel3,
+                        color = when {
+                            state.sending -> Color(0x33DF7B7B)
+                            canSend -> Accent
+                            else -> Panel3
+                        },
+                        border = if (state.sending) {
+                            androidx.compose.foundation.BorderStroke(1.dp, Color(0x66DF7B7B))
+                        } else {
+                            null
+                        },
                         modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .clickable(enabled = canSend) {
-                                val text = draft.text.take(MAX_COMPOSER_CHARS)
-                                draft = TextFieldValue()
-                                scope.launch { chat.sendOrStart(text) }
+                            .clickable(enabled = state.sending || canSend) {
+                                if (state.sending) {
+                                    scope.launch { chat.abort() }
+                                } else {
+                                    val text = draft.text.take(MAX_COMPOSER_CHARS)
+                                    draft = TextFieldValue()
+                                    scope.launch { chat.sendOrStart(text) }
+                                }
                             },
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                if (state.sending) "•" else "➤",
-                                color = if (canSend) Color.White else Muted2,
+                                if (state.sending) "■" else "➤",
+                                color = when {
+                                    state.sending -> Color(0xFFE8B7B7)
+                                    canSend -> Color.White
+                                    else -> Muted2
+                                },
                                 fontSize = 15.sp,
                             )
                         }
