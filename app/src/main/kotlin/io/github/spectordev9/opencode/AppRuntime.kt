@@ -153,6 +153,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
     private var lastAttachedEndpoint: String? = null
     private var currentClient: io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient? = null
     private var remoteProfileName: String? = null
+    private var pendingSessionId: String? = null
 
     init {
         notifier.ensureChannel()
@@ -181,6 +182,10 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
             currentClient = client
             attachWorkspace(client)
             lastAttachedEndpoint = endpointKey
+            pendingSessionId?.let { sessionID ->
+                pendingSessionId = null
+                scope.launch { chat.selectSession(sessionID) }
+            }
             diagnostics.record(
                 DiagnosticLevel.INFO,
                 "server",
@@ -273,6 +278,17 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
     }
 
     fun activeRemoteProfile(): String? = remoteProfileName
+
+    /** Routes a deep link to a session after the server is attached (F61). */
+    fun openSession(sessionID: String) {
+        val clean = sessionID.trim()
+        if (clean.isEmpty() || clean.length > 256) return
+        if (currentClient == null) {
+            pendingSessionId = clean
+        } else {
+            scope.launch { chat.selectSession(clean) }
+        }
+    }
 
     /** Switches the active local project folder and reattaches chat/files (F10). */
     fun selectProject(id: String): ApiResult<io.github.spectordev9.opencode.features.ProjectWorkspace> {

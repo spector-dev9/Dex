@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
         appRuntime = AppRuntime.obtain(applicationContext, appScope)
         // Install/verify the pinned runtime, then start the supervised server.
         appRuntime.ensureRunning()
+        handleDeepLink(intent)
         setContent {
             OpenCodeShell(
                 ptyService = appRuntime.terminal,
@@ -52,6 +53,19 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         appRuntime.onForeground()
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: android.content.Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme != "opencode" || data.host != "session") return
+        val sessionID = data.pathSegments.firstOrNull() ?: return
+        appRuntime.openSession(sessionID)
     }
 
     private companion object {

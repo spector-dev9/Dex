@@ -36,10 +36,10 @@ class SecretRedactingScrubber : LogScrubber {
             ) to "$1: $REDACTED",
             Regex("""(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{6,}""") to "Bearer $REDACTED",
             Regex("""\bsk-[A-Za-z0-9_-]{8,}""") to "sk-$REDACTED",
+            Regex("""(?i)([?&](?:api[_-]?key|token|secret|password)=)[^&\s]+""") to "$1$REDACTED",
             Regex(
                 """(?i)\b(api[_-]?key|token|secret|password|passwd|pass)\b\s*[:=]\s*("[^"]*"|'[^']*'|\S+)""",
             ) to "$1=$REDACTED",
-            Regex("""(?i)([?&](?:api[_-]?key|token|secret|password)=)[^&\s]+""") to "$1$REDACTED",
             Regex("""(?i)\bOPENCODE_LOOPBACK_PASSWORD\s*=\s*\S+""") to
                 "OPENCODE_LOOPBACK_PASSWORD=$REDACTED",
         )
