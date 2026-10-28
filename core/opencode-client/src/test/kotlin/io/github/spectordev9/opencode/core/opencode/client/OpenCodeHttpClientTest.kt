@@ -182,6 +182,7 @@ class OpenCodeHttpClientTest {
                     [{
                       "id":"ses_123","slug":"sample","projectID":"prj_1",
                       "directory":"/workspace","title":"Sample","version":"1.19.3",
+                      "path":"/workspace/session",
                       "time":{"created":1,"updated":2}
                     }]
                     """.trimIndent(),
@@ -196,6 +197,7 @@ class OpenCodeHttpClientTest {
             is ApiResult.Failure -> throw AssertionError(result.error.toString())
         }
         assertEquals("ses_123", sessions.single().id)
+        assertEquals("/workspace/session", sessions.single().path)
         assertEquals("/session", request.requestUrl?.encodedPath)
         assertEquals("/workspace", request.requestUrl?.queryParameter("directory"))
     }

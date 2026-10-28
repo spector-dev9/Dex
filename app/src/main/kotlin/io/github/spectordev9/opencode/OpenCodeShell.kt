@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -93,6 +94,7 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -179,6 +181,7 @@ fun OpenCodeShell(
     val runtimeState = runtimeStateFlow?.collectAsState()?.value
     val serverState = serverStateFlow?.collectAsState()?.value
     val chatState = chat?.state?.collectAsState()?.value
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Chat) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
 
@@ -198,53 +201,55 @@ fun OpenCodeShell(
         Scaffold(
             containerColor = palette.DarkBg,
             topBar = {
-                TopAppBar(
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = palette.TopbarBg,
-                    ),
-                    title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Text("◈", color = palette.Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            Column {
-                                Text("OPENCODE", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                Text(
-                                    "MOBILE WORKSPACE",
-                                    fontSize = 9.sp,
-                                    letterSpacing = 1.4.sp,
-                                    color = palette.Muted2,
+                if (!imeVisible) {
+                    TopAppBar(
+                        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                            containerColor = palette.TopbarBg,
+                        ),
+                        title = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Text("◈", color = palette.Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Column {
+                                    Text("OPENCODE", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        "MOBILE WORKSPACE",
+                                        fontSize = 9.sp,
+                                        letterSpacing = 1.4.sp,
+                                        color = palette.Muted2,
+                                    )
+                                }
+                                val online = serverState?.status ==
+                                    io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY
+                                Box(
+                                    Modifier
+                                        .padding(start = 4.dp)
+                                        .size(7.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(
+                                            when {
+                                                online -> palette.SuccessCol
+                                                runtimeState?.status ==
+                                                    io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED
+                                                    -> palette.DangerCol
+                                                else -> palette.WarningCol
+                                            },
+                                        ),
                                 )
                             }
-                            val online = serverState?.status ==
-                                io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY
-                            Box(
-                                Modifier
-                                    .padding(start = 4.dp)
-                                    .size(7.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(
-                                        when {
-                                            online -> palette.SuccessCol
-                                            runtimeState?.status ==
-                                                io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED
-                                                -> palette.DangerCol
-                                            else -> palette.WarningCol
-                                        },
-                                    ),
-                            )
-                        }
-                    },
-                    actions = {
-                        TextButton(onClick = { showSettings = true }) {
-                            Text("Settings", color = palette.Muted, fontSize = 12.sp)
-                        }
-                        TextButton(onClick = onOpenLicenses) {
-                            Text("Licenses", color = palette.Muted, fontSize = 12.sp)
-                        }
-                    },
-                )
+                        },
+                        actions = {
+                            TextButton(onClick = { showSettings = true }) {
+                                Text("Settings", color = palette.Muted, fontSize = 12.sp)
+                            }
+                            TextButton(onClick = onOpenLicenses) {
+                                Text("Licenses", color = palette.Muted, fontSize = 12.sp)
+                            }
+                        },
+                    )
+                }
             },
             bottomBar = {},
         ) { padding ->
@@ -345,26 +350,28 @@ fun OpenCodeShell(
                                 )
                             }
                         }
-                        NavigationBar(containerColor = palette.Panel) {
-                            AppTab.entries.forEach { tab ->
-                                NavigationBarItem(
-                                    selected = selectedTab == tab,
-                                    onClick = { selectedTab = tab },
-                                    icon = {
-                                        Text(
-                                            tab.glyph,
-                                            fontSize = 15.sp,
-                                            color = if (selectedTab == tab) palette.Accent else palette.Muted2,
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            tab.label,
-                                            fontSize = 10.sp,
-                                            color = if (selectedTab == tab) palette.TextCol else palette.Muted2,
-                                        )
-                                    },
-                                )
+                        if (!imeVisible) {
+                            NavigationBar(containerColor = palette.Panel) {
+                                AppTab.entries.forEach { tab ->
+                                    NavigationBarItem(
+                                        selected = selectedTab == tab,
+                                        onClick = { selectedTab = tab },
+                                        icon = {
+                                            Text(
+                                                tab.glyph,
+                                                fontSize = 15.sp,
+                                                color = if (selectedTab == tab) palette.Accent else palette.Muted2,
+                                            )
+                                        },
+                                        label = {
+                                            Text(
+                                                tab.label,
+                                                fontSize = 10.sp,
+                                                color = if (selectedTab == tab) palette.TextCol else palette.Muted2,
+                                            )
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -400,6 +407,7 @@ private fun ChatHome(
     val palette = LocalOpencodePalette.current
     val banner = runtimeBanner(runtimeState, serverState, palette)
     val chatState = chat?.state?.collectAsState()?.value
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     Column(
         modifier = modifier
@@ -408,43 +416,45 @@ private fun ChatHome(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = palette.Panel,
-            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+        if (!imeVisible) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = palette.Panel,
+                border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(
-                    Modifier
-                        .size(7.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(banner.dotColor),
-                )
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 10.dp),
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(banner.label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
-                    Text(banner.detail, fontSize = 12.sp, color = palette.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                if (banner.version != null) {
-                    Surface(
-                        shape = RoundedCornerShape(7.dp),
-                        color = palette.Panel3,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderStrong),
+                    Box(
+                        Modifier
+                            .size(7.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(banner.dotColor),
+                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 10.dp),
                     ) {
-                        Text(
-                            "v${banner.version}",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            fontSize = 10.sp,
-                            color = palette.Muted,
-                        )
+                        Text(banner.label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+                        Text(banner.detail, fontSize = 12.sp, color = palette.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (banner.version != null) {
+                        Surface(
+                            shape = RoundedCornerShape(7.dp),
+                            color = palette.Panel3,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderStrong),
+                        ) {
+                            Text(
+                                "v${banner.version}",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                fontSize = 10.sp,
+                                color = palette.Muted,
+                            )
+                        }
                     }
                 }
             }

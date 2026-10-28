@@ -1,0 +1,56 @@
+OpenCode Mobile build and runtime error notes
+Updated: 2026-10-28
+
+Were the repeated build failures the same?
+No. The failures were different across attempts. Some later errors were exposed
+only after earlier compile errors were fixed.
+
+Confirmed failures and causes
+
+1. GitHub CI for commit 8450b1f
+   The contract check failed with exit code 1. Its public check annotation only
+   reported "Process completed with exit code 1"; it did not include the
+   underlying script output. The Kotlin and Android checks on that commit
+   succeeded. The subsequent CI-fix commit 91c25ab updated architecture-check
+   allowlists for the new Git module and fixed related unresolved references.
+
+2. App Kotlin compilation after the Git UI was added
+   OpenCodeShell was missing imports for Git and permission UI types.
+   ChatController.testConnection was nested inside saveApiKey, and GitController
+   referenced a missing success helper. After those were fixed, compilation
+   exposed separate Compose experimental-API opt-ins and nullable Git controller
+   calls in confirmation dialogs. These were compile errors, not the same
+   daemon/resource failure seen in an earlier build.
+
+3. App test compilation and Git conflict tests
+   The fake Git service omitted the GitCommit import, and the new conflict tests
+   lacked test/assertion imports and reused a coroutine scope that a test
+   cancelled. Once they compiled, four tests failed because the conflict parser
+   stopped at the "=======" separator before finding ">>>>>>>", and because
+   tests shared the cancelled scope. The parser and test setup were corrected.
+
+4. Git module test compilation and assertions
+   ShellGitServiceTest called suspend functions outside runBlocking, used
+   firstOrNull on a Map instead of its entries, and had invalid result/map
+   helpers. After compilation was fixed, tests found incorrect porcelain-v2
+   rename/conflict fixtures and a diff fixture that did not match the generated
+   command. The fixtures and Git path parsing were corrected.
+
+5. Session list runtime error
+   The pinned OpenCode API contract defines Session.path as a string, but the
+   client model expected a JSON object. A real session response containing a
+   string path could therefore fail deserialization and produce
+   "OpenCode returned an invalid response for session.list". The model now
+   matches the API contract, and the client test includes a string path.
+
+Keyboard and screen layout
+The activity now requests adjustResize. While the IME is visible, the app hides
+the top app bar, mobile tab bar, and chat status banner so the composer and
+conversation have more usable screen space.
+
+Latest local verification
+./gradlew --no-daemon --max-workers=1 :app:assembleDebug :app:testDebugUnitTest
+  :core:opencode-client:test :core:workspace:test :core:git:test
+Result: BUILD SUCCESSFUL.
+
+The keyboard layout change has not been verified on a physical Android device.

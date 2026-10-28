@@ -14,7 +14,7 @@ data class Session(
     val version: String,
     val time: SessionTime,
     val workspaceID: String? = null,
-    val path: JsonObject? = null,
+    val path: String? = null,
     val parentID: String? = null,
     val summary: JsonElement? = null,
     val cost: Double? = null,
