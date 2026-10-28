@@ -1,5 +1,6 @@
 package io.github.spectordev9.opencode.core.git.impl
 
+import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.common.ErrorCode
 import io.github.spectordev9.opencode.core.git.GitChangeKind
 import kotlinx.coroutines.runBlocking
