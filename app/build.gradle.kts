@@ -144,6 +144,7 @@ dependencies {
     implementation(project(":core:supervisor"))
     implementation(project(":core:terminal-api"))
     implementation(project(":core:workspace-api"))
+    implementation(libs.okhttp)
 
     testImplementation(project(":core:bridge-api"))
     testImplementation(project(":core:common-api"))

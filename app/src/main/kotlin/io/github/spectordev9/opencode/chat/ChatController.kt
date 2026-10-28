@@ -1,12 +1,12 @@
 package io.github.spectordev9.opencode.chat
 
 import io.github.spectordev9.opencode.core.common.ApiResult
-import io.github.spectordev9.opencode.core.common.HttpMethod
 import io.github.spectordev9.opencode.core.common.TimeoutClass
 import io.github.spectordev9.opencode.core.gateway.GatewayOperation
 import io.github.spectordev9.opencode.core.gateway.GatewayResponseDecoder
-import io.github.spectordev9.opencode.core.gateway.ServerEvent
 import io.github.spectordev9.opencode.core.gateway.GatewayRequest
+import io.github.spectordev9.opencode.core.gateway.HttpMethod
+import io.github.spectordev9.opencode.core.gateway.ServerEvent
 import io.github.spectordev9.opencode.core.model.Message
 import io.github.spectordev9.opencode.core.model.PermissionRequest
 import io.github.spectordev9.opencode.core.model.Session

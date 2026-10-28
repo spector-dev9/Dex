@@ -1329,7 +1329,7 @@ private fun formatRelativeTime(millis: Long): String {
 }
 
 private fun kotlinx.serialization.json.JsonObject?.stringField(name: String): String? =
-    this?.let { (it[name] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull }
+    this?.let { (it[name] as? kotlinx.serialization.json.JsonPrimitive)?.content }
 
 /** Chat-home banner state derived from the runtime and supervisor flows. */
 private data class RuntimeBanner(
