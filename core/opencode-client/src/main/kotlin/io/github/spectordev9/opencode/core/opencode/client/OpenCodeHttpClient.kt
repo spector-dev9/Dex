@@ -560,7 +560,14 @@ class OpenCodeHttpClient(
                         ) {
                             val statusCode = response?.code
                             if (statusCode != null && statusCode in 400..499) {
-                                close(OpenCodeClientException(httpError(statusCode)))
+                                val body = response?.body?.byteStream()?.let { stream ->
+                                    ResponseBodySizeGuard.readTruncated(
+                                        stream,
+                                        ResponseBodySizeGuard.ERROR_BODY_MAX_BYTES,
+                                    )
+                                } ?: ByteArray(0)
+                                response?.close()
+                                close(OpenCodeClientException(httpError(statusCode, body)))
                                 reconnect.complete(false)
                             } else {
                                 reconnect.complete(true)
