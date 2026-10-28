@@ -65,6 +65,9 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
     val chat = ChatController(scope)
     val files = FilesController(scope)
 
+    /** User-interface preferences (theme mode, font sizes) persisted on-device. */
+    val uiPrefs = io.github.spectordev9.opencode.ui.UiPrefs(this.context)
+
     private var lastAttachedEndpoint: String? = null
 
     init {

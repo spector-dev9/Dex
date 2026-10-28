@@ -51,6 +51,46 @@ class FilesController(
         _state.update { FilesUiState(connected = false) }
     }
 
+    /**
+     * Tree support (F11): expand a directory in place by fetching its
+     * children without moving the browse root, or collapse it again.
+     */
+    suspend fun toggleExpand(entry: FileEntry) {
+        val activeClient = client ?: return
+        if (entry.type != FileEntryType.DIRECTORY) return
+        val wasExpanded = entry.path in _state.value.expanded
+        if (wasExpanded) {
+            _state.update { it.copy(expanded = it.expanded - entry.path) }
+            return
+        }
+        if (entry.path in _state.value.children) {
+            _state.update { it.copy(expanded = it.expanded + entry.path) }
+            return
+        }
+        _state.update { it.copy(loadingDirs = it.loadingDirs + entry.path) }
+        val result = activeClient.listFiles(entry.path, directory)
+        when (result) {
+            is ApiResult.Success -> _state.update {
+                it.copy(
+                    children = it.children + (entry.path to result.value.sortedWith(
+                        compareByDescending<FileEntry> { e -> e.type == FileEntryType.DIRECTORY }
+                            .thenBy { e -> e.name.lowercase() },
+                    )),
+                    expanded = it.expanded + entry.path,
+                    loadingDirs = it.loadingDirs - entry.path,
+                    error = null,
+                )
+            }
+
+            is ApiResult.Failure -> _state.update {
+                it.copy(
+                    error = result.error.message,
+                    loadingDirs = it.loadingDirs - entry.path,
+                )
+            }
+        }
+    }
+
     suspend fun open(entry: FileEntry) {
         when (entry.type) {
             FileEntryType.DIRECTORY -> list(entry.path)
@@ -78,17 +118,22 @@ class FilesController(
         mutex.withLock {
             val result = activeClient.listFiles(currentPath, directory)
             when (result) {
-                is ApiResult.Success -> _state.update {
-                    it.copy(
-                        entries = result.value.sortedWith(
-                            compareByDescending<FileEntry> { e -> e.type == FileEntryType.DIRECTORY }
-                                .thenBy { e -> e.name.lowercase() },
-                        ),
-                        currentPath = currentPath,
-                        error = null,
-                        loading = false,
-                    )
-                }
+            is ApiResult.Success -> _state.update {
+                it.copy(
+                    entries = result.value.sortedWith(
+                        compareByDescending<FileEntry> { e -> e.type == FileEntryType.DIRECTORY }
+                            .thenBy { e -> e.name.lowercase() },
+                    ),
+                    currentPath = currentPath,
+                    error = null,
+                    loading = false,
+                    // Navigation replaces the visible tree; stale expansions
+                    // of other directories are not meaningful here.
+                    expanded = emptySet(),
+                    children = emptyMap(),
+                    loadingDirs = emptySet(),
+                )
+            }
                 is ApiResult.Failure -> _state.update {
                     it.copy(error = result.error.message, loading = false)
                 }
@@ -153,4 +198,32 @@ data class FilesUiState(
     val previewPath: String? = null,
     val previewText: String? = null,
     val error: String? = null,
+    /** Directories currently expanded in the inline tree (F11). */
+    val expanded: Set<String> = emptySet(),
+    /** Fetched children of expanded directories, keyed by directory path. */
+    val children: Map<String, List<FileEntry>> = emptyMap(),
+    /** Directories with an in-flight children fetch. */
+    val loadingDirs: Set<String> = emptySet(),
 )
+
+/** One flattened row of the file explorer tree. */
+data class FileTreeRow(
+    val entry: FileEntry,
+    val depth: Int,
+)
+
+/** Depth-first flattening of expanded directories into renderable rows. */
+fun flattenFileTree(entries: List<FileEntry>, state: FilesUiState): List<FileTreeRow> {
+    val rows = mutableListOf<FileTreeRow>()
+    fun walk(list: List<FileEntry>, depth: Int) {
+        list.forEach { entry ->
+            rows += FileTreeRow(entry, depth)
+            if (entry.type == FileEntryType.DIRECTORY && entry.path in state.expanded) {
+                val kids = state.children[entry.path].orEmpty()
+                if (kids.isNotEmpty()) walk(kids, depth + 1)
+            }
+        }
+    }
+    walk(entries, 0)
+    return rows
+}

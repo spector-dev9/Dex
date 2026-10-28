@@ -22,6 +22,7 @@ class MainActivity : ComponentActivity() {
                 ptyService = appRuntime.terminal,
                 chat = appRuntime.chat,
                 files = appRuntime.files,
+                uiPrefs = appRuntime.uiPrefs,
                 runtimeStateFlow = appRuntime.runtimeState,
                 serverStateFlow = appRuntime.serverState,
                 onOpenLicenses = {

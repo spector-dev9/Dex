@@ -1,0 +1,376 @@
+OPENCODE MOBILE — COMPLETE FEATURE LIST AND WORKING SPECIFICATIONS
+
+Purpose:
+Build a native Kotlin Android application for OpenCode that combines AI coding chat, project and file management, terminal access, Android-native capabilities, runtime management, and reliable session recovery.
+
+The feature IDs below describe desired capabilities. They do not mean the current repository already implements them.
+
+
+SECTION 1 — AI CODING CHAT
+
+F01. Real-time AI streaming
+Working: Send a prompt to the OpenCode server and receive a stream of response events. Parse events in Kotlin and update the Compose UI incrementally instead of waiting for the complete response.
+
+F02. Rich message rendering
+Working: Render Markdown, headings, tables, lists, code blocks, and supported terminal output. Apply syntax highlighting based on the detected programming language.
+
+F03. Code actions
+Working: Provide copy, select, share, and other appropriate actions on code blocks and messages. Preserve formatting when copying code.
+
+F04. Prompt editing and retry
+Working: Allow users to edit a previous prompt or retry a failed request. Reuse the existing session where appropriate and clearly distinguish a retry from a new message.
+
+F05. Stop generation
+Working: Cancel the active request or generation using the supported OpenCode API. Update the UI immediately, then reconcile the final server state.
+
+F06. Tool-call display
+Working: Show agent operations such as reading files, editing files, and running commands as expandable cards containing status, results, and errors.
+
+F07. Progress and thinking states
+Working: Display progress indicators, active tool names, and reasoning or status information only when the backend actually exposes that information.
+
+F08. Message attachments
+Working: Allow supported images and files to be selected through Android's document picker. Send them in the format supported by the active model and server.
+
+F09. Conversation state
+Working: Keep messages, loading status, errors, and active requests associated with the correct session. Restore the visible conversation when returning to it.
+
+
+SECTION 2 — PROJECT AND FILE MANAGEMENT
+
+F10. Workspace selection
+Working: Let users select a project directory or connect to a server-side project. Store the workspace identifier and access permissions. Do not assume a remote server path is directly accessible on Android.
+
+F11. File explorer
+Working: Display a hierarchical directory tree with expandable folders, file-type icons, loading states, and navigation.
+
+F12. File operations
+Working: Support creating, opening, renaming, moving, and deleting files and folders. Validate paths, check permissions, and request confirmation for destructive operations.
+
+F13. Code editor
+Working: Open files in an editor with syntax highlighting, line numbers, search, selection, and appropriate keyboard behavior. Track unsaved changes and handle conflicting modifications.
+
+F14. Project search
+Working: Search filenames and file contents within the authorized workspace. Support filtering by extension or path and opening a result at its matching line.
+
+F15. File change tracking
+Working: Track changed, added, deleted, and untracked files using Git status or another reliable change-detection mechanism.
+
+F16. Diff viewer
+Working: Compare original and modified content. Highlight additions, deletions, and changed lines, and let users review AI-generated changes before accepting or reverting them.
+
+F17. Workspace safety
+Working: Restrict file operations to authorized roots, validate canonical paths, prevent path traversal, and use safe write operations where possible.
+
+
+SECTION 3 — INTEGRATED TERMINAL
+
+F18. Interactive shell
+Working: Start a shell through the supported local runtime or a remote execution service. Connect input, output, and process control to a terminal emulator.
+
+F19. PTY and terminal rendering
+Working: Allocate a pseudoterminal when supported, process terminal control sequences, render ANSI colors, and synchronize terminal dimensions with the visible viewport.
+
+F20. Terminal keyboard
+Working: Provide an extra-key row for Esc, Tab, Ctrl, Alt, arrows, and common symbols. Translate key combinations into the correct terminal input.
+
+F21. Terminal sessions
+Working: Maintain separate terminal-session identifiers, output buffers, working directories, and process states. Reconnect to surviving processes where the runtime supports it.
+
+F22. Terminal history and clipboard
+Working: Support text selection, copying, pasting, scrollback, and optional command history. Avoid intercepting normal Android keyboard behavior unnecessarily.
+
+F23. Process management
+Working: Track process identifiers where available, running state, exit codes, and termination requests. Show a clear result when a command exits or cannot start.
+
+F24. Terminal diagnostics
+Working: Report missing executables, permission errors, PTY allocation failures, and Android lifecycle interruptions separately instead of collapsing them into a generic failure.
+
+
+SECTION 4 — AI PROVIDERS AND MODELS
+
+F25. Provider configuration
+Working: Let users configure supported providers, API endpoints, authentication, and provider-specific settings. Validate required fields before saving.
+
+F26. API-key management
+Working: Accept API keys, store secrets securely using Android Keystore-backed encryption, mask values in the UI, and redact them from logs and diagnostics.
+
+F27. Model selection
+Working: Retrieve available models when supported or use a validated model list. Allow model selection per session or request where supported by OpenCode.
+
+F28. Connection testing
+Working: Send a safe test request or health check to the configured endpoint. Display actionable errors for authentication, connectivity, unsupported models, and server failures.
+
+F29. Usage information
+Working: Display token counts, context usage, latency, and estimated costs only when reliable information is available. Distinguish unavailable measurements from zero usage.
+
+F30. Free and custom endpoints
+Working: Support compatible free-tier and paid endpoints without hardcoding assumptions about quotas, model availability, or provider pricing.
+
+
+SECTION 5 — GIT INTEGRATION
+
+F31. Repository status
+Working: Display the current branch and working-tree changes, including staged, unstaged, untracked, and conflicted files.
+
+F32. Stage and commit
+Working: Allow users to select files or hunks, stage changes, enter a commit message, and create commits through Git.
+
+F33. Branch management
+Working: List branches and support branch creation and switching. Warn about uncommitted changes that may be affected.
+
+F34. Pull and push
+Working: Execute supported Git network operations using configured credentials. Report authentication errors, rejected pushes, and conflicts.
+
+F35. History and patches
+Working: Display commit history and inspect diffs between revisions. Export patches and revert selected changes with appropriate safety checks.
+
+F36. Conflict resolution
+Working: Identify conflicted files, display conflicting sections, and provide editing tools to resolve them before marking the conflict resolved.
+
+
+SECTION 6 — AGENT PERMISSIONS AND TOOLS
+
+F37. Tool execution timeline
+Working: Display each supported tool invocation with its name, status, duration, and output. Update the timeline as events arrive.
+
+F38. Approval workflow
+Working: When the server requests permission, present the operation and relevant context. Send approval or rejection through the supported protocol.
+
+F39. Permission rules
+Working: Allow configuration of supported permission policies. Apply server-defined rules accurately and do not pretend the client can enforce restrictions that the backend ignores.
+
+F40. Destructive-operation protection
+Working: Highlight potentially destructive actions and require confirmation according to the configured policy. Provide a clear explanation of the consequences.
+
+F41. Cancellation and errors
+Working: Allow cancellation where supported, show whether it was acknowledged, and preserve the actual outcome of operations that completed before cancellation.
+
+F42. Agent selection
+Working: Display available agents or subagents and pass the chosen identifier to the server when the protocol supports it.
+
+
+SECTION 7 — SESSIONS AND LONG-RUNNING TASKS
+
+F43. Session creation and management
+Working: Create, rename, archive, and delete sessions using supported server operations. Update the local session list after successful changes.
+
+F44. Session restoration
+Working: Save the active project, session identifier, navigation state, and relevant UI state. Reload authoritative messages from the server when reopening a session.
+
+F45. Session export and import
+Working: Export session data into a documented format, including identifiers and messages where available. Validate imported data and do not assume arbitrary session JSON can be restored directly to the server.
+
+F46. Session search and forking
+Working: Search locally cached session metadata or server-provided results. Fork a session from a selected point only when the backend supports that operation.
+
+F47. Task status
+Working: Represent tasks as running, waiting for approval, completed, failed, or interrupted based on actual events and server state.
+
+F48. Background recovery
+Working: When the app returns to the foreground, reconnect and query the server or runtime to determine whether work is still running. Do not assume Android kept a process alive.
+
+F49. Network recovery
+Working: Detect disconnected streams, reconnect safely, and reconcile messages with the server. Avoid blindly resending prompts that might already have been processed.
+
+F50. Notifications
+Working: Where appropriate, notify users of completed tasks, permission requests, or failures. Respect notification permissions and Android background-execution limits.
+
+
+SECTION 8 — EXTENSIBILITY AND PROJECT CONFIGURATION
+
+F51. MCP configuration
+Working: Configure supported Model Context Protocol servers, show connection status, and make available tools discoverable to the user.
+
+F52. Custom instructions
+Working: Edit project-specific instructions and configuration files through a validated interface. Preserve existing content unless the user explicitly chooses to replace it.
+
+F53. Skills and reusable workflows
+Working: List and invoke supported skills or reusable workflows. Verify their source, availability, and required permissions.
+
+F54. Environment configuration
+Working: Manage project-level environment settings and tool configuration. Keep secrets out of source control and avoid exposing sensitive values in the UI.
+
+F55. Plugin support
+Working: Expose supported server-side extensions without assuming every desktop or web plugin can run inside an Android app.
+
+
+SECTION 9 — ANDROID-NATIVE FUNCTIONALITY
+
+F56. Native Compose navigation
+Working: Use Jetpack Compose for screens, navigation, state-driven rendering, and responsive UI components. Keep business logic outside composable functions.
+
+F57. Keyboard and IME handling
+Working: Handle keyboard visibility, multiline input, focus changes, window resizing, and hardware keyboard shortcuts. Test with real Android keyboards.
+
+F58. Responsive layouts
+Working: Adapt navigation and workspace layout for portrait, landscape, tablets, and split-screen windows. Preserve state during configuration changes.
+
+F59. System theme
+Working: Support light and dark themes, optional dynamic colors, accessible contrast, and configurable editor and terminal font sizes.
+
+F60. Android file access
+Working: Use the Storage Access Framework for user-selected files and folders where applicable. Track granted URI permissions and handle revoked access.
+
+F61. Sharing and deep links
+Working: Use Android sharing intents for code, files, and diagnostic reports. Route supported deep links to the relevant project or session.
+
+F62. Lifecycle management
+Working: Use ViewModels and saved state for UI restoration, and appropriate services for supported background work. Treat process death as a normal condition that must be recoverable.
+
+
+SECTION 10 — LOCAL RUNTIME AND DEVELOPMENT TOOLS
+
+F63. Runtime installation
+Working: Download pinned runtime artifacts, validate their hashes and metadata, and extract them safely into an app-managed location.
+
+F64. ARM64 compatibility
+Working: Verify device architecture, binary compatibility, executable permissions, and required system interfaces before attempting to launch tools.
+
+F65. Linux userspace
+Working: Initialize the supported userspace, configure paths and environment variables, and expose only the intended workspace and runtime directories.
+
+F66. Runtime lifecycle
+Working: Start, stop, restart, and inspect the runtime through a defined service interface. Report startup failures with diagnostic context.
+
+F67. Package and tool installation
+Working: Install supported tools such as Git, Node.js, and package managers through the selected runtime's package system or verified artifacts.
+
+F68. Build and test execution
+Working: Run configured build and test commands, stream logs, capture exit codes, and expose cancellation where supported.
+
+F69. Android build support
+Working: Support Gradle and Android SDK workflows when the required tools, storage, memory, and compatible runtime are available. Offer remote builds for workloads that exceed device capabilities.
+
+F70. Artifact management
+Working: Collect generated artifacts, record their locations and build metadata, and let users save or share them through Android file APIs.
+
+F71. Runtime isolation
+Working: Restrict workspace access and use guarded file operations. Clearly document which boundaries are logical protections and which are enforced by the operating system.
+
+
+SECTION 11 — SERVER CONNECTIONS AND DIAGNOSTICS
+
+F72. Server profiles
+Working: Save multiple server configurations with a URL, authentication settings, and a friendly name. Keep credentials separate from ordinary configuration data.
+
+F73. Local and remote connections
+Working: Connect to a local service or remote OpenCode server. Identify whether a tool runs on the phone, in the runtime, or on the remote server.
+
+F74. Health and compatibility checks
+Working: Check reachability, authentication, supported API capabilities, and connection status before starting dependent operations.
+
+F75. Secure remote access
+Working: Require appropriate transport security for remote connections, validate server identity where applicable, and avoid exposing an unauthenticated server to public networks.
+
+F76. Structured diagnostics
+Working: Collect timestamps, component names, error categories, relevant exit codes, and redacted environment information into an exportable report.
+
+F77. Error classification
+Working: Distinguish API errors, provider errors, missing binaries, permissions, PTY failures, Android lifecycle interruptions, and genuine app exceptions.
+
+F78. User-controlled data cleanup
+Working: Provide options to clear cached messages, temporary files, server profiles, or stored credentials individually, with confirmation where needed.
+
+
+SECTION 12 — TESTING AND QUALITY ASSURANCE
+
+F79. Unit testing
+Working: Test models, state reducers, path validation, permission logic, and error mapping without requiring a physical device.
+
+F80. API contract testing
+Working: Validate request and response formats, authentication, session identifiers, streaming events, and compatibility with the supported OpenCode API.
+
+F81. Streaming and reconnection tests
+Working: Simulate interrupted streams, duplicated events, slow responses, cancellation, and reconnects to verify consistent message state.
+
+F82. Runtime acceptance tests
+Working: Test installation, integrity checks, shell startup, executable discovery, PTY behavior, process termination, and lifecycle recovery on actual Android devices.
+
+F83. Workspace safety tests
+Working: Test path traversal prevention, authorized-root enforcement, atomic writes, concurrent modifications, and destructive-operation safeguards.
+
+F84. UI and accessibility tests
+Working: Verify navigation, prompt entry, keyboard behavior, scrolling, screen resizing, error states, and accessibility labels.
+
+F85. Regression gates
+Working: Run required automated tests before accepting changes or declaring a milestone complete. Record failures, logs, and device-specific limitations rather than silently skipping them.
+
+
+SECTION 13 — CROSS-FEATURE REQUIREMENTS
+
+1. State consistency
+Expected behavior: UI, local cache, server, and runtime state must not silently contradict one another.
+
+2. Error handling
+Expected behavior: Every failed operation should have a meaningful status and, when possible, a recovery action.
+
+3. Security
+Expected behavior: Secrets must be protected; paths, commands, and permissions must be handled carefully.
+
+4. Offline behavior
+Expected behavior: Clearly identify cached data and unavailable operations when disconnected.
+
+5. Accessibility
+Expected behavior: Support screen readers, scalable text, keyboard navigation, and adequate contrast.
+
+6. Performance
+Expected behavior: Avoid blocking the main thread during network, file, or process operations.
+
+7. Observability
+Expected behavior: Record structured, redacted diagnostics for failures and lifecycle events.
+
+8. Compatibility
+Expected behavior: Detect unsupported server features and device capabilities before depending on them.
+
+9. Data recovery
+Expected behavior: Preserve recoverable work and reconcile state after process death or network interruption.
+
+10. Maintainability
+Expected behavior: Keep UI, OpenCode API, workspace, runtime, and persistence interfaces independent.
+
+
+SECTION 14 — RECOMMENDED IMPLEMENTATION ORDER
+
+PHASE 1 — RELIABLE OPENCODE CLIENT
+Implement AI streaming and chat, provider configuration, session creation and restoration, secure configuration, server profiles, health checks, and diagnostics. Establish authentication, streaming, session handling, and API contract tests.
+
+Relevant features include F01-F09, F25-F30, F43-F44, and F72-F76.
+
+PHASE 2 — USABLE CODING WORKSPACE
+Implement workspace selection, file operations, editor, diff review, terminal interaction, Git integration, Compose navigation, keyboard handling, file access, and sharing.
+
+Relevant features include F10-F24, F31-F36, and F56-F62.
+
+PHASE 3 — RUNTIME AND RELIABILITY
+Implement task recovery, runtime downloads and verification, ARM64 compatibility, Linux userspace, process lifecycle, build and test execution, artifact management, and runtime isolation. Verify behavior on real Android devices.
+
+Relevant features include F47-F50 and F63-F71.
+
+PHASE 4 — ADVANCED CAPABILITIES AND QUALITY
+Implement permission workflows, advanced session operations, MCP and extension support, error classification, unit tests, API tests, runtime acceptance tests, UI tests, and regression gates.
+
+Relevant features include F37-F42, F45-F46, F51-F55, and F77-F85.
+
+
+SECTION 15 — IMPLEMENTATION STATUS RULES
+
+Track each feature independently with one of these statuses:
+
+PLANNED
+The feature has been specified but implementation has not started.
+
+IN PROGRESS
+Implementation is underway but is not yet complete.
+
+IMPLEMENTED
+The feature code exists, but all required verification has not necessarily passed.
+
+VERIFIED
+The feature has passed its relevant tests and acceptance criteria, with evidence recorded.
+
+Do not mark a feature verified solely because its unit tests pass if it also requires device-level testing. Runtime and lifecycle features need relevant Android-device evidence.
+
+A frozen child process, missing executable, or unsupported PTY must be classified with a specific runtime or platform diagnosis. Do not automatically label it as an AI request failure. Also distinguish platform limitations from genuine bugs in the app itself.
+
+END OF SPECIFICATION

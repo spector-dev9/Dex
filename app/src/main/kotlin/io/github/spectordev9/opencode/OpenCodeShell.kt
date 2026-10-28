@@ -8,10 +8,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -45,14 +49,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,6 +69,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +82,9 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -85,6 +98,7 @@ import androidx.compose.ui.unit.sp
 import io.github.spectordev9.opencode.chat.ChatController
 import io.github.spectordev9.opencode.chat.ChatUiState
 import io.github.spectordev9.opencode.chat.FilesController
+import io.github.spectordev9.opencode.chat.flattenFileTree
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.model.FileEntryType
 import io.github.spectordev9.opencode.core.model.Message
@@ -97,37 +111,19 @@ import io.github.spectordev9.opencode.core.terminal.PtyService
 import io.github.spectordev9.opencode.core.terminal.PtySession
 import io.github.spectordev9.opencode.core.terminal.PtySize
 import io.github.spectordev9.opencode.core.terminal.PtySpec
+import io.github.spectordev9.opencode.ui.CodeBlock
+import io.github.spectordev9.opencode.ui.LocalOpencodePalette
+import io.github.spectordev9.opencode.ui.MdBlock
+import io.github.spectordev9.opencode.ui.MarkdownText
+import io.github.spectordev9.opencode.ui.OpencodePalette
+import io.github.spectordev9.opencode.ui.UiPrefs
+import io.github.spectordev9.opencode.ui.copyToClipboard
+import io.github.spectordev9.opencode.ui.materialScheme
+import io.github.spectordev9.opencode.ui.rememberOpencodePalette
+import io.github.spectordev9.opencode.ui.shareText
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-/* Design tokens mirroring the reference mobile client (`Test` App.css). */
-private val DarkBg = Color(0xFF10111B)
-private val Panel = Color(0xFF191A29)
-private val Panel2 = Color(0xFF1E1F30)
-private val Panel3 = Color(0xFF24253A)
-private val BorderCol = Color(0xFF2B2C42)
-private val BorderStrong = Color(0xFF3D3E5A)
-private val TextCol = Color(0xFFF7F6FF)
-private val Muted = Color(0xFFA7A5BC)
-private val Muted2 = Color(0xFF8E8CA6)
-private val Accent = Color(0xFF8B72F8)
-private val AccentStrong = Color(0xFF7B60EF)
-private val AccentSoft = Color(0xFF248B72F8)
-private val Highlight = Color(0xFFC084FC)
-private val SuccessCol = Color(0xFF68D6A4)
-private val WarningCol = Color(0xFFE6B86B)
-private val DangerCol = Color(0xFFF08B9D)
-private val UserBubbleBg = Color(0xFF2A2456)
-private val UserBubbleBorder = Color(0xFF4D8274EA)
-private val ToolChipBg = Color(0xFF19191E)
-private val ToolChipBorder = Color(0xFF303038)
-private val CodeBg = Color(0xFF14151F)
-private val CodeBorder = Color(0xFF32334E)
-private val CodeText = Color(0xFFD8D6EA)
-private val InlineCodeText = Color(0xFFE6C07B)
-private val TopbarBg = Color(0xFF151518)
-private val TerminalBlack = Color(0xFF0B0E14)
-private val TerminalGreen = Color(0xFF68D6A4)
 
 private enum class AppTab(val label: String, val glyph: String) {
     Chat("Chat", "◈"),
@@ -141,6 +137,7 @@ fun OpenCodeShell(
     ptyService: PtyService? = null,
     chat: ChatController? = null,
     files: FilesController? = null,
+    uiPrefs: UiPrefs? = null,
     runtimeStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.runtime.RuntimeState>? = null,
     serverStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.supervisor.ServerState>? = null,
     onOpenLicenses: () -> Unit,
@@ -149,45 +146,42 @@ fun OpenCodeShell(
     val runtimeState = runtimeStateFlow?.collectAsState()?.value
     val serverState = serverStateFlow?.collectAsState()?.value
     val chatState = chat?.state?.collectAsState()?.value
-    var selectedTab by remember { mutableStateOf(AppTab.Chat) }
-    var showSettings by remember { mutableStateOf(false) }
+    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Chat) }
+    var showSettings by rememberSaveable { mutableStateOf(false) }
+
+    val palette = rememberOpencodePalette(uiPrefs)
+    val darkTheme = when (
+        uiPrefs?.themeMode?.collectAsState()?.value ?: UiPrefs.ThemeMode.SYSTEM
+    ) {
+        UiPrefs.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+        UiPrefs.ThemeMode.LIGHT -> false
+        UiPrefs.ThemeMode.DARK -> true
+    }
 
     MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Accent,
-            onPrimary = Color.White,
-            secondary = AccentStrong,
-            onSecondary = Color.White,
-            tertiary = Highlight,
-            background = DarkBg,
-            surface = Panel,
-            onSurface = TextCol,
-            onBackground = TextCol,
-            surfaceVariant = Panel3,
-            onSurfaceVariant = Muted,
-            error = DangerCol,
-        ),
+        colorScheme = materialScheme(palette, darkTheme),
     ) {
+        CompositionLocalProvider(LocalOpencodePalette provides palette) {
         Scaffold(
-            containerColor = DarkBg,
+            containerColor = palette.DarkBg,
             topBar = {
                 TopAppBar(
                     colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = TopbarBg,
+                        containerColor = palette.TopbarBg,
                     ),
                     title = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Text("◈", color = Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Text("◈", color = palette.Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                             Column {
                                 Text("OPENCODE", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                 Text(
                                     "MOBILE WORKSPACE",
                                     fontSize = 9.sp,
                                     letterSpacing = 1.4.sp,
-                                    color = Muted2,
+                                    color = palette.Muted2,
                                 )
                             }
                             val online = serverState?.status ==
@@ -199,11 +193,11 @@ fun OpenCodeShell(
                                     .clip(RoundedCornerShape(50))
                                     .background(
                                         when {
-                                            online -> SuccessCol
+                                            online -> palette.SuccessCol
                                             runtimeState?.status ==
                                                 io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED
-                                                -> DangerCol
-                                            else -> WarningCol
+                                                -> palette.DangerCol
+                                            else -> palette.WarningCol
                                         },
                                     ),
                             )
@@ -211,63 +205,136 @@ fun OpenCodeShell(
                     },
                     actions = {
                         TextButton(onClick = { showSettings = true }) {
-                            Text("Settings", color = Muted, fontSize = 12.sp)
+                            Text("Settings", color = palette.Muted, fontSize = 12.sp)
                         }
                         TextButton(onClick = onOpenLicenses) {
-                            Text("Licenses", color = Muted, fontSize = 12.sp)
+                            Text("Licenses", color = palette.Muted, fontSize = 12.sp)
                         }
                     },
                 )
             },
-            bottomBar = {
-                NavigationBar(containerColor = Panel) {
-                    AppTab.entries.forEach { tab ->
-                        val selected = selectedTab == tab
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { selectedTab = tab },
-                            icon = {
-                                Text(
-                                    tab.glyph,
-                                    fontSize = 15.sp,
-                                    color = if (selected) Accent else Muted2,
+            bottomBar = {},
+        ) { padding ->
+            BoxWithConstraints(Modifier.padding(padding)) {
+                val wide = maxWidth >= ResponsiveBreakpoint
+                if (wide) {
+                    Row(Modifier.fillMaxSize()) {
+                        NavigationRail(containerColor = palette.Panel) {
+                            AppTab.entries.forEach { tab ->
+                                NavigationRailItem(
+                                    selected = selectedTab == tab,
+                                    onClick = { selectedTab = tab },
+                                    icon = {
+                                        Text(
+                                            tab.glyph,
+                                            fontSize = 16.sp,
+                                            color = if (selectedTab == tab) palette.Accent else palette.Muted2,
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            tab.label,
+                                            fontSize = 10.sp,
+                                            color = if (selectedTab == tab) palette.TextCol else palette.Muted2,
+                                        )
+                                    },
                                 )
-                            },
-                            label = {
-                                Text(
-                                    tab.label,
-                                    fontSize = 10.sp,
-                                    color = if (selected) TextCol else Muted2,
+                            }
+                        }
+                        // Wide screens keep the chat visible alongside the
+                        // selected secondary pane (F58).
+                        if (selectedTab == AppTab.Chat) {
+                            ChatHome(
+                                modifier = Modifier.weight(1f),
+                                chat = chat,
+                                runtimeState = runtimeState,
+                                serverState = serverState,
+                                uiPrefs = uiPrefs,
+                                onRetryRuntime = onRetryRuntime,
+                            )
+                        } else {
+                            Row(Modifier.weight(1f)) {
+                                ChatHome(
+                                    modifier = Modifier.weight(1f),
+                                    chat = chat,
+                                    runtimeState = runtimeState,
+                                    serverState = serverState,
+                                    uiPrefs = uiPrefs,
+                                    onRetryRuntime = onRetryRuntime,
                                 )
-                            },
-                        )
+                                VerticalDivider(color = palette.BorderCol)
+                                when (selectedTab) {
+                                    AppTab.Files -> FilesScreen(
+                                        modifier = Modifier.weight(1f),
+                                        files = files,
+                                        uiPrefs = uiPrefs,
+                                    )
+                                    else -> TerminalScreen(
+                                        modifier = Modifier.weight(1f),
+                                        ptyService = ptyService,
+                                        uiPrefs = uiPrefs,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Column(Modifier.fillMaxSize()) {
+                        Box(Modifier.weight(1f)) {
+                            when (selectedTab) {
+                                AppTab.Chat -> ChatHome(
+                                    modifier = Modifier.fillMaxSize(),
+                                    chat = chat,
+                                    runtimeState = runtimeState,
+                                    serverState = serverState,
+                                    uiPrefs = uiPrefs,
+                                    onRetryRuntime = onRetryRuntime,
+                                )
+                                AppTab.Files -> FilesScreen(
+                                    modifier = Modifier.fillMaxSize(),
+                                    files = files,
+                                    uiPrefs = uiPrefs,
+                                )
+                                AppTab.Terminal -> TerminalScreen(
+                                    modifier = Modifier.fillMaxSize(),
+                                    ptyService = ptyService,
+                                    uiPrefs = uiPrefs,
+                                )
+                            }
+                        }
+                        NavigationBar(containerColor = palette.Panel) {
+                            AppTab.entries.forEach { tab ->
+                                NavigationBarItem(
+                                    selected = selectedTab == tab,
+                                    onClick = { selectedTab = tab },
+                                    icon = {
+                                        Text(
+                                            tab.glyph,
+                                            fontSize = 15.sp,
+                                            color = if (selectedTab == tab) palette.Accent else palette.Muted2,
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            tab.label,
+                                            fontSize = 10.sp,
+                                            color = if (selectedTab == tab) palette.TextCol else palette.Muted2,
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
                 }
-            },
-        ) { padding ->
-            when (selectedTab) {
-                AppTab.Chat -> ChatHome(
-                    modifier = Modifier.padding(padding),
-                    chat = chat,
-                    runtimeState = runtimeState,
-                    serverState = serverState,
-                    onRetryRuntime = onRetryRuntime,
-                )
-                AppTab.Files -> FilesScreen(
-                    modifier = Modifier.padding(padding),
-                    files = files,
-                )
-                AppTab.Terminal -> TerminalScreen(
-                    modifier = Modifier.padding(padding),
-                    ptyService = ptyService,
-                )
             }
         }
+        }
 
-        if (showSettings && chat != null) {
+        if (showSettings) {
             SettingsSheet(
                 chat = chat,
                 state = chatState ?: ChatUiState(),
+                uiPrefs = uiPrefs,
                 isConnected = chatState?.connected == true,
                 onDismiss = { showSettings = false },
             )
@@ -275,15 +342,20 @@ fun OpenCodeShell(
     }
 }
 
+/** Width threshold (F58): below → bottom bar, at/above → rail + two panes. */
+private val ResponsiveBreakpoint = 840.dp
+
 @Composable
 private fun ChatHome(
     modifier: Modifier = Modifier,
     chat: ChatController?,
     runtimeState: io.github.spectordev9.opencode.core.runtime.RuntimeState?,
     serverState: io.github.spectordev9.opencode.core.supervisor.ServerState?,
+    uiPrefs: UiPrefs? = null,
     onRetryRuntime: () -> Unit = {},
 ) {
-    val banner = runtimeBanner(runtimeState, serverState)
+    val palette = LocalOpencodePalette.current
+    val banner = runtimeBanner(runtimeState, serverState, palette)
     val chatState = chat?.state?.collectAsState()?.value
 
     Column(
@@ -295,8 +367,8 @@ private fun ChatHome(
     ) {
         Surface(
             shape = RoundedCornerShape(10.dp),
-            color = Panel,
-            border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
+            color = palette.Panel,
+            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Row(
@@ -315,20 +387,20 @@ private fun ChatHome(
                         .weight(1f)
                         .padding(start = 10.dp),
                 ) {
-                    Text(banner.label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TextCol)
-                    Text(banner.detail, fontSize = 12.sp, color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(banner.label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+                    Text(banner.detail, fontSize = 12.sp, color = palette.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 if (banner.version != null) {
                     Surface(
                         shape = RoundedCornerShape(7.dp),
-                        color = Panel3,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderStrong),
+                        color = palette.Panel3,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderStrong),
                     ) {
                         Text(
                             "v${banner.version}",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             fontSize = 10.sp,
-                            color = Muted,
+                            color = palette.Muted,
                         )
                     }
                 }
@@ -339,6 +411,7 @@ private fun ChatHome(
             ChatScreen(
                 chat = chat,
                 state = chatState,
+                uiPrefs = uiPrefs,
                 modifier = Modifier.weight(1f),
             )
         } else {
@@ -357,12 +430,17 @@ private fun ChatHome(
 private fun ChatScreen(
     chat: ChatController,
     state: ChatUiState,
+    uiPrefs: UiPrefs?,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalOpencodePalette.current
+    // Font sizes (F59): fall back to defaults when prefs are unavailable.
+    val chatTextSize = uiPrefs?.chatTextSize?.collectAsState()?.value ?: 14
+    val codeTextSize = uiPrefs?.codeTextSize?.collectAsState()?.value ?: 12
     val scope = rememberCoroutineScope()
-    var showSessions by remember { mutableStateOf(false) }
-    var showModelPicker by remember { mutableStateOf(false) }
-    var draft by remember { mutableStateOf(TextFieldValue()) }
+    var showSessions by rememberSaveable { mutableStateOf(false) }
+    var showModelPicker by rememberSaveable { mutableStateOf(false) }
+    var draft by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
     val activeSession = state.sessions.firstOrNull { it.id == state.activeSessionId }
     val listState = rememberLazyListState()
 
@@ -383,8 +461,8 @@ private fun ChatScreen(
         ) {
             Surface(
                 shape = RoundedCornerShape(9.dp),
-                color = Panel2,
-                border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
+                color = palette.Panel2,
+                border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .clip(RoundedCornerShape(9.dp))
@@ -399,19 +477,19 @@ private fun ChatScreen(
                         activeSession?.title?.ifBlank { "Untitled session" } ?: "New session",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = TextCol,
+                        color = palette.TextCol,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    Text("▾", color = Muted2, fontSize = 12.sp)
+                    Text("▾", color = palette.Muted2, fontSize = 12.sp)
                 }
             }
             Spacer(Modifier.weight(1f))
             Surface(
                 shape = RoundedCornerShape(9.dp),
-                color = Panel2,
-                border = androidx.compose.foundation.BorderStroke(1.dp, AccentStrong.copy(alpha = 0.45f)),
+                color = palette.Panel2,
+                border = androidx.compose.foundation.BorderStroke(1.dp, palette.AccentStrong.copy(alpha = 0.45f)),
                 modifier = Modifier
                     .clip(RoundedCornerShape(9.dp))
                     .clickable { showModelPicker = true },
@@ -421,7 +499,7 @@ private fun ChatScreen(
                     model?.let { "${it.providerID}/${it.modelID}" } ?: "Model",
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                     fontSize = 11.sp,
-                    color = Muted,
+                    color = palette.Muted,
                     maxLines = 1,
                 )
             }
@@ -429,15 +507,15 @@ private fun ChatScreen(
                 onClick = { scope.launch { chat.newSession() } },
                 enabled = !state.sending,
             ) {
-                Text("＋", color = Accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text("＋", color = palette.Accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
 
         if (state.error != null) {
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color(0x12DF7B7B),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x52DF7B7B)),
+                color = palette.ErrorSurface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, palette.ErrorBorder),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -448,13 +526,13 @@ private fun ChatScreen(
                         state.error,
                         modifier = Modifier.weight(1f),
                         fontSize = 12.sp,
-                        color = Color(0xFFE8B7B7),
+                        color = palette.ErrorText,
                     )
                     TextButton(
                         onClick = { scope.launch { chat.selectSession(state.activeSessionId ?: return@launch) } },
                         enabled = state.activeSessionId != null,
                     ) {
-                        Text("Retry", color = Accent, fontSize = 12.sp)
+                        Text("Retry", color = palette.Accent, fontSize = 12.sp)
                     }
                 }
             }
@@ -480,34 +558,34 @@ private fun ChatScreen(
                             Modifier
                                 .size(46.dp)
                                 .clip(RoundedCornerShape(50))
-                                .background(AccentSoft)
-                                .border(1.dp, AccentStrong.copy(alpha = 0.4f), RoundedCornerShape(50)),
+                                .background(palette.AccentSoft)
+                                .border(1.dp, palette.AccentStrong.copy(alpha = 0.4f), RoundedCornerShape(50)),
                         ) {
                             Text(
                                 "✳",
                                 modifier = Modifier.align(Alignment.Center),
-                                color = Accent,
+                                color = palette.Accent,
                                 fontSize = 20.sp,
                             )
                         }
-                        Text("What should we work on?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextCol)
+                        Text("What should we work on?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
                         Text(
                             "Send the first prompt to start this session.",
                             fontSize = 12.sp,
-                            color = Muted,
+                            color = palette.Muted,
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("◈ Server online", fontSize = 10.sp, color = Muted2)
-                            Text("⌁ ${modelLabel(state)}", fontSize = 10.sp, color = Muted2, maxLines = 1)
-                            Text("◫ workspace", fontSize = 10.sp, color = Muted2)
+                            Text("◈ Server online", fontSize = 10.sp, color = palette.Muted2)
+                            Text("⌁ ${modelLabel(state)}", fontSize = 10.sp, color = palette.Muted2, maxLines = 1)
+                            Text("◫ workspace", fontSize = 10.sp, color = palette.Muted2)
                         }
                     }
                 }
                 items(SUGGESTIONS) { suggestion ->
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = Panel2,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
+                        color = palette.Panel2,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
@@ -520,13 +598,13 @@ private fun ChatScreen(
                             suggestion,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
                             fontSize = 13.sp,
-                            color = Muted,
+                            color = palette.Muted,
                         )
                     }
                 }
             }
             items(state.messages, key = { it.info.id }) { message ->
-                MessageRow(message)
+                MessageRow(message, chatTextSize, codeTextSize)
             }
             if (state.sending) {
                 item {
@@ -535,7 +613,7 @@ private fun ChatScreen(
                         horizontalArrangement = Arrangement.spacedBy(9.dp),
                     ) {
                         TypingDots()
-                        Text("OpenCode is working…", fontSize = 11.sp, color = Muted2)
+                        Text("OpenCode is working…", fontSize = 11.sp, color = palette.Muted2)
                     }
                 }
             }
@@ -553,8 +631,8 @@ private fun ChatScreen(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(15.dp),
-            color = Panel2,
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF41414A)),
+            color = palette.Panel2,
+            border = androidx.compose.foundation.BorderStroke(1.dp, palette.ToolChipBorder),
         ) {
             Column(Modifier.padding(horizontal = 13.dp, vertical = 10.dp)) {
                 BasicTextField(
@@ -564,14 +642,14 @@ private fun ChatScreen(
                         .fillMaxWidth()
                         .heightIn(max = 140.dp),
                     enabled = true,
-                    textStyle = TextStyle(color = Color(0xFFF3F3F6), fontSize = 14.sp, lineHeight = 20.sp),
+                    textStyle = TextStyle(color = palette.TextCol, fontSize = 14.sp, lineHeight = 20.sp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
                     decorationBox = { innerTextField ->
                         Box(Modifier.heightIn(min = 40.dp)) {
                             if (draft.text.isEmpty()) {
                                 Text(
                                     "Ask OpenCode to inspect, explain, or change this project…",
-                                    color = Color(0xFF777782),
+                                    color = palette.Muted2,
                                     fontSize = 13.sp,
                                 )
                             }
@@ -588,10 +666,10 @@ private fun ChatScreen(
                         val selected = state.mode == mode
                         Surface(
                             shape = RoundedCornerShape(7.dp),
-                            color = if (selected) AccentSoft else Color.Transparent,
+                            color = if (selected) palette.AccentSoft else Color.Transparent,
                             border = androidx.compose.foundation.BorderStroke(
                                 1.dp,
-                                if (selected) AccentStrong.copy(alpha = 0.5f) else BorderCol,
+                                if (selected) palette.AccentStrong.copy(alpha = 0.5f) else palette.BorderCol,
                             ),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(7.dp))
@@ -602,7 +680,7 @@ private fun ChatScreen(
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
                                 fontSize = 11.sp,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (selected) Color(0xFFD9D2FF) else Muted2,
+                                color = if (selected) palette.TextCol else palette.Muted2,
                             )
                         }
                     }
@@ -613,12 +691,12 @@ private fun ChatScreen(
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = when {
-                            state.sending -> Color(0x33DF7B7B)
-                            canSend -> Accent
-                            else -> Panel3
+                            state.sending -> palette.ErrorSurface
+                            canSend -> palette.Accent
+                            else -> palette.Panel3
                         },
                         border = if (state.sending) {
-                            androidx.compose.foundation.BorderStroke(1.dp, Color(0x66DF7B7B))
+                            androidx.compose.foundation.BorderStroke(1.dp, palette.ErrorBorder)
                         } else {
                             null
                         },
@@ -639,9 +717,9 @@ private fun ChatScreen(
                             Text(
                                 if (state.sending) "■" else "➤",
                                 color = when {
-                                    state.sending -> Color(0xFFE8B7B7)
+                                    state.sending -> palette.ErrorText
                                     canSend -> Color.White
-                                    else -> Muted2
+                                    else -> palette.Muted2
                                 },
                                 fontSize = 15.sp,
                             )
@@ -684,6 +762,7 @@ private fun modelLabel(state: ChatUiState): String =
 
 @Composable
 private fun TypingDots() {
+    val palette = LocalOpencodePalette.current
     val transition = rememberInfiniteTransition(label = "typing")
     val alpha by transition.animateFloat(
         initialValue = 0.25f,
@@ -700,14 +779,23 @@ private fun TypingDots() {
                 Modifier
                     .size(4.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(Accent.copy(alpha = alpha)),
+                    .background(palette.Accent.copy(alpha = alpha)),
             )
         }
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun MessageRow(message: Message) {
+private fun MessageRow(
+    message: Message,
+    chatTextSize: Int,
+    codeTextSize: Int,
+) {
+    val palette = LocalOpencodePalette.current
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    var menuOpen by remember(message.info.id) { mutableStateOf(false) }
     val isUser = message.info.role == "user"
     val text = message.parts
         .filter { it.type == "text" && it.ignored != true && it.synthetic != true }
@@ -715,6 +803,11 @@ private fun MessageRow(message: Message) {
         .trim()
     val tools = message.parts.filter { it.type == "tool" }
     val errors = message.parts.filter { it.type == "error" }
+    val copyLabel = if (isUser) "Copy prompt" else "Copy message"
+
+    fun openMenu() {
+        menuOpen = true
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -729,72 +822,77 @@ private fun MessageRow(message: Message) {
                 if (isUser) "You" else "OpenCode",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFFBDBDC8),
+                color = palette.Muted,
             )
             if (!isUser && message.info.modelID != null) {
-                Text(message.info.modelID.orEmpty(), fontSize = 10.sp, color = Color(0xFF7E7E8A))
+                Text(message.info.modelID.orEmpty(), fontSize = 10.sp, color = palette.Muted2)
             }
         }
         if (isUser) {
-            Surface(
-                shape = RoundedCornerShape(
-                    topStart = 14.dp, topEnd = 14.dp, bottomStart = 14.dp, bottomEnd = 4.dp,
-                ),
-                color = UserBubbleBg,
-                border = androidx.compose.foundation.BorderStroke(1.dp, UserBubbleBorder),
-            ) {
-                Text(
+            Box {
+                Surface(
+                    shape = RoundedCornerShape(
+                        topStart = 14.dp, topEnd = 14.dp, bottomStart = 14.dp, bottomEnd = 4.dp,
+                    ),
+                    color = palette.UserBubbleBg,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, palette.UserBubbleBorder),
+                ) {
+                    Text(
+                        text = text,
+                        modifier = Modifier
+                            .combinedClickable(onClick = {}, onLongClick = ::openMenu)
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        fontSize = chatTextSize.sp,
+                        color = palette.TextCol,
+                        lineHeight = (chatTextSize + 6).sp,
+                    )
+                }
+                MessageActionsMenu(
+                    expanded = menuOpen,
+                    onDismiss = { menuOpen = false },
                     text = text,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
-                    fontSize = 14.sp,
-                    color = Color(0xFFF1EFFF),
-                    lineHeight = 20.sp,
+                    clipboard = clipboard,
+                    copyLabel = copyLabel,
+                    onCopied = { menuOpen = false },
+                    onShare = { shareText(context, text) },
                 )
             }
         } else {
             if (text.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    splitCodeFences(text).forEach { segment ->
-                        when (segment) {
-                            is TextSegment.Plain -> Text(
-                                text = segment.text,
-                                fontSize = 14.sp,
-                                lineHeight = 22.sp,
-                                color = Color(0xFFE2E2E9),
-                            )
-                            is TextSegment.Code -> Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = CodeBg,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, CodeBorder),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Text(
-                                    text = segment.text.trimEnd(),
-                                    modifier = Modifier
-                                        .horizontalScroll(rememberScrollState())
-                                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                                    color = CodeText,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 12.sp,
-                                    lineHeight = 18.sp,
-                                )
-                            }
-                        }
+                Box {
+                    Column(
+                        modifier = Modifier.combinedClickable(onClick = {}, onLongClick = ::openMenu),
+                    ) {
+                        MarkdownText(
+                            markdown = text,
+                            palette = palette,
+                            textSize = chatTextSize,
+                            codeSize = codeTextSize,
+                        )
                     }
+                    MessageActionsMenu(
+                        expanded = menuOpen,
+                        onDismiss = { menuOpen = false },
+                        text = text,
+                        clipboard = clipboard,
+                        copyLabel = copyLabel,
+                        onCopied = { menuOpen = false },
+                        onShare = { shareText(context, text) },
+                    )
                 }
             }
             tools.forEach { part -> ToolCard(part) }
             errors.forEach { part ->
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0x12DF7B7B),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x52DF7B7B)),
+                    color = palette.ErrorSurface,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, palette.ErrorBorder),
                 ) {
                     Text(
                         text = part.text.orEmpty().ifBlank { "Task failed" },
                         modifier = Modifier.padding(horizontal = 11.dp, vertical = 9.dp),
                         fontSize = 11.sp,
-                        color = Color(0xFFE8B7B7),
+                        color = palette.ErrorText,
                     )
                 }
             }
@@ -803,7 +901,41 @@ private fun MessageRow(message: Message) {
 }
 
 @Composable
+private fun MessageActionsMenu(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    text: String,
+    clipboard: androidx.compose.ui.platform.ClipboardManager,
+    copyLabel: String,
+    onCopied: () -> Unit,
+    onShare: () -> Unit,
+) {
+    val palette = LocalOpencodePalette.current
+    androidx.compose.material3.DropdownMenu(
+        expanded = expanded && text.isNotEmpty(),
+        onDismissRequest = onDismiss,
+        containerColor = palette.Panel2,
+    ) {
+        androidx.compose.material3.DropdownMenuItem(
+            text = { Text(copyLabel, fontSize = 13.sp, color = palette.TextCol) },
+            onClick = {
+                clipboard.setText(AnnotatedString(text))
+                onCopied()
+            },
+        )
+        androidx.compose.material3.DropdownMenuItem(
+            text = { Text("Share", fontSize = 13.sp, color = palette.TextCol) },
+            onClick = {
+                onDismiss()
+                onShare()
+            },
+        )
+    }
+}
+
+@Composable
 private fun ToolCard(part: Part) {
+    val palette = LocalOpencodePalette.current
     var expanded by remember(part.id) { mutableStateOf(false) }
     val status = part.state.stringField("status") ?: "done"
     val title = part.state.stringField("title")
@@ -811,8 +943,8 @@ private fun ToolCard(part: Part) {
         ?: "Tool"
     Surface(
         shape = RoundedCornerShape(7.dp),
-        color = ToolChipBg,
-        border = androidx.compose.foundation.BorderStroke(1.dp, ToolChipBorder),
+        color = palette.ToolChipBg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.ToolChipBorder),
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(7.dp))
@@ -820,8 +952,8 @@ private fun ToolCard(part: Part) {
     ) {
         Column(Modifier.padding(horizontal = 10.dp, vertical = 7.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(title, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFAAAAB6))
-                Text(status, fontSize = 10.sp, color = Color(0xFF81818D))
+                Text(title, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = palette.Muted)
+                Text(status, fontSize = 10.sp, color = palette.Muted2)
             }
             if (expanded) {
                 val output = part.state.stringField("output")
@@ -831,7 +963,7 @@ private fun ToolCard(part: Part) {
                         modifier = Modifier
                             .padding(top = 6.dp)
                             .fillMaxWidth(),
-                        color = CodeText,
+                        color = palette.CodeText,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
                         lineHeight = 15.sp,
@@ -847,10 +979,11 @@ private fun PermissionCard(
     permission: PermissionRequest,
     onAnswer: (PermissionResponse) -> Unit,
 ) {
+    val palette = LocalOpencodePalette.current
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = Color(0x5949371A),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x66D8A85B)),
+        color = palette.WarningCol.copy(alpha = 0.25f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.WarningCol.copy(alpha = 0.55f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -858,7 +991,7 @@ private fun PermissionCard(
                 "Permission · ${permission.permission}",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFF1DDB8),
+                color = palette.WarningCol,
             )
             val command = permission.metadata.stringField("command")
             if (!command.isNullOrBlank()) {
@@ -866,7 +999,7 @@ private fun PermissionCard(
                     command,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 12.sp,
-                    color = Color(0xFFE6C07B),
+                    color = palette.InlineCodeText,
                 )
             }
             if (permission.patterns.isNotEmpty()) {
@@ -874,14 +1007,14 @@ private fun PermissionCard(
                     permission.patterns.take(4).forEach { pattern ->
                         Surface(
                             shape = RoundedCornerShape(5.dp),
-                            color = Color(0x29000000),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x40D8A85B)),
+                            color = palette.ToolChipBg,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, palette.WarningCol.copy(alpha = 0.35f)),
                         ) {
                             Text(
                                 pattern,
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                 fontSize = 9.sp,
-                                color = Color(0xFFD8C39C),
+                                color = palette.WarningCol,
                                 maxLines = 1,
                             )
                         }
@@ -891,19 +1024,19 @@ private fun PermissionCard(
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 TextButton(
                     onClick = { onAnswer(PermissionResponse.ONCE) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD9D2FF)),
+                    colors = ButtonDefaults.textButtonColors(contentColor = palette.TextCol),
                 ) {
                     Text("Allow once", fontSize = 11.sp)
                 }
                 TextButton(
                     onClick = { onAnswer(PermissionResponse.ALWAYS) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = SuccessCol),
+                    colors = ButtonDefaults.textButtonColors(contentColor = palette.SuccessCol),
                 ) {
                     Text("Always allow", fontSize = 11.sp)
                 }
                 TextButton(
                     onClick = { onAnswer(PermissionResponse.REJECT) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = DangerCol),
+                    colors = ButtonDefaults.textButtonColors(contentColor = palette.DangerCol),
                 ) {
                     Text("Reject", fontSize = 11.sp)
                 }
@@ -920,9 +1053,10 @@ private fun SessionSheet(
     onNew: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val palette = LocalOpencodePalette.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Panel2,
+        containerColor = palette.Panel2,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 8.dp)) {
@@ -931,8 +1065,8 @@ private fun SessionSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Sessions", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextCol)
-                TextButton(onClick = onNew) { Text("＋ New session", color = Accent) }
+                Text("Sessions", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+                TextButton(onClick = onNew) { Text("＋ New session", color = palette.Accent) }
             }
             LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
                 items(state.sessions, key = { it.id }) { session ->
@@ -947,17 +1081,17 @@ private fun SessionSheet(
                             session.title.ifBlank { session.slug },
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextCol,
+                            color = palette.TextCol,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             formatRelativeTime(session.time.updated),
                             fontSize = 11.sp,
-                            color = Muted2,
+                            color = palette.Muted2,
                         )
                     }
-                    HorizontalDivider(color = BorderCol)
+                    HorizontalDivider(color = palette.BorderCol)
                 }
             }
         }
@@ -970,14 +1104,15 @@ private fun ModelPickerDialog(
     onPick: (PromptModel) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val palette = LocalOpencodePalette.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Panel2,
-        titleContentColor = TextCol,
-        textContentColor = Muted,
+        containerColor = palette.Panel2,
+        titleContentColor = palette.TextCol,
+        textContentColor = palette.Muted,
         title = { Text("Model", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close", color = Muted) }
+            TextButton(onClick = onDismiss) { Text("Close", color = palette.Muted) }
         },
         text = {
             Box(Modifier.sizeIn(maxHeight = 380.dp)) {
@@ -985,7 +1120,7 @@ private fun ModelPickerDialog(
                     Text(
                         "No providers configured yet.\nThe on-device mock handles prompts until a real provider profile is added.",
                         fontSize = 13.sp,
-                        color = Muted,
+                        color = palette.Muted,
                     )
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -995,7 +1130,7 @@ private fun ModelPickerDialog(
                                     provider.name,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Accent,
+                                    color = palette.Accent,
                                 )
                             }
                             items(provider.models, key = { "${provider.id}/${it.id}" }) { model ->
@@ -1003,10 +1138,10 @@ private fun ModelPickerDialog(
                                     state.selectedModel?.modelID == model.id
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = if (selected) AccentSoft else Panel3,
+                                    color = if (selected) palette.AccentSoft else palette.Panel3,
                                     border = androidx.compose.foundation.BorderStroke(
                                         1.dp,
-                                        if (selected) AccentStrong else BorderCol,
+                                        if (selected) palette.AccentStrong else palette.BorderCol,
                                     ),
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1017,7 +1152,7 @@ private fun ModelPickerDialog(
                                         model.name,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
                                         fontSize = 13.sp,
-                                        color = if (selected) Color(0xFFE5E1FF) else TextCol,
+                                        color = if (selected) palette.TextCol else palette.TextCol,
                                     )
                                 }
                             }
@@ -1037,15 +1172,17 @@ private data class QuickProvider(
 @Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 private fun SettingsSheet(
-    chat: ChatController,
+    chat: ChatController?,
     state: ChatUiState,
+    uiPrefs: UiPrefs?,
     isConnected: Boolean,
     onDismiss: () -> Unit,
 ) {
+    val palette = LocalOpencodePalette.current
     val scope = rememberCoroutineScope()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Panel2,
+        containerColor = palette.Panel2,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
@@ -1054,29 +1191,33 @@ private fun SettingsSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Settings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextCol)
+            Text("Settings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+            if (uiPrefs != null) {
+                AppearanceSection(uiPrefs)
+                HorizontalDivider(color = palette.BorderCol)
+            }
             Text(
                 "Provider keys are stored on the device server (PUT /auth) and picked up by real provider profiles when they ship.",
                 fontSize = 11.sp,
-                color = Muted2,
+                color = palette.Muted2,
             )
             if (!isConnected) {
                 Text(
                     "The server is not connected. API keys can be saved when the server is ready.",
                     fontSize = 11.sp,
-                    color = WarningCol,
+                    color = palette.WarningCol,
                 )
             }
             if (state.authMessage != null) {
-                Text(state.authMessage, fontSize = 11.sp, color = SuccessCol)
+                Text(state.authMessage, fontSize = 11.sp, color = palette.SuccessCol)
             }
             if (state.error != null) {
-                Text(state.error, fontSize = 11.sp, color = DangerCol)
+                Text(state.error, fontSize = 11.sp, color = palette.DangerCol)
             }
             QUICK_PROVIDERS.forEach { provider ->
                 var key by remember(provider.id) { mutableStateOf("") }
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(provider.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextCol)
+                    Text(provider.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.TextCol)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         BasicTextField(
                             value = key,
@@ -1085,13 +1226,13 @@ private fun SettingsSheet(
                                 .weight(1f)
                                 .border(
                                     1.dp,
-                                    BorderStrong,
+                                    palette.BorderStrong,
                                     RoundedCornerShape(8.dp),
                                 )
                                 .padding(horizontal = 10.dp, vertical = 9.dp),
                             singleLine = true,
                             textStyle = TextStyle(
-                                color = Color(0xFFF3F3F6),
+                                color = palette.TextCol,
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 12.sp,
                             ),
@@ -1104,7 +1245,7 @@ private fun SettingsSheet(
                                     if (key.isEmpty()) {
                                         Text(
                                             "${provider.id} API key",
-                                            color = Color(0xFF777782),
+                                            color = palette.Muted2,
                                             fontSize = 12.sp,
                                         )
                                     }
@@ -1113,18 +1254,119 @@ private fun SettingsSheet(
                             },
                         )
                         TextButton(
-                            onClick = { scope.launch { chat.saveApiKey(provider.id, key) } },
-                            enabled = key.isNotBlank() && isConnected,
+                            onClick = { scope.launch { chat?.saveApiKey(provider.id, key) } },
+                            enabled = key.isNotBlank() && isConnected && chat != null,
                         ) {
-                            Text("Save", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Save", color = palette.Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
-                HorizontalDivider(color = BorderCol)
+                HorizontalDivider(color = palette.BorderCol)
             }
         }
     }
 }
+
+/** Appearance controls (F59): theme mode, dynamic colors, font sizes. */
+@Composable
+private fun AppearanceSection(uiPrefs: UiPrefs) {
+    val palette = LocalOpencodePalette.current
+    val mode by uiPrefs.themeMode.collectAsState()
+    val dynamic by uiPrefs.dynamicColors.collectAsState()
+    val chatSize by uiPrefs.chatTextSize.collectAsState()
+    val codeSize by uiPrefs.codeTextSize.collectAsState()
+    val terminalSize by uiPrefs.terminalTextSize.collectAsState()
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Appearance", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.TextCol)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            UiPrefs.ThemeMode.entries.forEach { candidate ->
+                val selected = mode == candidate
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (selected) palette.AccentSoft else palette.Panel3,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (selected) palette.AccentStrong else palette.BorderCol,
+                    ),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { uiPrefs.setThemeMode(candidate) },
+                ) {
+                    Text(
+                        candidate.label,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        fontSize = 12.sp,
+                        color = if (selected) palette.TextCol else palette.Muted2,
+                    )
+                }
+            }
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Dynamic colors", fontSize = 12.sp, color = palette.TextCol)
+                    Text(
+                        "Follow the system wallpaper palette (Android 12+).",
+                        fontSize = 10.sp,
+                        color = palette.Muted2,
+                    )
+                }
+                Switch(checked = dynamic, onCheckedChange = { uiPrefs.setDynamicColors(it) })
+            }
+        }
+        FontSizeSlider(
+            label = "Chat text size",
+            value = chatSize,
+            range = UiPrefsChatRange,
+            onChange = { uiPrefs.setChatTextSize(it) },
+        )
+        FontSizeSlider(
+            label = "Code font size",
+            value = codeSize,
+            range = UiPrefsCodeRange,
+            onChange = { uiPrefs.setCodeTextSize(it) },
+        )
+        FontSizeSlider(
+            label = "Terminal font size",
+            value = terminalSize,
+            range = UiPrefsTerminalRange,
+            onChange = { uiPrefs.setTerminalTextSize(it) },
+        )
+    }
+}
+
+@Composable
+private fun FontSizeSlider(
+    label: String,
+    value: Int,
+    range: IntRange,
+    onChange: (Int) -> Unit,
+) {
+    val palette = LocalOpencodePalette.current
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, fontSize = 12.sp, color = palette.TextCol, modifier = Modifier.weight(1f))
+            Text("$value sp", fontSize = 11.sp, color = palette.Muted2)
+        }
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onChange(it.toInt()) },
+            valueRange = range.first.toFloat()..range.last.toFloat(),
+            steps = range.last - range.first - 1,
+        )
+    }
+}
+
+private val UiPrefsChatRange = UiPrefsChatMin..UiPrefsChatMax
+private const val UiPrefsChatMin = 12
+private const val UiPrefsChatMax = 18
+private val UiPrefsCodeRange = UiPrefsCodeMin..UiPrefsCodeMax
+private const val UiPrefsCodeMin = 10
+private const val UiPrefsCodeMax = 16
+private val UiPrefsTerminalRange = UiPrefsTerminalMin..UiPrefsTerminalMax
+private const val UiPrefsTerminalMin = 10
+private const val UiPrefsTerminalMax = 18
 
 private val QUICK_PROVIDERS = listOf(
     QuickProvider("anthropic", "Anthropic"),
@@ -1142,6 +1384,7 @@ private fun RuntimeOfflinePanel(
     showRetry: Boolean,
     onRetry: () -> Unit,
 ) {
+    val palette = LocalOpencodePalette.current
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1152,28 +1395,28 @@ private fun RuntimeOfflinePanel(
                 .padding(top = 24.dp)
                 .size(46.dp)
                 .clip(RoundedCornerShape(50))
-                .background(AccentSoft)
-                .border(1.dp, AccentStrong.copy(alpha = 0.4f), RoundedCornerShape(50)),
+                .background(palette.AccentSoft)
+                .border(1.dp, palette.AccentStrong.copy(alpha = 0.4f), RoundedCornerShape(50)),
         ) {
             Text(
                 "✳",
                 modifier = Modifier.align(Alignment.Center),
-                color = Accent,
+                color = palette.Accent,
                 fontSize = 20.sp,
             )
         }
-        Text(banner.label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextCol)
+        Text(banner.label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
         Text(
             banner.detail,
             fontSize = 12.sp,
-            color = Muted,
+            color = palette.Muted,
             textAlign = TextAlign.Center,
         )
         if (showRetry) {
             Button(
                 onClick = onRetry,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Accent,
+                    containerColor = palette.Accent,
                     contentColor = Color.White,
                 ),
             ) {
@@ -1194,13 +1437,19 @@ private val SUGGESTIONS = listOf(
 private fun TerminalScreen(
     modifier: Modifier = Modifier,
     ptyService: PtyService?,
+    uiPrefs: UiPrefs? = null,
 ) {
+    val palette = LocalOpencodePalette.current
+    val clipboard = LocalClipboardManager.current
     var session by remember { mutableStateOf<PtySession?>(null) }
     var status by remember { mutableStateOf(if (ptyService == null) "PTY service not connected" else "Starting PTY") }
     var output by remember { mutableStateOf("OpenCode Mobile terminal\n") }
     var input by remember { mutableStateOf(TextFieldValue()) }
     var forwardedInput by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+    val terminalTextSize = uiPrefs?.terminalTextSize?.collectAsState()?.value ?: 13
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(ptyService) {
         if (ptyService == null) {
@@ -1275,37 +1524,97 @@ private fun TerminalScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column {
-                Text("TERMINAL", fontSize = 20.sp, fontWeight = FontWeight.Black, color = TextCol)
-                Text(status, fontSize = 12.sp, color = Muted2)
+                Text("TERMINAL", fontSize = 20.sp, fontWeight = FontWeight.Black, color = palette.TextCol)
+                Text(status, fontSize = 12.sp, color = palette.Muted2)
             }
             TextButton(onClick = { focusRequester.requestFocus() }, enabled = session != null) {
-                Text("Focus input", color = Accent)
+                Text("Focus", color = palette.Accent)
             }
         }
 
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            shape = RoundedCornerShape(12.dp),
-            color = TerminalBlack,
-            border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(
-                text = if (session == null) {
-                    "PTY service is not wired in this build.\n\nThe terminal UI is ready for the native PtyService."
-                } else {
-                    output
+            // Selection + clipboard (F22): copy the scrollback buffer or
+            // paste from the Android clipboard into the PTY.
+            TextButton(
+                onClick = { clipboard.setText(AnnotatedString(output)) },
+                enabled = session != null && output.isNotBlank(),
+            ) {
+                Text("Copy", color = palette.Accent)
+            }
+            TextButton(
+                onClick = {
+                    val pasted = clipboard.getText()?.toString().orEmpty()
+                    if (pasted.isNotEmpty()) write(pasted.toByteArray(Charsets.UTF_8))
                 },
+                enabled = session != null,
+            ) {
+                Text("Paste", color = palette.Accent)
+            }
+            TextButton(
+                onClick = { output = "" },
+                enabled = session != null,
+            ) {
+                Text("Clear", color = palette.Accent)
+            }
+        }
+
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+            Surface(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(14.dp),
-                color = TerminalGreen,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 13.sp,
-                lineHeight = 19.sp,
-            )
+                    .fillMaxWidth()
+                    .fillMaxSize(),
+                shape = RoundedCornerShape(12.dp),
+                color = palette.TerminalBlack,
+                border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+            ) {
+                // Text selection handles for manual copy of a range (F22).
+                SelectionContainer {
+                    Text(
+                        text = if (session == null) {
+                            "PTY service is not wired in this build.\n\nThe terminal UI is ready for the native PtyService."
+                        } else {
+                            output
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .padding(14.dp),
+                        color = palette.TerminalGreen,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = terminalTextSize.sp,
+                        lineHeight = (terminalTextSize + 6).sp,
+                    )
+                }
+            }
+            val atBottom by remember {
+                androidx.compose.runtime.derivedStateOf {
+                    scrollState.value >= scrollState.maxValue - 48
+                }
+            }
+            if (!atBottom && session != null) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = palette.Panel3,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderStrong),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
+                        .clip(RoundedCornerShape(50))
+                        .clickable {
+                            scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
+                        },
+                ) {
+                    Text(
+                        "↓ latest",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        fontSize = 11.sp,
+                        color = palette.Accent,
+                    )
+                }
+            }
         }
 
         Row(
@@ -1317,18 +1626,36 @@ private fun TerminalScreen(
             }
         }
 
+        // Second extra-key row (F20): navigation and symbols the soft
+        // keyboard tends to hide.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            listOf(
+                "←" to "\u001b[D",
+                "→" to "\u001b[C",
+                "/" to "/",
+                "-" to "-",
+                "|" to "|",
+                "~" to "~",
+            ).forEach { (label, sequence) ->
+                KeyButton(label, enabled = session != null) { sendControl(sequence) }
+            }
+        }
+
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, Color(0xFF41414A), RoundedCornerShape(12.dp)),
+                .border(1.dp, palette.ToolChipBorder, RoundedCornerShape(12.dp)),
             shape = RoundedCornerShape(12.dp),
-            color = Panel2,
+            color = palette.Panel2,
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("$", color = Accent, fontWeight = FontWeight.Bold)
+                Text("$", color = palette.Accent, fontWeight = FontWeight.Bold)
                 BasicTextField(
                     value = input,
                     onValueChange = { next ->
@@ -1376,7 +1703,7 @@ private fun TerminalScreen(
                     enabled = session != null,
                     singleLine = true,
                     textStyle = TextStyle(
-                        color = TextCol,
+                        color = palette.TextCol,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 14.sp,
                     ),
@@ -1390,7 +1717,7 @@ private fun TerminalScreen(
                             if (input.text.isEmpty()) {
                                 Text(
                                     if (session == null) "Terminal unavailable" else "Type a command",
-                                    color = Color(0xFF777782),
+                                    color = palette.Muted2,
                                     fontFamily = FontFamily.Monospace,
                                     fontSize = 14.sp,
                                 )
@@ -1400,7 +1727,7 @@ private fun TerminalScreen(
                     },
                 )
                 TextButton(onClick = ::submitInput, enabled = session != null) {
-                    Text("Send", color = Accent)
+                    Text("Send", color = palette.Accent)
                 }
             }
         }
@@ -1409,14 +1736,15 @@ private fun TerminalScreen(
 
 @Composable
 private fun RowScope.KeyButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    val palette = LocalOpencodePalette.current
     Surface(
         modifier = Modifier
             .weight(1f)
             .sizeIn(minHeight = 40.dp)
             .clip(RoundedCornerShape(7.dp))
-            .border(1.dp, if (enabled) BorderStrong else BorderCol, RoundedCornerShape(7.dp))
+            .border(1.dp, if (enabled) palette.BorderStrong else palette.BorderCol, RoundedCornerShape(7.dp))
             .clickable(enabled = enabled, onClick = onClick),
-        color = if (enabled) Panel3 else Panel2,
+        color = if (enabled) palette.Panel3 else palette.Panel2,
     ) {
         Box(Modifier.padding(horizontal = 4.dp, vertical = 10.dp)) {
             Text(
@@ -1424,7 +1752,7 @@ private fun RowScope.KeyButton(label: String, enabled: Boolean, onClick: () -> U
                 modifier = Modifier.fillMaxWidth(),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (enabled) Color(0xFFD9D2FF) else Muted2,
+                color = if (enabled) palette.TextCol else palette.Muted2,
                 textAlign = TextAlign.Center,
             )
         }
@@ -1437,7 +1765,9 @@ private const val MAX_TERMINAL_CHARS = 24_000
 private fun FilesScreen(
     modifier: Modifier = Modifier,
     files: FilesController?,
+    uiPrefs: UiPrefs? = null,
 ) {
+    val palette = LocalOpencodePalette.current
     val filesState = files?.state?.collectAsState()?.value
     val scope = rememberCoroutineScope()
 
@@ -1453,13 +1783,13 @@ private fun FilesScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("FILES", fontSize = 20.sp, fontWeight = FontWeight.Black, color = TextCol)
+                Text("FILES", fontSize = 20.sp, fontWeight = FontWeight.Black, color = palette.TextCol)
                 Text(
                     filesState?.let { state ->
                         if (state.currentPath.isBlank()) "workspace/" else state.currentPath
                     } ?: "workspace",
                     fontSize = 12.sp,
-                    color = Muted2,
+                    color = palette.Muted2,
                     fontFamily = FontFamily.Monospace,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -1469,39 +1799,44 @@ private fun FilesScreen(
                 onClick = { scope.launch { files?.goUp() } },
                 enabled = filesState?.let { it.connected && it.currentPath.isNotBlank() } == true,
             ) {
-                Text("Up", color = Accent)
+                Text("Up", color = palette.Accent)
             }
         }
 
         if (filesState == null || !filesState.connected) {
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = Panel,
-                border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
+                color = palette.Panel,
+                border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     "Files are available once the supervised server is online.",
                     modifier = Modifier.padding(12.dp),
                     fontSize = 13.sp,
-                    color = Muted,
+                    color = palette.Muted,
                 )
             }
         } else {
             if (filesState.error != null) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0x12DF7B7B),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x52DF7B7B)),
+                    color = palette.ErrorSurface,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, palette.ErrorBorder),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
                         filesState.error,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         fontSize = 12.sp,
-                        color = Color(0xFFE8B7B7),
+                        color = palette.ErrorText,
                     )
                 }
+            }
+            // Hierarchical tree rows (F11): expanded directories render
+            // their children inline; the chevron toggles expansion.
+            val treeRows = remember(filesState) {
+                flattenFileTree(filesState.entries, filesState)
             }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -1513,40 +1848,68 @@ private fun FilesScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(2.dp),
-                            color = Accent,
+                            color = palette.Accent,
                         )
                     }
                 }
-                items(filesState.entries, key = { it.path }) { entry ->
+                // Hierarchical tree (F11): expanded directories render their
+                // children inline; the chevron toggles expansion.
+                items(treeRows, key = { it.entry.path }) { row ->
+                    val entry = row.entry
                     val isDirectory = entry.type == FileEntryType.DIRECTORY
+                    val expanded = entry.path in filesState.expanded
+                    val loadingDir = entry.path in filesState.loadingDirs
+                    val (glyph, glyphColor) = fileIcon(entry, palette)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Panel,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderCol),
+                        color = palette.Panel,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { scope.launch { files?.open(entry) } },
                     ) {
                         Row(
-                            modifier = Modifier
-                                .padding(horizontal = 10.dp, vertical = 10.dp),
+                            modifier = Modifier.padding(
+                                start = 10.dp + (row.depth * 16).dp,
+                                end = 10.dp,
+                                top = 10.dp,
+                                bottom = 10.dp,
+                            ),
                             horizontalArrangement = Arrangement.spacedBy(9.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            if (isDirectory) {
+                                Text(
+                                    if (expanded) "▾" else "▸",
+                                    fontSize = 13.sp,
+                                    color = palette.Accent,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable {
+                                            scope.launch { files?.toggleExpand(entry) }
+                                        },
+                                )
+                            } else {
+                                Spacer(Modifier.width(13.dp))
+                            }
                             Text(
-                                if (isDirectory) "▸" else "▤",
+                                glyph,
                                 fontSize = 13.sp,
-                                color = if (isDirectory) Accent else Muted2,
+                                color = glyphColor,
                             )
                             Text(
                                 entry.name,
                                 fontSize = 13.sp,
-                                color = TextCol,
+                                color = palette.TextCol,
                                 fontWeight = if (isDirectory) FontWeight.SemiBold else FontWeight.Normal,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
                             )
+                            if (loadingDir) {
+                                Text("…", fontSize = 12.sp, color = palette.Muted2)
+                            }
                         }
                     }
                 }
@@ -1559,8 +1922,37 @@ private fun FilesScreen(
             path = filesState.previewPath.orEmpty(),
             content = filesState.previewText,
             loading = filesState.loading,
+            fontSize = uiPrefs?.codeTextSize?.collectAsState()?.value ?: 12,
             onDismiss = { scope.launch { files?.closePreview() } },
         )
+    }
+}
+
+/** File-type icon mapping (F11): glyph + stable color per extension group. */
+private val DocExtensions = setOf("md", "txt", "rst", "adoc", "log")
+private val CodeExtensions = setOf(
+    "kt", "kts", "java", "py", "js", "jsx", "mjs", "ts", "tsx", "c", "cpp", "h", "hpp",
+    "cc", "cs", "go", "rs", "rb", "php", "swift", "dart", "lua", "groovy", "scala",
+)
+private val ConfigExtensions = setOf("json", "yaml", "yml", "toml", "ini", "cfg", "properties", "xml", "gradle")
+private val ScriptExtensions = setOf("sh", "bash", "zsh", "ps1", "bat")
+private val ImageExtensions = setOf("png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico")
+private val ArchiveExtensions = setOf("zip", "tar", "gz", "tgz", "7z", "apk", "jar")
+
+private fun fileIcon(
+    entry: io.github.spectordev9.opencode.core.model.FileEntry,
+    palette: OpencodePalette,
+): Pair<String, Color> {
+    if (entry.type == FileEntryType.DIRECTORY) return "◫" to palette.Accent
+    val extension = entry.name.substringAfterLast('.', "").lowercase()
+    return when {
+        extension in DocExtensions -> "≡" to palette.WarningCol
+        extension in CodeExtensions -> "⌗" to palette.Highlight
+        extension in ConfigExtensions -> "⚙" to palette.SuccessCol
+        extension in ScriptExtensions -> "$" to palette.WarningCol
+        extension in ImageExtensions -> "◼" to palette.DangerCol
+        extension in ArchiveExtensions -> "▣" to palette.Muted2
+        else -> "▤" to palette.Muted2
     }
 }
 
@@ -1569,13 +1961,15 @@ private fun FilePreviewDialog(
     path: String,
     content: String?,
     loading: Boolean,
+    fontSize: Int,
     onDismiss: () -> Unit,
 ) {
+    val palette = LocalOpencodePalette.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Panel2,
-        titleContentColor = TextCol,
-        textContentColor = CodeText,
+        containerColor = palette.Panel2,
+        titleContentColor = palette.TextCol,
+        textContentColor = palette.CodeText,
         title = {
             Text(
                 path.substringAfterLast('/'),
@@ -1585,7 +1979,7 @@ private fun FilePreviewDialog(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close", color = Muted) } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close", color = palette.Muted) } },
         text = {
             Box(
                 Modifier
@@ -1597,7 +1991,7 @@ private fun FilePreviewDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(2.dp),
-                        color = Accent,
+                        color = palette.Accent,
                     )
                 } else {
                     Text(
@@ -1606,60 +2000,14 @@ private fun FilePreviewDialog(
                             .verticalScroll(rememberScrollState())
                             .fillMaxWidth(),
                         fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp,
-                        color = CodeText,
+                        fontSize = fontSize.sp,
+                        lineHeight = (fontSize + 5).sp,
+                        color = palette.CodeText,
                     )
                 }
             }
         },
     )
-}
-
-/** Rendered segments of assistant text; fenced blocks become code surfaces. */
-private sealed interface TextSegment {
-    data class Plain(val text: String) : TextSegment
-
-    data class Code(val text: String) : TextSegment
-}
-
-private fun splitCodeFences(text: String): List<TextSegment> {
-    val segments = mutableListOf<TextSegment>()
-    var remainder = text
-    while (true) {
-        val start = remainder.indexOf("```")
-        if (start < 0) {
-            if (remainder.isNotBlank()) segments += TextSegment.Plain(remainder)
-            break
-        }
-        val before = remainder.substring(0, start)
-        if (before.isNotBlank()) segments += TextSegment.Plain(before)
-        val bodyStart = start + 3
-        val end = remainder.indexOf("```", bodyStart)
-        if (end < 0) {
-            remainder.substring(bodyStart).takeIf { it.isNotBlank() }
-                ?.let { segments += TextSegment.Code(it) }
-            break
-        }
-        remainder.substring(bodyStart, end).takeIf { it.isNotBlank() }
-            ?.let { segments += TextSegment.Code(it) }
-        remainder = remainder.substring(end + 3)
-    }
-    return segments.map { segment ->
-        if (segment is TextSegment.Code) {
-            val body = segment.text
-            val tag = body.substringBefore('\n')
-            val hasLanguageTag = body.contains('\n') &&
-                tag.isNotEmpty() && tag.length <= 20 && !tag.contains(' ')
-            when {
-                hasLanguageTag -> TextSegment.Code(body.substringAfter('\n', ""))
-                body.startsWith('\n') -> TextSegment.Code(body.removePrefix("\n"))
-                else -> segment
-            }
-        } else {
-            segment
-        }
-    }
 }
 
 private fun formatRelativeTime(millis: Long): String {
@@ -1687,11 +2035,12 @@ private data class RuntimeBanner(
 private fun runtimeBanner(
     runtimeState: io.github.spectordev9.opencode.core.runtime.RuntimeState?,
     serverState: io.github.spectordev9.opencode.core.supervisor.ServerState?,
+    palette: OpencodePalette,
 ): RuntimeBanner {
     val offline = RuntimeBanner(
         label = "RUNTIME OFFLINE",
         detail = "Sessions and tools are unavailable",
-        dotColor = DangerCol,
+        dotColor = palette.DangerCol,
         version = null,
     )
     return when {
@@ -1702,14 +2051,14 @@ private fun runtimeBanner(
             -> RuntimeBanner(
                 label = "RUNTIME INSTALLING",
                 detail = runtimeState.reason ?: "Pinned runtime is being verified and installed",
-                dotColor = WarningCol,
+                dotColor = palette.WarningCol,
                 version = null,
             )
         runtimeState.status == io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED
             -> RuntimeBanner(
                 label = "RUNTIME FAILED",
                 detail = runtimeState.reason ?: "Runtime installation or verification failed",
-                dotColor = DangerCol,
+                dotColor = palette.DangerCol,
                 version = null,
             )
         else -> {
@@ -1722,7 +2071,7 @@ private fun runtimeBanner(
                             if (endpoint != null) append("${endpoint.host}:${endpoint.port}")
                             append(" · supervised opencode server")
                         },
-                        dotColor = SuccessCol,
+                        dotColor = palette.SuccessCol,
                         version = serverState.version?.takeIf { it.isNotBlank() },
                     )
                 io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.STARTING,
@@ -1733,21 +2082,21 @@ private fun runtimeBanner(
                         label = "SERVER RECOVERING",
                         detail = serverState.reason
                             ?: "Supervised server is starting or retrying on loopback",
-                        dotColor = WarningCol,
+                        dotColor = palette.WarningCol,
                         version = null,
                     )
                 io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.DEGRADED ->
                     RuntimeBanner(
                         label = "SERVER DEGRADED",
                         detail = serverState.reason ?: "Supervised server is degraded",
-                        dotColor = WarningCol,
+                        dotColor = palette.WarningCol,
                         version = null,
                     )
                 else ->
                     RuntimeBanner(
                         label = "SERVER STOPPED",
                         detail = "Runtime is ready; the supervised server is not running",
-                        dotColor = DangerCol,
+                        dotColor = palette.DangerCol,
                         version = null,
                     )
             }
