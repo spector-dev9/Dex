@@ -1,34 +1,35 @@
-# G0 / G1 / G2 Evidence Collector Report
-*Generated on 2026-10-27T14:00:00Z*
+# G0 evidence status
 
-## 1. Runtime manifest asset
-- **Present**: `app/src/main/assets/manifest.json`
-- **SHA‑256**: `5f3edba0fdcd70d2fd03de99b650de0f59390088a1769d64f0e2ac7bea87af69`
+*Updated 2026-10-30. This index is not authoritative for acceptance; use
+`docs/plan/phase-0.md` and the raw reports it links.*
 
-## 2. License placeholder
-- **Present**: `docs/licenses/texts/SHA256SUMS`
-- **First line**: `# Placeholder SHA256SUMS for Bun/libtalloc source package (S9)`
+## Current status
 
-## 3. Auth health test
-- **Test file** `AuthHealthTest.kt` exists.
-- **Kotlin compilation** failed (expected without full Android SDK).
+**G0 is pending.** S1-A and S3 have owner-accepted harness evidence. S1-B,
+the S2 profile workloads, S6, S9, baselines, and the D4 freeze remain open.
+S7/LC-2 and S8/TERM-5 were removed from the G0 gate by the owner on
+2026-10-30 and are not acceptance blockers.
 
-## 4. Bridge transport & JSON codec
-- **In‑process bridge transport** source present.
-- **JSON bridge codec** source present.
+## Latest device harness report
 
-## 5. Device evidence (ADB connected)
-- Device ADB: `192.167.1.57:36529` reachable.
-- Debug APK installed on device (CI build).
-- Core artefacts verified present on device.
+- Path: `/sdcard/Download/OpenCodeG0/reports/spike-20261030-020724.json`
+- Report SHA-256:
+  `0bd275eb375132c7376d673f767d4824d816bac18fa7921983fcd66b2e214a53`
+- APK SHA-256:
+  `f63f14ad18b4ad8b013e863b247ffce78be04466e33f121c0bbbe30550e3753c`
+- Device: Infinix X6870, Android 16/API 36, arm64-v8a, 4 KB pages
+- Result: 38/38 probe records passed; `g0Status` remains `pending`
+- The APK hash matches the CI harness artifact downloaded for this run.
+- The report is not archived in the repository and does not close the
+  remaining S1-B/S2/S6/S9, baseline, or D4 gates.
 
-## 6. Overall G0‑unblock status
-- **Runtime manifest asset**: yes
-- **License placeholder**: yes
-- **In‑process bridge transport**: yes
-- **JSON bridge codec**: yes
-- **Device APK installed**: yes
-- **Overall G0‑unblock status**: **green** (all required artifacts present)
+## Prior evidence
 
----
-*This report is generated to reflect device‑level evidence collection. Add additional sections as evidence becomes available (e.g., D4 profile verification, runtime‑launcher wiring, etc.).*
+- S1 loader, authenticated health, and mock-provider prompt: accepted
+  harness evidence (`docs/evidence/Device 1`).
+- S3 guest shell and native-PTY environment comparison: accepted harness
+  evidence (`docs/evidence/Device 1`).
+- S4/S5 host-side SSE and endpoint checks pass; app/UI and device acceptance
+  remain pending.
+- Raw historical two-device reports and earlier diagnostic exports remain
+  under `docs/evidence/`; they are feasibility evidence, not G0 acceptance.

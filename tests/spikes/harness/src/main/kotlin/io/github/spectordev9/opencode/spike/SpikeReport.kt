@@ -45,9 +45,10 @@ object SpikeReport {
             persistLocked()
             return
         }
-        records.addAll(loaded.records)
-        g0GateResults.putAll(loaded.gates)
-        activeProbe = loaded.activeProbe
+        records.addAll(loaded.records.filterNot { isRemovedGateRecord(it.id) })
+        val activeGateIds = G0GateCatalog.checks.mapTo(mutableSetOf()) { it.id }
+        g0GateResults.putAll(loaded.gates.filterKeys { it in activeGateIds })
+        activeProbe = loaded.activeProbe?.takeUnless { isRemovedGateRecord(it) }
         applyMissingAcceptedDefaultsLocked()
         val interrupted = activeProbe
         if (interrupted != null) {
@@ -122,7 +123,7 @@ object SpikeReport {
         root.put("generatedAt", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date()))
         root.put(
             "scope",
-            "Isolated pre-G0 device feasibility evidence; harness-passed S1-A/S3/S7/S8 checks are " +
+            "Isolated pre-G0 device feasibility evidence; harness-passed S1-A/S3 checks are " +
                 "accepted for G0, with production follow-ups tracked in the repository docs.",
         )
         root.put(
@@ -133,8 +134,6 @@ object SpikeReport {
                     "S2 Profile A/B performance comparison; Profile B is not implemented",
                     "S4/S5 host-side SSE and endpoint contract checks",
                     "S6 OpenCode 2.x contract test; no distributable 2.x artifact is available",
-                    "S7 one 10-minute active-agent background-survival acceptance; this APK measures only a harness-service soak",
-                    "TERM-5 real Gboard input acceptance; this APK only runs a scripted PTY byte round-trip",
                     "RT/STR/WS/TERM production-app and UI acceptance tests",
                     "SEC production security, second-UID, and release-manifest acceptance tests",
                     "S9 release, licensing, and distribution compliance",
@@ -199,12 +198,6 @@ object SpikeReport {
         return WrittenSpikeReport(internal, downloadLocation)
     }
 
-    @Synchronized
-    fun logEvent(id: String, detail: String) {
-        add(ProbeRecord(id = id, pass = true, detail = detail))
-        Log.i(TAG, "$id: $detail")
-    }
-
     private fun writeToMediaStore(context: Context, filename: String, text: String): String {
         val values =
             ContentValues().apply {
@@ -243,6 +236,11 @@ object SpikeReport {
         report.writeText(text, Charsets.UTF_8)
         return report.absolutePath
     }
+
+    private fun isRemovedGateRecord(id: String): Boolean =
+        id.startsWith("S7-") || id.startsWith("S8-") ||
+            id.contains("TERM-5", ignoreCase = true) ||
+            id.contains("term5", ignoreCase = true)
 
     private fun applyAcceptedDefaultsLocked() {
         g0GateResults.clear()

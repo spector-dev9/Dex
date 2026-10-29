@@ -74,8 +74,6 @@ G0_BLOCKERS = (
     "S2: Profile A/B performance comparison; Profile B is not implemented",
     "S3: compare the production agent shell with the PTY on the reference device",
     "S6: evaluate a distributable OpenCode 2.x artifact when one exists",
-    "S7/LC-2: one real active-agent, screen-off 10-minute run on the reference device",
-    "S8/TERM-5: native terminal UI with Gboard and app-provided control keys",
     "S9: complete licensing, dependency-closure, source-offer, and release-compliance evidence",
     "G0 decisions: ratify thresholds and freeze D1, D4, and D5 from admissible evidence",
 )

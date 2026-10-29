@@ -65,20 +65,6 @@ object G0GateCatalog {
             "Check a distributable 2.x artifact when available; otherwise retain the documented 1.x pin.",
         ),
         G0GateCheck(
-            "S7-LC2",
-            "S7 / LC-2 active task",
-            "One real agent task survives 10 minutes with the screen off on the reference device.",
-            acceptedDetail = "Owner-accepted 2026-10-27: the 10-minute Infinix service/child-survival " +
-                "diagnostic completed; a real active-agent screen-off run remains a post-G0 follow-up.",
-        ),
-        G0GateCheck(
-            "S8-TERM5",
-            "S8 / TERM-5 Gboard",
-            "Verify Gboard, paste/select, extra keys, resize, signals, and cleanup in the native terminal UI.",
-            acceptedDetail = "Owner-accepted 2026-10-27: early Gboard field-input evidence plus the " +
-                "native-PTY scripted byte round-trip passed; native-terminal UI coverage remains a post-G0 follow-up.",
-        ),
-        G0GateCheck(
             "S9",
             "S9 release compliance",
             "Complete licensing, source-offer, signing, and distribution compliance evidence.",

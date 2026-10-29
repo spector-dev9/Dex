@@ -8,7 +8,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -34,15 +33,6 @@
         </activity>
 
         <service
-            android:name=".SpikeForegroundService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Pre-G0 feasibility spike; not a user feature" />
-        </service>
-
-        <service
             android:name=".G3LongRunService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
@@ -60,9 +50,5 @@
             android:name=".NativePtyProbeService"
             android:exported="false"
             android:process=":nativepty" />
-
-        <receiver
-            android:name=".S7AlarmHeartbeatReceiver"
-            android:exported="false" />
     </application>
 </manifest>

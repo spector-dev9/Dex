@@ -345,11 +345,11 @@ object SpikeProbe {
                 durationMs = SystemClock.elapsedRealtime() - started,
                 stdout = normalized,
             ),
-            runTerm5PtyInput(context, proot, loader, rootfs, root),
+            runPtyByteRoundTrip(context, proot, loader, rootfs, root),
         )
     }
 
-    fun runTerm5NativePty(context: Context): List<ProbeRecord> {
+    fun runNativePtyProbe(context: Context): List<ProbeRecord> {
         val root = runtimeDir(context)
         val nativeDir = File(context.applicationInfo.nativeLibraryDir)
         val proot = File(nativeDir, "libproot.so").takeIf { it.isFile }
@@ -359,18 +359,17 @@ object SpikeProbe {
         val rootfs = File(root, "rootfs")
         if (proot == null || loader == null || !rootfsFileExists(rootfs, "bin/sh")) {
             val record = ProbeRecord(
-                "TERM-5-pty-byte-roundtrip",
+                "PTY-byte-roundtrip",
                 false,
                 "missing PRoot, loader or Alpine shell",
             )
-            recordTerm5Gate(record)
             return listOf(record)
         }
         prepareRuntime(context)
-        return listOf(runTerm5PtyInput(context, proot, loader, rootfs, root))
+        return listOf(runPtyByteRoundTrip(context, proot, loader, rootfs, root))
     }
 
-    private fun runTerm5PtyInput(
+    private fun runPtyByteRoundTrip(
         context: Context,
         proot: File,
         loader: File,
@@ -401,7 +400,7 @@ object SpikeProbe {
         val expectedInputBytes = "61 62 63 0a 7f 09 1b 1b 5b 41 03 1b 78"
         val inputBytesMatch = inputOutput.replace(Regex("\\s+"), " ").contains(expectedInputBytes)
         val record = ProbeRecord(
-            id = "TERM-5-pty-byte-roundtrip",
+            id = "PTY-byte-roundtrip",
             pass = inputExitCode == 0 && inputBytesMatch && inputOutput.contains("GUEST-PTY-OK"),
             detail = "exit=$inputExitCode; Enter CR normalized to LF by ICRNL; " +
                 "expectedBytes=$expectedInputBytes; byteRoundTrip=$inputBytesMatch; " +
@@ -411,21 +410,7 @@ object SpikeProbe {
             durationMs = SystemClock.elapsedRealtime() - inputStarted,
             stdout = inputOutput,
         )
-        recordTerm5Gate(record)
         return record
-    }
-
-    private fun recordTerm5Gate(record: ProbeRecord) {
-        SpikeReport.setG0GateResult(
-            "S8-TERM5",
-            if (record.pass) "accepted" else "fail",
-            if (record.pass) {
-                "Owner-accepted 2026-10-27: early Gboard field-input observations are green and the " +
-                    "native-PTY byte round-trip passed; remaining native-terminal UI checks are post-G0 follow-ups."
-            } else {
-                "Native-PTY TERM-5 probe failed: ${record.detail}"
-            },
-        )
     }
 
     private fun probeEnvironment(output: String): Map<String, String> =

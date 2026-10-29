@@ -96,7 +96,6 @@ cannot promote a row.
 | Target | Required run | Status | Blocker |
 | --- | --- | --- | --- |
 | Infinix X6870 | S1 A/B start, health, mock prompt; S2 cold/RSS/git/npm | pending | app runtime implementation |
-| Infinix X6870 | S7 one 10-minute active-task, screen-off run | pending | app runtime implementation |
 | App sandbox (Infinix X6870) | `execute_no_trans` denials, jniLibs launch, native PTY | pending | app implementation |
 | 16 KB-page device | RT-5 boot and `execute_no_trans` scan | out-of-scope | not a v1 G0 target |
 

@@ -15,68 +15,50 @@ set; G0 is governed by `docs/spec.md` and this phase plan.
 | D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | Harness runs verify Node guest-shell/native-PTY feasibility and S1 mock-provider round trips on the Infinix X6870 (Android 16/arm64/4 KB pages). Profile A/B comparison, production agent-shell wiring, and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
 | D5 — version pin | Keep OpenCode **1.19.3** as the exact current baseline; verify its manifest hash; reject unknown major versions. Re-evaluate only when a distributable 2.x artifact is available. | Resolved for the current baseline; 2.x compatibility is unverified. | `runtime/manifest.json`, `tests/spikes/results/S6-2.x.md`. The 2.x release-artifact check is blocked, not a reason to silently change the pin. |
 
-**G0 is not complete.** The specification requires S1–S9 on the Infinix
-X6870 reference device, its baselines, ratified thresholds, and frozen D1/D4/D5.
-Tier A/B/C, 16 KB-page devices, Samsung Keyboard and other hardware are out of
-scope for v1. The Infinix X6870 summary (`docs/evidence/Device 1`; `Test 2` is retained as
-historical out-of-scope evidence) reports S3 guest-shell/native-PTY behavior
-with Node.js 20.15.1 and successful S1 health/mock-provider flows on
-Android 16/arm64/4 KB pages. These are feasibility results, not full
-reference-device G0 evidence or production-app acceptance. Earlier S7 reports were exported
-about 13 minutes and 25 seconds after start, not at confirmed service
-death. A later 10-minute Infinix harness diagnostic reports 631,745 ms of
-service survival with zero restarts; the child remained alive at stop, while
-sparse samples were classified by the owner as Android scheduling behavior.
-The 2026-10-27 Infinix report repeated the pattern: the service survived and
-the child was alive at stop, but child sampling covered only 14/74 expected
-samples; the owner accepts this as a platform background-execution limit.
-S7/LC-2 is therefore owner-accepted as pass, with a real active-agent run
-retained as a post-G0 follow-up. S2, S6's 2.x artifact decision, and S9
-compliance remain open on the reference device. S8/TERM-5 was owner-accepted
-as pass on 2026-10-27 based on early Gboard field-input evidence plus the
-dedicated native-PTY scripted byte round-trip; remaining native-terminal UI
-coverage is a non-blocking follow-up.
-Do not start G0-dependent production service wiring or claim gate
-acceptance until these blockers clear.
+**G0 is not complete.** The specification requires S1–S6 and S9 on the
+Infinix X6870 reference device, its baselines, ratified thresholds, and frozen
+D1/D4/D5. Tier A/B/C, 16 KB-page devices, Samsung Keyboard and other hardware
+are out of scope for v1. The Infinix X6870 summary (`docs/evidence/Device 1`;
+`Test 2` is retained as historical out-of-scope evidence) reports S3
+guest-shell/native-PTY behavior with Node.js 20.15.1 and successful S1
+health/mock-provider flows on Android 16/arm64/4 KB pages. These are
+feasibility results, not full reference-device G0 evidence or production-app
+acceptance. S2, S6's 2.x artifact decision, and S9 compliance remain open on
+the reference device. S7/LC-2 and S8/TERM-5 were removed from the G0 gate by
+the owner on 2026-10-30; they are not tracked as blockers or acceptance checks.
+Do not start G0-dependent production service wiring or claim gate acceptance
+until these blockers clear.
 
 ### G0 sequencing constraint
 
 The gate currently has a dependency cycle: it requires device evidence
-from S1/S3 (and lifecycle/keyboard evidence from S7/S8), while product
-runtime and PTY implementations are deferred until after G0. Break this
-without prematurely freezing production architecture by building only a
-disposable spike harness under `tests/spikes/` (or a clearly isolated
-debug-only target). It may prove native-library launch, PRoot guest shell,
-PTY behavior, lifecycle and keyboard feasibility; it must not become
-production service wiring or be treated as acceptance until run on the
-Infinix X6870.
+from S1/S3, while product runtime and PTY implementations are deferred
+until after G0. Break this without prematurely freezing production
+architecture by building only a disposable spike harness under
+`tests/spikes/` (or a clearly isolated debug-only target). It may prove
+native-library launch, PRoot guest shell and PTY behavior; it must not
+become production service wiring or be treated as acceptance until run on
+the Infinix X6870.
 
 The earlier physical-device harness report used the pre-official package.
 A later report for the Infinix X6870 (Android 16, arm64-v8a, 4 KB pages)
 records successful official-version loader and basic foreground-service
 start/stop probes. Its claimed S3 pass is invalid because output contained
 `node: not found` and literal `******` in place of the compared values.
-It records S8 text changes but no key-down events (expected for a soft IME). The report does not
-contain an archive hash, and does not cover the S7 active-task run.
-That invalidated report is superseded for S3 by later runs on the Infinix
-X6870, which verify Node and matching guest/PTY values. S8/TERM-5 and
-S7/LC-2 were owner-accepted as pass on 2026-10-27; a real active-agent S7 run
-remains a post-G0 follow-up. Continue with S1-B/S2/S3 production evidence
+The report does not contain an archive hash. That invalidated report is
+superseded for S3 by later runs on the Infinix X6870, which verify Node and
+matching guest/PTY values. Continue with S1-B/S2/S3 production evidence
 before freezing D4 or ratifying device-dependent thresholds.
 
 An isolated device harness now exists at `tests/spikes/harness/` and is
 excluded from normal builds (`-PspikeHarness=true`). It records device
 metadata, checks jniLibs ELF alignment, launches the loader/opencode
-entrypoint, runs a PRoot guest shell, compares the guest shell with a
-native `forkpty` session, exercises a timed `specialUse` foreground-service
-probe with a partial wake lock, separate alarm heartbeat and power-state
-telemetry, and records IME input. It remains a harness-service diagnostic;
-S7/LC-2 is owner-accepted from that diagnostic, while a real active-agent run
-remains a post-G0 follow-up. One staged physical-device run is recorded in
+entrypoint, runs a PRoot guest shell, and compares the guest shell with a
+native `forkpty` session. One staged physical-device run is recorded in
 `tests/spikes/results/S3-device-harness-20261024-staged.md`; it is
 partial feasibility evidence, not G0 acceptance.
 
-### Lifecycle requirements before S7 acceptance
+### Lifecycle requirements
 
 Production should hold a foreground service and partial wake lock only
 while an agent task is active, explain any battery-optimization exemption
@@ -85,8 +67,8 @@ Nothing), and release resources when idle. On resume, reconcile process and
 session health, reconnect SSE from the last event ID, and re-fetch session
 state. PRoot/Node child-process survival under Android 12+ phantom-process
 killing is a separate risk and must not be inferred from service survival.
-The harness can diagnose CPU suspend versus service/process interruption;
-it does not implement these production lifecycle behaviors.
+The isolated harness does not implement these production lifecycle
+behaviors.
 
 ## Foundation status — what works and what is blocked
 
@@ -105,11 +87,8 @@ it does not implement these production lifecycle behaviors.
 **Still blocked or not yet accepted**
 
 - One-device harness evidence now passes the loader `--version`, guest
-  shell, native PTY and foreground-service start/stop probes. Full S1
-  server/prompt coverage and S2 comparisons remain pending; the run does not
-  promote acceptance rows. S7/LC-2 and S8/TERM-5 are owner-accepted as pass,
-  with active-agent and native-terminal coverage retained as non-blocking
-  follow-ups.
+  shell and native PTY probes. Full S1 server/prompt coverage and S2
+  comparisons remain pending; the run does not promote acceptance rows.
 - Runtime packaging/supervision, authenticated ephemeral loopback
   lifecycle, production Kotlin HTTP/SSE gateway, native workspace
   operations and native interactive PTY are not implemented.
@@ -244,9 +223,8 @@ See `docs/architecture/g1-contracts.md` and `docs/plan/phase-1.md`.
       because the Termux pool no longer serves the .100 deb (HTTP 404);
       regenerate the license inventory and SBOM. Evidence recorded before
       this pin change used .100.
-- [x] Add harness actions for S1 loader launch, S3 PRoot guest shell,
-      S7 `specialUse` foreground-service lifecycle, S8 IME input and a
-      JSON report. They are implemented; the staged S1/S3/S7 device
+- [x] Add harness actions for S1 loader launch, S3 PRoot guest shell and
+      JSON report export. They are implemented; the staged S1/S3 device
       results are recorded below and in the evidence matrix.
 - [x] Add a test-only native `forkpty` comparison for guest `PWD`,
       `PATH`, Node version and 80x24 terminal sizing. Keep it isolated
@@ -254,10 +232,10 @@ See `docs/architecture/g1-contracts.md` and `docs/plan/phase-1.md`.
 - [x] Add Android CI compile support and verify the gated
       `arm64-v8a` debug APK, including the native helper.
 - [x] Run the staged harness on one physical Android 16/arm64 device;
-      record S1 loader-version and basic S7 lifecycle probes in
-      `docs/evidence/RESULTS.md`. Its originally reported S3
-      guest-shell/native-PTY passes were later invalidated because Node
-      was missing and the probe accepted unverified output.
+      record the S1 loader-version probe in `docs/evidence/RESULTS.md`.
+      Its originally reported S3 guest-shell/native-PTY passes were later
+      invalidated because Node was missing and the probe accepted
+      unverified output.
 - [x] Add an isolated harness action for authenticated S1 server health
       and a deterministic local mock-provider prompt round trip; the
       physical report records one successful device run.
@@ -266,19 +244,8 @@ See `docs/architecture/g1-contracts.md` and `docs/plan/phase-1.md`.
       `../../tests/spikes/results/S1-session-roundtrip-user-log.txt`.
 - [x] Run the corrected S3 guest-shell/native-PTY probes on two physical
       devices; see `docs/evidence/Device 1` and `docs/evidence/Test 2`.
-- [x] Run the exploratory S7 soak on two devices (historical, outside the
-      v1 G0 scope); the 10-minute harness-service diagnostic on the Infinix
-      X6870 passed.
-- [x] Owner override (2026-10-27): accept S7/LC-2 as pass. The 10-minute
-      Infinix service/child survival diagnostic completed; sparse child
-      sampling is a platform background-execution limitation. A real
-      active-agent run remains a post-G0 follow-up.
 - [ ] Complete S1 and S2 on the Infinix X6870 and the production
       agent-shell comparison.
-- [x] Owner override (2026-10-27): accept S8/TERM-5 as pass based on early
-      Gboard field-input evidence plus the dedicated native-PTY scripted
-      byte round-trip; native-terminal coverage remains a non-blocking
-      follow-up.
 
 ## Phase 0 exit criteria
 
@@ -300,8 +267,6 @@ See `docs/architecture/g1-contracts.md` and `docs/plan/phase-1.md`.
 | S4 | pass (host, mock + real provider); app/UI pending | `tests/spikes/results/S4-sse.md` |
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |
-| S7 | pass (owner override 2026-10-27: 10-minute Infinix service/child diagnostic; sparse child sampling accepted as platform limit; active-agent run is a post-G0 follow-up) | `docs/evidence/Device 1`, `docs/evidence/RESULTS.md`, `docs/project-checklist.md` |
-| S8 | pass (owner override 2026-10-27: early Gboard field input green + scripted native-PTY round-trip; native-terminal follow-up) | `docs/evidence/Device 1`, `docs/evidence/RESULTS.md` |
 | S9 | distribution decision accepted; SBOM/inventory done, compliance blockers open | `docs/adr/0001-distribution.md`, `docs/licenses/` |
 
 ## Corrections to the spec found during spikes
@@ -331,9 +296,8 @@ See `docs/architecture/g1-contracts.md` and `docs/plan/phase-1.md`.
 1. **Extend S1 feasibility:** run the pinned server on device, verify
    `/global/health`, and complete one mock-provider prompt round trip;
    current physical evidence only verifies `opencode --version`.
-2. **Finish device evidence:** run the remaining checks on the Infinix
-   X6870; record metadata and the single 10-minute active-task result in
-   `docs/evidence/RESULTS.md`.
+2. **Finish device evidence:** run the remaining S1/S2/S3 checks on the
+   Infinix X6870 and record metadata in `docs/evidence/RESULTS.md`.
 3. **S6:** run the contract suite against a 2.0.x artifact when one is
    published; `v2.0.32`/`v2.1.3` tags exist but have no release assets
    or npm builds as of 2026-10-23.
@@ -353,20 +317,19 @@ See `docs/architecture/g1-contracts.md` and `docs/plan/phase-1.md`.
 
 ## Outstanding device evidence
 
-The latest official-package report is
-`docs/evidence/spike-20261024-153116.json`. It is a single pre-G0 harness
-run, not device-matrix acceptance. Its probe count must not be used to
-infer completion of the following tests:
+The latest archived official-package report is
+`docs/evidence/spike-20261024-153116.json`. A newer unarchived device report
+from 2026-10-30 is summarized in `docs/evidence/RESULTS.md`. Neither is
+device-matrix acceptance, and probe counts must not be used to infer
+completion of the following tests:
 
 | Blocked run | Missing evidence | Required next action |
 | --- | --- | --- |
 | S1 authenticated server and prompt | The report proves loader execution, not authenticated `/global/health` or a mock-provider prompt round trip on a physical target. | Run the harness's authenticated-server action on the Infinix X6870 and preserve the report and APK/artifact hashes. |
 | S2 runtime profiles | No comparable cold start, idle PSS/RSS, 10k-file Git status, agent `npm test`, or thermal results for Profiles A and B. | Execute the prescribed workloads on the Infinix X6870 and record measurements before deciding D4. |
 | Other hardware and RT-5 | Out of scope for v1. The Infinix X6870 is the only supported G0 target; RT-5 boot remains out of scope because it has 4 KB pages. | Keep the CI ELF-alignment check; revisit only if more hardware is supported. |
-| S7 / LC lifecycle | Owner override on 2026-10-27 accepted S7/LC-2 as pass from the 10-minute Infinix service/child diagnostic; sparse child sampling is classified as a platform background-execution limit. A real active-agent run is absent. | Treat the active-agent run as a non-blocking post-G0 follow-up; keep production lifecycle and crash recovery under G1/LC-3. |
-| S8 / TERM-5 keyboard | Owner override on 2026-10-27 accepted S8/TERM-5 as pass using the green Gboard field-input reports plus the dedicated scripted native-PTY byte round-trip. Native-terminal TERM-5 coverage is still absent. | Treat native-terminal TERM-5 coverage as a non-blocking post-G0 follow-up. |
 | S6 / 2.x | No distributable OpenCode 2.x artifact is available to test. | Keep the 1.19.3 pin and run contract tests only when a distributable candidate exists. |
 
-Device rows in `docs/evidence/RESULTS.md` therefore remain `pending`.
-Host builds, host runtime tests, the one-device harness and emulator
-availability are separate evidence classes and do not promote those rows.
+The outstanding rows above remain `pending`. Host builds, host runtime
+tests, the one-device harness and emulator availability are separate
+evidence classes and do not promote those rows.

@@ -60,8 +60,8 @@ Draft of October 23, 2026. Inputs: the Vision & Technical Blueprint; the spector
 | D7 | Per-install random 256-bit secret as OPENCODE\_SERVER\_PASSWORD; free port chosen at start; bind 127.0.0.1; secret wrapped by Android Keystore; only the gateway holds it. | Loopback is reachable by other apps. | If OpenCode adds a unix-socket listener, prefer it. |
 | D8 | Native WorkspaceService owns create, rename, move, delete, atomic write and range reads. Canonical-path checks, no symlink escape, mtime+size+hash preconditions, delete goes to an in-app trash. Projects live in app-private storage; shared storage only by import/export copy, or MANAGE\_EXTERNAL\_STORAGE in the sideload build. | SAF URIs are not POSIX paths, so PRoot and git cannot use them. | None. |
 | D9 | Git is the Alpine git binary in the guest. Credentials through a GIT\_ASKPASS helper backed by Keystore, never in remote URLs. HTTPS only in v1. | Fidelity: hooks, submodules. | None. |
-| D10 | Native PtyService (JNI forkpty, TIOCSWINSZ, process-group kill) launching the guest shell through PRoot, rendered with xterm.js. Server PTY routes, even if present, are not used. | Must work when the server is down; no undocumented API dependency. | S8 input failures: switch to a native terminal view. |
-| D11 | Foreground service type specialUse; wake lock only while a session is busy; idle shutdown (default 10 min); crash-loop breaker; detect exit 137 and guide the user on child-process restrictions. | Android 15 dataSync caps; thermals. | S7. |
+| D10 | Native PtyService (JNI forkpty, TIOCSWINSZ, process-group kill) launching the guest shell through PRoot, rendered with xterm.js. Server PTY routes, even if present, are not used. | Must work when the server is down; no undocumented API dependency. | Terminal input failures: switch to a native terminal view. |
+| D11 | Foreground service type specialUse; wake lock only while a session is busy; idle shutdown (default 10 min); crash-loop breaker; detect exit 137 and guide the user on child-process restrictions. | Android 15 dataSync caps; thermals. | OEM background killing. |
 | D12 | Keep React, TypeScript and Vite; CodeMirror 6 editor; xterm.js; WebViewAssetLoader. Native owns everything privileged. | Markdown, diff and editor ecosystems. | None. |
 | D13 | Gradle Kotlin DSL with a version catalog, pinned toolchains, reproducible-build check, CycloneDX SBOM, separate .debug applicationId, CI signing. | Reproducible release. | None. |
 
@@ -212,8 +212,6 @@ opencode-mobile/
 | S4 | SSE semantics: heartbeat cadence, reconnect, ordering, duplicates, directory scoping. | A written resync algorithm; STR-5 fault injection passes. |
 | S5 | Endpoint inventory: diff the pinned /doc against 4.1; PTY routes; --port and auth behavior; unix-socket support. | Inventory committed to contract/. |
 | S6 | Does the contract suite pass on OpenCode 2.0.x? | Pin 2.x only if every used endpoint passes or needs a thin shim; otherwise pin 1.x with a drift job. |
-| S7 | Background survival with child-process restrictions on and off; specialUse service; OEM battery saver on the Infinix X6870. | LC-2 met on the reference device, or per-OEM guidance shipped in diagnostics. |
-| S8 | xterm.js versus a native terminal view for typing, extra keys, IME. | TERM-5 passes on Gboard; otherwise native view. |
 | S9 | Licensing and distribution: GPLv2 duties for PRoot, Alpine package licenses, Play executable-code policy, F-Droid source-build rules. | Written decision for D1; compliance checklist in docs/licenses. |
 
 ## 7. Acceptance criteria
@@ -313,7 +311,7 @@ Reference device: **Infinix X6870** only (INFINIX, Android 16/API 36, arm64-v8a,
 
 | Gate | Exit criteria |
 | --- | --- |
-| G0 (end of Phase 2) | S1 to S9 complete on the Infinix X6870 reference device; its baselines recorded; section 7 thresholds ratified; D1, D4, D5 frozen |
+| G0 (end of Phase 2) | S1 to S6 and S9 complete on the Infinix X6870 reference device; its baselines recorded; section 7 thresholds ratified; D1, D4, D5 frozen |
 | G1 (backend foundation) | RT-1 to RT-4, SEC-1, SEC-2, STR-1, STR-5, LC-3, WS-1, WS-2 pass headless on the reference device |
 | G2 (application rebuild) | UI runs entirely on the bridge; Capacitor removed; regression map complete |
 | G3 (validation) | All of section 7 passes on the reference device; LC-5/LC-6 may be deferred as post-v1 optional checks |
@@ -324,7 +322,7 @@ Reference device: **Infinix X6870** only (INFINIX, Android 16/API 36, arm64-v8a,
 | Risk | Mitigation |
 | --- | --- |
 | Distribution policy blocks Play | D1 sideload-first; S9 decides before architecture freezes |
-| OEM background killing | S7, LC-2, per-OEM diagnostics guidance |
+| OEM background killing | LC-2, per-OEM diagnostics guidance |
 | Upstream API churn (v1 to v2) | D5 pin, contract suite, nightly drift job |
 | GPL and package licensing | docs/licenses, source offer, SEC-5 |
 | Kernel and seccomp variance across devices | Only the reference device is supported for v1; RT-4 on that device |

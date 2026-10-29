@@ -14,8 +14,6 @@ reference-device G0 evidence.
 | S4 | SSE semantics | Written resync algorithm; STR-5 passes | **pass (host, mock + real provider)** — heartbeat ≈10 s, reconnect new `server.connected`, directory scoping accepted, parser + 500-trial simulation pass, live 500-drop runs against a mock and a hosted model plus an authenticated 500-drop loop match the snapshot (p95 reconnect 59 ms); app/UI untested → [result](results/S4-sse.md) |
 | S5 | Endpoint inventory, PTY, auth | Inventory committed to contract/ | **pass (host)** — 36/36 endpoints, PTY documented, Basic auth verified → [result](results/S5-endpoints-auth.md) |
 | S6 | Contract suite on 2.0.x | Pin 2.x only if every used endpoint passes | blocked — 2.x tags exist but no release assets/npm builds → [result](results/S6-2.x.md) |
-| S7 | Background survival, OEM saver | One 10-minute active-task, screen-off run passes | blocked (needs active-agent run) |
-| S8 | Native terminal input | Gboard PTY-backed TERM-5 | **partial** — Gboard field input is green (owner-reported); native-terminal TERM-5 remains pending → [evidence](results/S8-ime-observations-20261025.md) |
 | S9 | Licensing and distribution | Written D1 decision + checklist | **accepted (D1)** — GitHub Releases + Obtainium first, Play deferred; SBOM/inventory done, LGPL/source-offer blockers open → [checklist](../../docs/licenses/README.md) |
 
 ## Open questions from Section 9
@@ -47,9 +45,9 @@ npm test
 ## Device harness (pre-G0, isolated)
 
 `tests/spikes/harness/` is a debug-only Android app for collecting S1/S3
-app-sandbox, S7 foreground-service and S8 IME evidence. It is excluded
-from normal builds and must be included with `-PspikeHarness=true`. It is
-not production wiring and a passing run is not device acceptance.
+app-sandbox and guest-shell evidence. It is excluded from normal builds and
+must be included with `-PspikeHarness=true`. It is not production wiring and
+a passing run is not device acceptance.
 
 ```bash
 python3 scripts/stage-spike-harness.py
@@ -57,10 +55,9 @@ python3 scripts/stage-spike-harness.py
 ```
 
 See `harness/README.md` for install, staging and evidence instructions.
-The harness now runs the guest-shell/native-`forkpty` comparison and can
-collect 10-minute and exploratory 30-minute foreground-service diagnostics.
-These remain partial feasibility checks; they are not full G0 acceptance.
-G0 needs one 10-minute **active-agent** run, not a harness-service soak.
+The harness runs the S1 loader/server probes and the
+guest-shell/native-`forkpty` comparison. These remain partial feasibility
+checks; they are not full G0 acceptance.
 
 Runtime profile decision support: `docs/runtime-matrix.md`.
 

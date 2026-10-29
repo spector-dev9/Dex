@@ -50,7 +50,7 @@ provider traffic is in scope only for v1.1.
 | T8 | Secret leakage via logs/backups | Credential disclosure | SEC-2 scan of APK/logcat/app logs/crash dumps/process arguments; provider credentials mode 600; `allowBackup=false`; diagnostics redaction | `allowBackup=false` is present in the app manifest. The debug harness exports device/build metadata, probe command/output and server lifecycle diagnostics to Downloads and logcat; current S1 uses generated test credentials and a local mock provider, not a real provider secret. Treat exported reports/logs as diagnostic data (they can identify device/build and include local paths/session IDs) and review before sharing publicly. Secret scanning, production redaction and provider-credential handling are not implemented or verified. |
 | T9 | Guest escape / host compromise via PRoot | Host compromise | Run PRoot as app UID without root; expose only approved paths; permission prompts | Accepted residual risk: PRoot is ptrace-based and is not a security boundary. Production bind restrictions and permission UI are not implemented. |
 | T10 | Downgrade or update abuse | Reintroduce fixed bugs | Refuse downgrade; verify signing; pin runtime artifacts | Update/rollback policy, signing verification and CI signing remain pending. |
-| T11 | Resource exhaustion / thermal abuse | Battery, heat, DoS | Idle shutdown, busy-only wake lock, crash-loop breaker (D11); LC-4/LC-6 thresholds | The updated isolated harness records thermal status and foreground-service heartbeats. Historical two-device exploratory exports (about 13 minutes and 25 seconds) are outside the v1 gate; the Infinix X6870 10-minute service diagnostic passed. Neither run establishes screen-off behavior (`screenOff=not-measured`), active-agent survival, idle CPU, or production lifecycle behavior. Resource/lifecycle controls and LC-2/LC-4/LC-6 acceptance remain open. G0 uses the Infinix X6870 only; LC-5/LC-6 are optional post-G0 checks. |
+| T11 | Resource exhaustion / thermal abuse | Battery, heat, DoS | Idle shutdown, busy-only wake lock, crash-loop breaker (D11); LC-4/LC-6 thresholds | The isolated harness records thermal status for runtime probes but does not implement production idle shutdown, wake-lock or crash-loop behavior. Resource/lifecycle controls remain for G1/LC-3; LC-4/LC-6 thresholds and optional post-G0 checks remain open. G0 uses the Infinix X6870 only. |
 | T12 | Provider MITM (v1.1 remote profile) | Credential/session theft | TLS 1.2+, certificate validation, fail closed, no cleartext (SEC-6) | Not in v1 scope. |
 | T13 | Developer-verification gate blocks installs | Users cannot install/update | Register application ID/signing identity; document ADB/advanced flow; monitor 2026 regional and 2027 global rollout | External policy change; see ADR 0001. |
 
@@ -79,16 +79,6 @@ provider traffic is in scope only for v1.1.
   mock-provider prompt round trips. These establish repeatable feasibility
   on two devices. G0 uses the Infinix X6870 only; Tier A/B/C, 16 KB-page
   devices and Samsung Keyboard are out of scope for v1.
-- The earlier S7 records show start-to-export intervals of approximately
-  13 minutes and 25 seconds, with a fresh service heartbeat and zero
-  service restarts at export. They do not prove service death, screen-off,
-  or active-agent survival. Keep S7/LC-2 pending until one redesigned
-  10-minute active-agent, screen-off run on the Infinix X6870 provides
-  admissible evidence.
-- Earlier S8 observations identify Gboard and record text changes but zero
-  key-down events, which is expected for a soft keyboard. A later Gboard
-  field-input run is owner-reported green; native-terminal TERM-5 remains
-  pending.
 - Evidence summaries: [`Device 1`](evidence/Device%201) and
   [`Device 2`](evidence/Test%202). They describe an isolated debug harness;
   their results do not constitute production-app or security acceptance.

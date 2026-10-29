@@ -48,8 +48,8 @@
    is present, but local APK assembly is unsupported; debug/release builds
    and device tests run in CI or on another machine.
 2. **Device verification needs external access.** adb is installed but no
-   authorized device is available to Termux, so device spikes (S1, S2, S7,
-   S8) need a test device farm, a CI emulator, or manual installs.
+   authorized device is available to Termux, so device spikes (S1, S2)
+   need a test device farm, a CI emulator, or manual installs.
 3. **16 KB-page validation is out of scope for v1.** The host and reference
    device report 4096-byte pages. RT-5 is retained as a future-hardware check,
    not a G0 blocker.

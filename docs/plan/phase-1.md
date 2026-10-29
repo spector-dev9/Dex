@@ -17,8 +17,6 @@ the final feature UI.
 - S6 has no distributable OpenCode 2.x artifact; keep the 1.19.3 pin.
 - S9 Bun/libtalloc source-offer and dependency-closure work remains open.
 - D4 remains provisional until its evidence clears.
-- S7/S8 are owner-accepted with post-G0 follow-ups recorded in
-  `docs/project-checklist.md`.
 
 These do not pause G1, but no release claim may treat them as resolved.
 

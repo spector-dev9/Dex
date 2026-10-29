@@ -17,33 +17,19 @@ separately. Passing automated checks alone does not unblock G0.
 
 ## Current Test Status
 
-- [x] Gated spike APK assembles successfully; latest CI APK SHA-256 is
-  `d0daff1709397c02135fe550adddcfc46d5e14065b50dd55024b195ef69fd184`
-  (commit `e082fd9`, run `40419321443`).
+- [x] Gated spike APK assembles in CI; the latest inspected device report
+  used APK SHA-256
+  `f63f14ad18b4ad8b013e863b247ffce78be04466e33f121c0bbbe30550e3753c`
+  (2026-10-30).
 - [x] S1 authenticated-health and mock-provider smoke: two user-reported runs
   passed; see `tests/spikes/results/S1-server-mock-20261024.md`.
-- [x] S8 Gboard field-input test: owner-reported green with text, IME,
-  hardware-key, selection, and context-menu events; see
-  `tests/spikes/results/S8-ime-observations-20261025.md`.
-- [x] Document the Gboard report's `assessed`/APK `not-assessed` label
-  discrepancy; retain it as a provenance note, not a failing test.
 - [x] Record the fixed-harness S1/S3 device suite: 10/10 available probes
   passed on the Infinix X6870. Owner-accepted 2026-10-27 as non-blocking
   harness evidence for G0; production S1/S3 remain post-G0 follow-ups. See
   `tests/spikes/results/S1-S3-device-suite-20261025.md`.
-- [x] Owner override (2026-10-27): mark S8/TERM-5 accepted based on the early
-  Gboard field-input evidence plus the dedicated native-PTY scripted byte
-  round-trip. Remaining native-terminal UI coverage is recorded below as a
-  post-G0 follow-up.
 - [x] Harness exposes one button per G0 gate. Available probes run; gates that
   require production wiring, external artifacts, or owner decisions record
   blocked/manual/deferred status instead of a false pass.
-- [x] Owner override (2026-10-27): accept S7/LC-2 as accepted. The 10-minute
-  Infinix service/child survival diagnostic completed; sparse child sampling
-  is classified as a platform background-execution limitation, not a product
-  failure.
-- [ ] Post-G0 follow-up: run one real 10-minute active-agent task with the
-  screen off; this does not block G0 after the owner override.
 
 ## 1. Decisions and project gates
 
@@ -52,8 +38,9 @@ separately. Passing automated checks alone does not unblock G0.
   reproducible builds, and defer Play; see `docs/adr/0001-distribution.md`.
 - [x] Keep OpenCode 1.19.3 as the current exact baseline; verify its manifest
   hash and refuse unknown major versions.
-- [ ] Complete G0: run S1-S9 on the Infinix X6870, record its baselines, ratify
-  provisional thresholds, and freeze the decisions governed by `docs/spec.md`.
+- [ ] Complete G0: run S1-S6 and S9 on the Infinix X6870, record its
+  baselines, ratify provisional thresholds, and freeze the decisions
+  governed by `docs/spec.md`.
 - [ ] Resolve D4 runtime profile using the documented S1/S3/S2 decision rules;
   do not encode a default before the evidence is admissible.
 - [ ] Resolve the S6 2.x artifact check when a distributable artifact exists;
@@ -111,76 +98,7 @@ separately. Passing automated checks alone does not unblock G0.
 - [ ] Keep the app-private workspace default; gate external/all-files access
   behind an explainer and runtime restart, with SAF-only behavior where required.
 
-## 4. S7 lifecycle and device acceptance
-
-- [x] The isolated harness has a 10-minute quick foreground-service diagnostic,
-  partial wake lock, separate alarm heartbeat, and power-state telemetry; it
-  has been validated on the Infinix X6870 as a diagnostic only.
-- [~] The 2026-10-26 Infinix diagnostic records 631,745 ms service survival
-  and zero restarts; the child remained alive at manual stop. The owner
-  classifies sparse samples (31/62, with two gaps over 25 seconds) as Android
-  scheduling behavior, not child-process failure. It was not a continuous
-  screen-off agent task. See `tests/spikes/results/S7-soak-20261026-041939.md`.
-- [ ] Post-G0 follow-up: confirm S7 represents an active agent task with
-  screen off, not an idle foreground service. Idle freeze/suspend is not a
-  failure by itself.
-- [x] For each run capture monotonic `elapsedRealtime`, alarm heartbeat,
-  service heartbeat/restarts, `isInteractive`, `isDeviceIdleMode`,
-  `isPowerSaveMode`, and battery-optimization exemption state.
-- [ ] Post-G0 follow-up: capture `dumpsys activity services`,
-  `dumpsys deviceidle`, and logcat evidence for `am_kill`, `lmkd`, and fatal
-  process errors.
-- [x] Treat alarm delivery as diagnostic only; do not assume Doze/OEM policy
-  guarantees a fixed alarm cadence.
-- [x] Quick diagnostic auto-stops after 10 minutes and rejects early exports;
-  this is separate from the active-task acceptance run.
-- [ ] Post-G0 follow-up: for formal active-agent acceptance, run one
-  10-minute active task with screen off and use monotonic elapsed time; never
-  count start-to-export wall time as survival duration.
-- [x] Record OEM settings, device/build identity, APK hash, ABI, page size,
-  thermal state, and all report artifacts for that single run.
-- [x] Owner override (2026-10-27): S7/LC-2 recorded as pass. The 10-minute
-  service diagnostic completed with the child alive at stop; sparse child
-  sampling is accepted as a platform background-execution limitation. A real
-  active-agent run remains a post-G0 follow-up.
-- [ ] LC-5 (4 h soak) and LC-6 (thermal) are optional post-G0 checks on the
-  same device; they do not block G0.
-
-## 5. S8 keyboard observation and acceptance
-
-- [x] The 2026-10-26 device report passes three scripted PTY byte round-trips
-  on one Infinix X6870, including Enter/ICRNL translation; this checks PTY
-  transport, not physical keyboard input. See
-  `docs/evidence/spike-20261026-064348.json`.
-- [x] Gboard field-input observation is green; the report records text,
-  composing, IME-key, hardware-key, selection, and context-menu events.
-- [x] Record the owner-supplied Hacker's Keyboard field observation: two
-  records passed with hardware/IME key events, but `keyboardAcceptance` is
-  `not-assessed` and no Ctrl/Fn-to-PTY mapping is captured. See
-  `tests/spikes/results/S8-hackers-keyboard-20261026.md`.
-- [x] `keyboardAcceptance=not-assessed` is intentional for this EditText-only
-  probe and is not a failure. This run does not exercise the native PTY,
-  ESC/Tab/Ctrl/Alt/arrow mapping, or the TERM-5 acceptance requirements.
-- [x] Owner override (2026-10-27): S8/TERM-5 recorded as pass. Basis: early
-  Gboard field-input observations plus the dedicated native-PTY scripted byte
-  round-trip (APK SHA-256
-  `0018b211c48c41680113d2f909f10edcb0269b1b4a6a7342909d90e8ae06390a`). The
-  remaining native-terminal checks below are retained as non-blocking
-  follow-ups, not G0 blockers.
-- [ ] Post-G0 follow-up: run the PTY-backed TERM-5 probe with Gboard for text
-  entry, Enter, Backspace, paste, and selection. Verify Esc, Tab, Ctrl-C, Alt,
-  and arrow byte sequences from the app-provided terminal extra-key row; do
-  not expect soft keyboards to provide Ctrl or Fn keys.
-- [ ] Post-G0 follow-up: keep `keyboardAcceptance=not-assessed` until the
-  PTY-backed terminal probe is run and the exact byte mapping matches with
-  Gboard.
-- [x] Treat zero hardware `KeyEvent` key-downs from a soft IME as expected,
-  not as a keyboard failure.
-- [ ] Post-G0 follow-up: complete TERM-5 on the native PTY with Gboard,
-  including IME input and paste/select, app-provided extra keys, resize,
-  signals, and cleanup. Fn is not a required key mapping.
-
-## 6. OpenCode client, UI, and session behavior
+## 4. OpenCode client, UI, and session behavior
 
 - [x] Keep the authenticated HTTP/SSE client, typed contract, bounded JSON
   reads, streaming SSE, and reconnect/resync host tests.
@@ -199,7 +117,7 @@ separately. Passing automated checks alone does not unblock G0.
 - [ ] Label context-window usage as estimated and derive it from assistant
   token counts/model context limits as specified.
 
-## 7. Workspace, Git, and terminal
+## 5. Workspace, Git, and terminal
 
 - [x] Implement host workspace path guards, ranged reads, optimistic write
   preconditions, atomic mutations, trash/restore, and bounded search with
@@ -217,7 +135,7 @@ separately. Passing automated checks alone does not unblock G0.
 - [ ] Compare agent-shell and native-PTY `pwd`, `node -v`, and `PATH` on device;
   keep server `/pty` out of the design because the pinned route is unsuitable.
 
-## 8. Security and privacy
+## 6. Security and privacy
 
 - [~] Core credential generation/authentication and an encrypted-file
   `SecretStore` adapter have host coverage; production gateway/lifecycle
@@ -244,7 +162,7 @@ separately. Passing automated checks alone does not unblock G0.
 - [ ] Review exported diagnostic reports before sharing; they can contain
   device/build metadata, local paths, and session identifiers.
 
-## 9. Reference-device evidence and spikes
+## 7. Reference-device evidence and spikes
 
 - [x] S1-A harness evidence accepted for G0 (2026-10-27). Production Profile A
   and Profile B remain post-G0 follow-ups.
@@ -268,7 +186,7 @@ separately. Passing automated checks alone does not unblock G0.
   `docs/evidence/RESULTS.md`; preserve invalidated and historical reports as
   historical, not as passes.
 
-## 10. Distribution and release readiness
+## 8. Distribution and release readiness
 
 - [x] Record distribution decision and generate initial SBOM, notices,
   license texts, and source-offer draft.
@@ -285,7 +203,7 @@ separately. Passing automated checks alone does not unblock G0.
 - [ ] Publish release notes, runtime pins, SBOMs, notices, and source offers
   with each release; retain evidence and checksums.
 
-## 11. Final acceptance review
+## 9. Final acceptance review
 
 - [ ] Every required G0 decision is frozen from admissible evidence and the
   phase plan no longer lists a blocking G0 dependency.
@@ -295,6 +213,6 @@ separately. Passing automated checks alone does not unblock G0.
   no unverified control described as implemented.
 - [ ] Required host tests, Android builds, CI checks, reference-device runs, and
   release compliance checks pass on the exact candidate APK/runtime hashes.
-- [ ] No S7/S8 or other device row is promoted solely by host tests, harness
-  scaffolding, export timing, or owner reports without supporting device
-  evidence; explicit owner overrides must cite that evidence.
+- [ ] No device row is promoted solely by host tests, harness scaffolding,
+  export timing, or owner reports without supporting device evidence;
+  explicit owner overrides must cite that evidence.

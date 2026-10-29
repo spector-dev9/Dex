@@ -28,7 +28,7 @@ constexpr char kInputProbeScript[] =
     "node_version=$(node -v 2>&1); node_status=$?; "
     "printf 'D=%s\\nP=%s\\nN=%s\\n' \"$PWD\" \"$PATH\" \"$node_version\"; "
     "[ \"$node_status\" -eq 0 ] || exit \"$node_status\"; "
-    "printf 'TERM-5-INPUT-READY\\n'; "
+    "printf 'PTY-INPUT-READY\\n'; "
     "stty -echo -icanon -isig icrnl min 1 time 0; "
     "od -An -tx1 -N 13; "
     "printf 'GUEST-PTY-OK\\n'; exit\n";
@@ -177,7 +177,7 @@ Java_io_github_spectordev9_opencode_spike_NativePtyProbe_runProotShell(
             if (count > 0) written += static_cast<size_t>(count);
         }
         if (test_input_bytes && written == script_length && input_written < sizeof(kInputBytes) &&
-            countOccurrences(output, "TERM-5-INPUT-READY") >= 2) {
+            countOccurrences(output, "PTY-INPUT-READY") >= 2) {
             const ssize_t count = write(
                 master,
                 kInputBytes + input_written,
