@@ -3,6 +3,7 @@ package io.github.spectordev9.opencode.spike
 import android.Manifest
 import android.app.AlertDialog
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Typeface
@@ -10,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import android.provider.Settings
 import android.text.Editable
@@ -21,10 +23,8 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import java.util.concurrent.Executors
 
 class MainActivity : Activity() {
-    private val executor = Executors.newSingleThreadExecutor()
     private lateinit var deviceView: TextView
     private lateinit var runtimeView: TextView
     private lateinit var resultsView: TextView
@@ -36,7 +36,20 @@ class MainActivity : Activity() {
     private val gateStatusViews = mutableMapOf<String, TextView>()
     private var imeTextChanges = 0
     private var imeObservationNumber = 0
-    private var probesRunning = false
+
+    private val probeListener: (HarnessProbeRunner.State) -> Unit = { state ->
+        if (::statusView.isInitialized) {
+            statusView.text = state.statusMessage
+            if (state.running) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                renderResults()
+                refreshGateStatuses()
+                refreshGateSummary()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,10 +57,15 @@ class MainActivity : Activity() {
         buildUi()
         refresh()
         requestNotificationPermission()
+        HarnessProbeRunner.addListener(probeListener)
+        renderResults()
+        refreshGateStatuses()
+        refreshGateSummary()
     }
 
     override fun onDestroy() {
-        executor.shutdownNow()
+        HarnessProbeRunner.removeListener(probeListener)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         super.onDestroy()
     }
 
@@ -94,25 +112,23 @@ class MainActivity : Activity() {
 
         root.addView(label("Runtime and probe actions"))
         root.addView(button("Download and verify pinned runtime (large download)") {
-            runProbes("runtime-download") {
-                val started = System.currentTimeMillis()
+            runProbes("runtime-download") { context, status ->
+                val started = SystemClock.elapsedRealtime()
                 try {
-                    val installed = SpikeRuntimeInstaller.install(applicationContext) { item, bytes, total ->
-                        runOnUiThread {
-                            val amount = if (total > 0) {
-                                "${bytes / 1_048_576} / ${total / 1_048_576} MiB"
-                            } else {
-                                "${bytes / 1_048_576} MiB"
-                            }
-                            statusView.text = "Downloading $item: $amount"
+                    val installed = SpikeRuntimeInstaller.install(context) { item, bytes, total ->
+                        val amount = if (total > 0) {
+                            "${bytes / 1_048_576} / ${total / 1_048_576} MiB"
+                        } else {
+                            "${bytes / 1_048_576} MiB"
                         }
+                        status("Downloading $item: $amount")
                     }
                     listOf(
                         ProbeRecord(
                             id = "runtime-download",
                             pass = true,
                             detail = installed,
-                            durationMs = System.currentTimeMillis() - started,
+                            durationMs = SystemClock.elapsedRealtime() - started,
                         ),
                     )
                 } catch (failure: Exception) {
@@ -121,29 +137,29 @@ class MainActivity : Activity() {
                             id = "runtime-download",
                             pass = false,
                             detail = "${failure.javaClass.simpleName}: ${failure.message}",
-                            durationMs = System.currentTimeMillis() - started,
+                            durationMs = SystemClock.elapsedRealtime() - started,
                         ),
                     )
                 }
             }
         })
         root.addView(button("Probe entrypoints (S1/S3 packaging)") {
-            runProbes("entrypoints") { SpikeProbe.probeEntrypoints(this) }
+            runProbes("entrypoints") { context, _ -> SpikeProbe.probeEntrypoints(context) }
         })
         root.addView(button("Run loader/opencode --version (S1)") {
-            runProbes("loader") { listOf(SpikeProbe.runLoader(this)) }
+            runProbes("loader") { context, _ -> listOf(SpikeProbe.runLoader(context)) }
         })
         root.addView(button("Start authenticated server + mock prompt (S1)") {
-            runProbes("S1-server-mock") { SpikeServerProbe.run(this) }
+            runProbes("S1-server-mock") { context, _ -> SpikeServerProbe.run(context) }
         })
         root.addView(button("Run all available device probes (S1/S3)") {
-            runProbes("device-suite") { runAvailableDeviceSuite() }
+            runProbes("device-suite") { context, _ -> runAvailableDeviceSuite(context) }
         })
         root.addView(button("Run PRoot guest shell (S3 partial)") {
-            runProbes("guest-shell") { listOf(SpikeProbe.runGuestShell(this)) }
+            runProbes("guest-shell") { context, _ -> listOf(SpikeProbe.runGuestShell(context)) }
         })
         root.addView(button("Run native PTY TERM-5 probe") {
-            runProbes("term5-native-pty") { SpikeProbe.runTerm5NativePty(this) }
+            runProbes("term5-native-pty") { context, _ -> SpikeProbe.runTerm5NativePty(context) }
         })
 
         root.addView(label("S7 lifecycle + child-workload diagnostics (harness service only)"))
@@ -192,18 +208,20 @@ class MainActivity : Activity() {
 
         root.addView(button("Write JSON report") { writeReport() })
         root.addView(button("Clear results") {
-            SpikeReport.clear()
-            imeField.setText("")
-            imeField.resetCounters()
-            imeTextChanges = 0
-            imeObservationNumber = 0
-            imeView.text = "No input captured yet."
-            resultsView.text = ""
-            G0GateCatalog.checks.forEach { check ->
-                gateStatusViews[check.id]?.text = "PENDING · ${check.requirement}"
+            if (HarnessProbeRunner.isRunning()) {
+                statusView.text = "Wait for the running probe to finish before clearing results"
+            } else {
+                SpikeReport.clear()
+                imeField.setText("")
+                imeField.resetCounters()
+                imeTextChanges = 0
+                imeObservationNumber = 0
+                imeView.text = "No input captured yet."
+                renderResults()
+                refreshGateStatuses()
+                refreshGateSummary()
+                statusView.text = "Cleared"
             }
-            refreshGateSummary()
-            statusView.text = "Cleared"
         })
         statusView = label("Ready")
         root.addView(statusView)
@@ -237,37 +255,13 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun runProbes(label: String, probe: () -> List<ProbeRecord>) {
-        runProbes(label, probe, null)
-    }
-
     private fun runProbes(
         label: String,
-        probe: () -> List<ProbeRecord>,
-        onComplete: ((List<ProbeRecord>) -> Unit)?,
+        probe: (Context, (String) -> Unit) -> List<ProbeRecord>,
+        onComplete: ((List<ProbeRecord>) -> Unit)? = null,
     ) {
-        if (probesRunning) {
+        if (!HarnessProbeRunner.start(label, probe, onComplete)) {
             statusView.text = "A probe is already running; wait for it to finish"
-            return
-        }
-        probesRunning = true
-        statusView.text = "Running $label..."
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        executor.execute {
-            val outcome = try {
-                probe()
-            } catch (t: Throwable) {
-                listOf(ProbeRecord("harness-error", false, "${t.javaClass.simpleName}: ${t.message}"))
-            }
-            outcome.forEach { SpikeReport.add(it) }
-            runOnUiThread {
-                outcome.forEach(::append)
-                onComplete?.invoke(outcome)
-                probesRunning = false
-                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                statusView.text = "$label finished"
-                refresh()
-            }
         }
     }
 
@@ -275,16 +269,17 @@ class MainActivity : Activity() {
         when (check.id) {
             "S1-A" -> runProbes(
                 "S1-A ${check.title}",
-                {
-                    listOf(SpikeProbe.runLoader(this)) + SpikeServerProbe.run(this)
+                { context, _ ->
+                    listOf(SpikeProbe.runLoader(context)) + SpikeServerProbe.run(context)
                 },
             ) { records ->
                 val passed = records.isNotEmpty() && records.all { it.pass }
-                setGateResult(
+                SpikeReport.setG0GateResult(
                     check.id,
-                    if (passed) "partial" else "fail",
+                    if (passed) "accepted" else "fail",
                     if (passed) {
-                        "Harness loader, authenticated health, and mock prompt passed; production acceptance and Profile B remain open."
+                        "Owner-accepted harness evidence: loader, authenticated health, and mock prompt passed; " +
+                            "production Profile A wiring and Profile B remain post-G0 follow-ups."
                     } else {
                         "Harness Profile A probe failed; see result records."
                     },
@@ -302,14 +297,15 @@ class MainActivity : Activity() {
             )
             "S3" -> runProbes(
                 "S3 ${check.title}",
-                { SpikeProbe.runGuestPtyComparison(this) },
+                { context, _ -> SpikeProbe.runGuestPtyComparison(context) },
             ) { records ->
                 val passed = records.isNotEmpty() && records.all { it.pass }
-                setGateResult(
+                SpikeReport.setG0GateResult(
                     check.id,
-                    if (passed) "partial" else "fail",
+                    if (passed) "accepted" else "fail",
                     if (passed) {
-                        "Guest shell and native-PTY probes passed; the production agent-shell comparison remains open."
+                        "Owner-accepted harness evidence: PRoot guest shell and native-PTY environment matched; " +
+                            "the production agent-shell comparison remains a post-G0 follow-up."
                     } else {
                         "Guest shell/native-PTY probe failed; see result records."
                     },
@@ -340,14 +336,15 @@ class MainActivity : Activity() {
             }
             "S8-TERM5" -> runProbes(
                 "TERM-5 native PTY",
-                { SpikeProbe.runTerm5NativePty(this) },
+                { context, _ -> SpikeProbe.runTerm5NativePty(context) },
             ) { records ->
                 val passed = records.isNotEmpty() && records.all { it.pass }
-                setGateResult(
+                SpikeReport.setG0GateResult(
                     check.id,
-                    if (passed) "pass" else "fail",
+                    if (passed) "accepted" else "fail",
                     if (passed) {
-                        "Owner-accepted S8/TERM-5 pass: early Gboard field input plus native-PTY byte round-trip; native-terminal follow-ups remain."
+                        "Owner-accepted: early Gboard field input plus native-PTY byte round-trip passed; " +
+                            "native-terminal UI coverage remains a post-G0 follow-up."
                     } else {
                         "Native-PTY TERM-5 probe failed; see result record."
                     },
@@ -388,19 +385,30 @@ class MainActivity : Activity() {
         refreshGateSummary()
     }
 
-    private fun refreshGateSummary() {
-        val total = G0GateCatalog.checks.size
-        val results = G0GateCatalog.checks.mapNotNull { SpikeReport.g0GateResult(it.id) }
-        val green = results.size == total && results.all { it.status == "pass" }
-        gateSummaryView.text = if (green) {
-            "G0: GREEN · $total/$total gate checks passed"
-        } else {
-            "G0: NOT GREEN · ${results.count { it.status == "pass" }}/$total passed; " +
-                "${results.size}/$total assessed"
+    private fun refreshGateStatuses() {
+        G0GateCatalog.checks.forEach { check ->
+            val existing = SpikeReport.g0GateResult(check.id)
+            gateStatusViews[check.id]?.text = existing?.let { "${it.status.uppercase()} · ${it.detail}" }
+                ?: "PENDING · ${check.requirement}"
         }
     }
 
-    private fun runAvailableDeviceSuite(): List<ProbeRecord> {
+    private fun refreshGateSummary() {
+        val total = G0GateCatalog.checks.size
+        val results = G0GateCatalog.checks.mapNotNull { SpikeReport.g0GateResult(it.id) }
+        val passed = results.count { it.status == "pass" }
+        val accepted = results.count { it.status == "accepted" }
+        val open = results.count { it.status !in setOf("pass", "accepted") }
+        val pending = total - results.size
+        val green = results.size == total && open == 0
+        gateSummaryView.text = if (green) {
+            "G0: GREEN · $passed passed, $accepted accepted · $total/$total checks closed"
+        } else {
+            "G0: NOT GREEN · $passed passed, $accepted accepted, $open open, $pending pending"
+        }
+    }
+
+    private fun runAvailableDeviceSuite(context: Context): List<ProbeRecord> {
         val records = mutableListOf<ProbeRecord>()
         fun capture(id: String, probe: () -> List<ProbeRecord>) {
             try {
@@ -414,12 +422,11 @@ class MainActivity : Activity() {
             }
         }
 
-        val startedAt = System.currentTimeMillis()
-        capture("entrypoints") { SpikeProbe.probeEntrypoints(this) }
-        capture("loader") { listOf(SpikeProbe.runLoader(this)) }
-        capture("server-mock") { SpikeServerProbe.run(this) }
-        capture("guest-shell") { listOf(SpikeProbe.runGuestShell(this)) }
-        capture("native-pty") { SpikeProbe.runGuestPtyComparison(this) }
+        val startedAt = SystemClock.elapsedRealtime()
+        capture("entrypoints") { SpikeProbe.probeEntrypoints(context) }
+        capture("loader") { listOf(SpikeProbe.runLoader(context)) }
+        capture("server-mock") { SpikeServerProbe.run(context) }
+        capture("native-pty") { SpikeProbe.runGuestPtyComparison(context) }
 
         val passed = records.count { it.pass }
         records += ProbeRecord(
@@ -428,9 +435,15 @@ class MainActivity : Activity() {
             detail = "available S1/S3 and scripted TERM-5 partial probes: $passed/${records.size} passed; " +
                 "S7 10-minute quick diagnostic and S8 keyboard observations are separate manual tests; " +
                 "this isolated harness run is not G0 acceptance",
-            durationMs = System.currentTimeMillis() - startedAt,
+            durationMs = SystemClock.elapsedRealtime() - startedAt,
         )
         return records
+    }
+
+    private fun renderResults() {
+        if (!::resultsView.isInitialized) return
+        resultsView.text = ""
+        SpikeReport.snapshot().forEach(::append)
     }
 
     private fun append(record: ProbeRecord) {
@@ -506,6 +519,7 @@ class MainActivity : Activity() {
             return
         }
         SpikeReport.upsert(result)
+        recordS7Gate(result)
         append(result)
         SpikeChildProcessProbe.stopAndAnalyze(this, "manual-stop")?.let {
             SpikeReport.upsert(it)
@@ -516,14 +530,28 @@ class MainActivity : Activity() {
         refreshSoakStatus()
     }
 
+    private fun recordS7Gate(result: ProbeRecord) {
+        setGateResult(
+            "S7-LC2",
+            if (result.pass) "accepted" else "fail",
+            if (result.pass) {
+                "Owner-accepted 2026-10-27: the 10-minute Infinix service/child-survival diagnostic " +
+                    "completed; a real active-agent screen-off run remains a post-G0 follow-up."
+            } else {
+                "S7 harness soak failed: ${result.detail}"
+            },
+        )
+    }
+
     private fun writeReport() {
         if (SpikeForegroundService.isEarlyRunActive(this)) {
             statusView.text = "Report export blocked until the S7 soak completes"
             return
         }
         recordImeObservation()
-        SpikeForegroundService.completeSoak(this)?.let {
-            SpikeReport.upsert(it)
+        SpikeForegroundService.completeSoak(this)?.let { result ->
+            SpikeReport.upsert(result)
+            recordS7Gate(result)
             SpikeChildProcessProbe.stopAndAnalyze(this, "report-export")?.let { child ->
                 SpikeReport.upsert(child)
             }
@@ -537,20 +565,29 @@ class MainActivity : Activity() {
             return
         }
         statusView.text = "Writing report..."
-        executor.execute {
+        val context = applicationContext
+        Thread {
             val report = try {
-                SpikeReport.write(this)
+                SpikeReport.write(context)
             } catch (error: Exception) {
-                runOnUiThread { statusView.text = "Report failed: ${error.message ?: error.javaClass.simpleName}" }
+                runOnUiThread {
+                    if (!isDestroyed) {
+                        statusView.text = "Report failed: ${error.message ?: error.javaClass.simpleName}"
+                    }
+                }
                 null
             }
             if (report != null) {
+                val record = ProbeRecord("report", true, "wrote ${report.downloadLocation}")
+                SpikeReport.add(record)
                 runOnUiThread {
-                    statusView.text = "Saved report to ${report.downloadLocation}"
-                    append(ProbeRecord("report", true, "wrote ${report.downloadLocation}"))
+                    if (!isDestroyed) {
+                        statusView.text = "Saved report to ${report.downloadLocation}"
+                        append(record)
+                    }
                 }
             }
-        }
+        }.apply { name = "harness-report"; isDaemon = true }.start()
     }
 
     private companion object {

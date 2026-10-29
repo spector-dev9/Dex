@@ -28,17 +28,17 @@ separately. Passing automated checks alone does not unblock G0.
 - [x] Document the Gboard report's `assessed`/APK `not-assessed` label
   discrepancy; retain it as a provenance note, not a failing test.
 - [x] Record the fixed-harness S1/S3 device suite: 10/10 available probes
-  passed on the Infinix X6870; this remains pre-G0 feasibility evidence, not
-  full G0 acceptance. See
+  passed on the Infinix X6870. Owner-accepted 2026-10-27 as non-blocking
+  harness evidence for G0; production S1/S3 remain post-G0 follow-ups. See
   `tests/spikes/results/S1-S3-device-suite-20261025.md`.
-- [x] Owner override (2026-10-27): mark S8/TERM-5 pass based on the early
+- [x] Owner override (2026-10-27): mark S8/TERM-5 accepted based on the early
   Gboard field-input evidence plus the dedicated native-PTY scripted byte
   round-trip. Remaining native-terminal UI coverage is recorded below as a
-  non-blocking follow-up.
+  post-G0 follow-up.
 - [x] Harness exposes one button per G0 gate. Available probes run; gates that
   require production wiring, external artifacts, or owner decisions record
   blocked/manual/deferred status instead of a false pass.
-- [x] Owner override (2026-10-27): accept S7/LC-2 as pass. The 10-minute
+- [x] Owner override (2026-10-27): accept S7/LC-2 as accepted. The 10-minute
   Infinix service/child survival diagnostic completed; sparse child sampling
   is classified as a platform background-execution limitation, not a product
   failure.
@@ -246,13 +246,14 @@ separately. Passing automated checks alone does not unblock G0.
 
 ## 9. Reference-device evidence and spikes
 
-- [ ] Complete S1 on the Infinix X6870 with the official pinned artifact and
-  accepted app/runtime path; existing results are feasibility evidence only.
+- [x] S1-A harness evidence accepted for G0 (2026-10-27). Production Profile A
+  and Profile B remain post-G0 follow-ups.
 - [ ] Complete S2 Profile A/B measurements on the Infinix X6870 for cold
   start, RSS, 10k-file Git status, npm test, device behavior, and thermals;
   apply the documented rules.
-- [~] S3 guest-shell/native-PTY behavior is verified by isolated harness runs
-  on the Infinix X6870; production agent-shell comparison is open.
+- [x] S3 harness evidence accepted for G0 (2026-10-27): guest-shell/native-PTY
+  behavior verified on the Infinix X6870; production agent-shell comparison is
+  a post-G0 follow-up.
 - [x] S4 host SSE reconnect/resync and S5 host endpoint/auth contract evidence
   are recorded; app/UI and device acceptance remain separate.
 - [ ] Complete S6 only when a distributable 2.x artifact can be evaluated;

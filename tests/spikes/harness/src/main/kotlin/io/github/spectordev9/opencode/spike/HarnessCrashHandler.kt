@@ -41,7 +41,7 @@ object HarnessCrashHandler {
                 appendToLegacyDownloads(line)
             }
         } catch (failure: Throwable) {
-            Log.e(TAG, "Could not export diagnostics to Downloads/OpenCodeSpike", failure)
+            Log.e(TAG, "Could not export diagnostics to ${HarnessPaths.diagnosticsDisplayPath(DIAGNOSTIC_FILE)}", failure)
             try {
                 appendToAppFiles(appContext, line)
             } catch (fallbackFailure: Throwable) {
@@ -87,7 +87,7 @@ object HarnessCrashHandler {
                 writeToLegacyDownloads(filename, text)
             }
         }.onFailure {
-            Log.e(TAG, "Could not export crash log to Downloads/OpenCodeSpike", it)
+            Log.e(TAG, "Could not export crash log to ${HarnessPaths.diagnosticsDisplayPath(filename)}", it)
         }
     }
 
@@ -102,7 +102,7 @@ object HarnessCrashHandler {
 
     private fun appendToDownloads(context: Context, line: String) {
         val resolver = context.contentResolver
-        val relativePath = "${Environment.DIRECTORY_DOWNLOADS}/OpenCodeSpike"
+        val relativePath = HarnessPaths.diagnosticsRelativePath()
         val existing = resolver.query(
             MediaStore.Downloads.EXTERNAL_CONTENT_URI,
             arrayOf(MediaStore.Downloads._ID),
@@ -127,18 +127,18 @@ object HarnessCrashHandler {
                 put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
                 put(MediaStore.Downloads.IS_PENDING, 0)
             },
-        ) ?: error("Could not create diagnostics in Downloads/OpenCodeSpike")
+        ) ?: error("Could not create diagnostics in ${HarnessPaths.diagnosticsDisplayPath(DIAGNOSTIC_FILE)}")
         resolver.openOutputStream(uri, "wa")?.bufferedWriter(Charsets.UTF_8)?.use {
             it.appendLine(line)
-        } ?: error("Could not append diagnostics in Downloads/OpenCodeSpike")
+        } ?: error("Could not append diagnostics in ${HarnessPaths.diagnosticsDisplayPath(DIAGNOSTIC_FILE)}")
     }
 
     @Suppress("DEPRECATION")
     private fun appendToLegacyDownloads(line: String) {
         val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val reportDirectory = File(directory, "OpenCodeSpike")
+        val reportDirectory = HarnessPaths.legacyDiagnosticsDirectory(directory)
         check(reportDirectory.exists() || reportDirectory.mkdirs()) {
-            "Could not create Downloads/OpenCodeSpike"
+            "Could not create ${HarnessPaths.diagnosticsDisplayPath(DIAGNOSTIC_FILE)}"
         }
         File(reportDirectory, DIAGNOSTIC_FILE).appendText("$line\n", Charsets.UTF_8)
     }
@@ -147,19 +147,19 @@ object HarnessCrashHandler {
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, filename)
             put(MediaStore.Downloads.MIME_TYPE, "text/plain")
-            put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/OpenCodeSpike")
+            put(MediaStore.Downloads.RELATIVE_PATH, HarnessPaths.diagnosticsRelativePath())
             put(MediaStore.Downloads.IS_PENDING, 1)
         }
         val resolver = context.contentResolver
         val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            ?: error("Could not create crash log in Downloads/OpenCodeSpike")
+            ?: error("Could not create crash log in ${HarnessPaths.diagnosticsDisplayPath(filename)}")
         try {
             resolver.openOutputStream(uri)?.use { output ->
                 output.write(text.toByteArray(Charsets.UTF_8))
-            } ?: error("Could not open crash log in Downloads/OpenCodeSpike")
+            } ?: error("Could not open crash log in ${HarnessPaths.diagnosticsDisplayPath(filename)}")
             val published = ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }
             check(resolver.update(uri, published, null, null) == 1) {
-                "Could not publish crash log in Downloads/OpenCodeSpike"
+                "Could not publish crash log in ${HarnessPaths.diagnosticsDisplayPath(filename)}"
             }
         } catch (failure: Throwable) {
             resolver.delete(uri, null, null)
@@ -170,9 +170,9 @@ object HarnessCrashHandler {
     @Suppress("DEPRECATION")
     private fun writeToLegacyDownloads(filename: String, text: String) {
         val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val reportDirectory = File(directory, "OpenCodeSpike")
+        val reportDirectory = HarnessPaths.legacyDiagnosticsDirectory(directory)
         check(reportDirectory.exists() || reportDirectory.mkdirs()) {
-            "Could not create Downloads/OpenCodeSpike"
+            "Could not create ${HarnessPaths.diagnosticsDisplayPath(filename)}"
         }
         File(reportDirectory, filename).writeText(text, Charsets.UTF_8)
     }

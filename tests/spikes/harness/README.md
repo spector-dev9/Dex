@@ -6,6 +6,12 @@ devices and 16 KB-page targets are out of scope for v1. It is **not production w
 from normal builds. It must only be included with
 `-PspikeHarness=true`.
 
+The owner accepted the harness evidence for S1-A, S3, S7/LC-2 and S8/TERM-5 on
+2026-10-27 as non-blocking for G0. Those gates are shown as `ACCEPTED` in the
+harness and remain runnable for regression; production S1/S3 and the remaining
+native-terminal checks are tracked as post-G0 follow-ups. A failing regression
+run changes the gate back to `FAIL`; a passing rerun restores `ACCEPTED`.
+
 The harness currently covers:
 
 - device metadata needed by the evidence matrix (SDK, ABI, page size,
@@ -92,8 +98,9 @@ On the device:
 1. Tap **Download and verify pinned runtime** and wait for success.
 2. Tap **Run all available device probes (S1/S3)**. This runs packaging,
   loader/version, authenticated mock prompt, guest shell, native-PTY
-  environment and scripted byte-round-trip checks in sequence. Inspect each
-  result; the summary is not a G0 verdict.
+  environment and scripted byte-round-trip checks in sequence. The suite runs
+  the guest shell once and reuses its record for the native-PTY comparison.
+  Inspect each result; the summary is not a G0 verdict.
 3. For S7, start the 10-minute soak and choose whether to open Android's
   battery-optimization exemption settings. The exemption is optional,
   increases battery use, and should be restored after testing. Both soaks
@@ -119,9 +126,9 @@ On the device:
    `InputConnection.commitText`/`setComposingText`, not `KeyEvent`, so a
    zero hardware `keyDownEvents` count is expected and is not a failure.
 5. Tap **Write JSON report** and provide the JSON from the Infinix X6870.
-  An S7 harness pass does not promote S7/LC-2; acceptance still requires
-  one 10-minute active-agent, screen-off run and applicable OEM background
-  settings.
+  A completed 10-minute harness soak leaves S7/LC-2 `ACCEPTED`; the real
+  active-agent, screen-off run and OEM background settings remain post-G0
+  follow-ups.
 
 This APK can collect only the device-side feasibility probes listed above.
 Profile A/B performance comparison, host SSE/contract checks, OpenCode 2.x
@@ -138,13 +145,13 @@ it never contacts a hosted model. Cleartext networking is enabled only in
 this isolated debug harness so its loopback HTTP server and mock provider can
 communicate. This is not production listener or gateway wiring.
 Each startup/prompt stage is appended to
-`Downloads/OpenCodeSpike/s1-server-diagnostics.log` and tagged
+`Downloads/OpenCodeG0/diagnostics/s1-server-diagnostics.log` and tagged
 `SpikeHarness` in logcat, so it is visible outside the app and remains
 available if the probe process exits before a report is written. Retrieve
 it from the device's Downloads folder, or with:
 
 ```bash
-adb pull /sdcard/Download/OpenCodeSpike/s1-server-diagnostics.log
+adb pull /sdcard/Download/OpenCodeG0/diagnostics/s1-server-diagnostics.log
 adb logcat -d -s SpikeHarness AndroidRuntime
 ```
 
@@ -191,10 +198,14 @@ adb shell run-as io.github.spectordev9.opencode.spike.debug \
 Then open **OpenCode Spike Harness**, press **Refresh**, and run the
 probes. The report is written to `files/reports/` and the app-external
 `Android/data/io.github.spectordev9.opencode.spike.debug/files/reports/`,
-and exported as `Download/OpenCodeSpike/spike-<timestamp>.json` so it is
-visible in the device's Downloads folder. Android 10 and later use the
-Downloads media collection; Android 9 and earlier request storage permission
-when exporting. Tap **Write JSON report** after running the probes.
+and exported as `Download/OpenCodeG0/reports/spike-<timestamp>.json` so it is
+visible in the device's Downloads folder. Diagnostics and crash files are
+exported under `Download/OpenCodeG0/diagnostics/`. Harness records and gate
+status are also persisted in `files/reports/harness-state.json`, so activity
+recreation or a process restart keeps prior results; an interrupted probe is
+recorded explicitly. Android 10 and later use the Downloads media collection;
+Android 9 and earlier request storage permission when exporting. Tap
+**Write JSON report** after running the probes.
 
 ```bash
 adb shell run-as io.github.spectordev9.opencode.spike.debug ls files/reports

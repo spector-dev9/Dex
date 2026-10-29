@@ -5,6 +5,7 @@ import android.content.pm.ApplicationInfo
 import android.app.ActivityManager
 import android.os.Build
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.Settings
 import android.system.Os
 import android.system.OsConstants
@@ -289,7 +290,7 @@ object SpikeProbe {
         }
 
         prepareRuntime(context)
-        val started = System.currentTimeMillis()
+        val started = SystemClock.elapsedRealtime()
         val raw = try {
             NativePtyProbeClient.runProotShell(
                 context = context,
@@ -300,14 +301,14 @@ object SpikeProbe {
                 timeoutMillis = 60_000,
                 testInputBytes = false,
             )
-        } catch (error: LinkageError) {
+        } catch (error: Throwable) {
             return listOf(
                 guest,
                 ProbeRecord(
                     id = "S3-native-pty",
                     pass = false,
                     detail = "${error.javaClass.simpleName}: ${error.message}",
-                    durationMs = System.currentTimeMillis() - started,
+                    durationMs = SystemClock.elapsedRealtime() - started,
                 ),
             )
         }
@@ -341,7 +342,7 @@ object SpikeProbe {
                 detail = detail,
                 command = listOf("forkpty", proot.absolutePath, "/bin/sh", "-i"),
                 exitCode = exitCode,
-                durationMs = System.currentTimeMillis() - started,
+                durationMs = SystemClock.elapsedRealtime() - started,
                 stdout = normalized,
             ),
             runTerm5PtyInput(context, proot, loader, rootfs, root),
@@ -376,7 +377,7 @@ object SpikeProbe {
         rootfs: File,
         root: File,
     ): ProbeRecord {
-        val inputStarted = System.currentTimeMillis()
+        val inputStarted = SystemClock.elapsedRealtime()
         val inputRaw = try {
             NativePtyProbeClient.runProotShell(
                 context = context,
@@ -387,7 +388,7 @@ object SpikeProbe {
                 timeoutMillis = 60_000,
                 testInputBytes = true,
             )
-        } catch (error: LinkageError) {
+        } catch (error: Throwable) {
             "exitCode=-1\n${error.javaClass.simpleName}: ${error.message}\n"
         }
         val inputOutput = inputRaw.substringAfter('\n', "")
@@ -407,7 +408,7 @@ object SpikeProbe {
                 "scripted PTY injection only, not physical IME/key mapping",
             command = listOf("forkpty", "PRoot", "scripted terminal byte sequence"),
             exitCode = inputExitCode,
-            durationMs = System.currentTimeMillis() - inputStarted,
+            durationMs = SystemClock.elapsedRealtime() - inputStarted,
             stdout = inputOutput,
         )
         recordTerm5Gate(record)
@@ -417,9 +418,10 @@ object SpikeProbe {
     private fun recordTerm5Gate(record: ProbeRecord) {
         SpikeReport.setG0GateResult(
             "S8-TERM5",
-            if (record.pass) "pass" else "fail",
+            if (record.pass) "accepted" else "fail",
             if (record.pass) {
-                "Owner-accepted 2026-10-27: early Gboard field-input observations are green and the native-PTY byte round-trip passed; remaining native-terminal UI checks are recorded follow-ups."
+                "Owner-accepted 2026-10-27: early Gboard field-input observations are green and the " +
+                    "native-PTY byte round-trip passed; remaining native-terminal UI checks are post-G0 follow-ups."
             } else {
                 "Native-PTY TERM-5 probe failed: ${record.detail}"
             },
@@ -574,7 +576,7 @@ object SpikeProbe {
         workDir: File,
         timeoutMs: Long,
     ): ProbeRecord {
-        val started = System.currentTimeMillis()
+        val started = SystemClock.elapsedRealtime()
         val stdout = StringBuilder()
         val stderr = StringBuilder()
         return try {
@@ -584,12 +586,13 @@ object SpikeProbe {
                 remove("LD_PRELOAD")
                 putAll(env)
             }
-            val process = processBuilder.start()
+            val tracked = ProcessTree.startTracked(processBuilder)
+            val process = tracked.process
             val stdoutThread = drain(process.inputStream, stdout)
             val stderrThread = drain(process.errorStream, stderr)
             var exitCode: Int? = null
-            val deadline = System.currentTimeMillis() + timeoutMs
-            while (System.currentTimeMillis() < deadline) {
+            val deadline = SystemClock.elapsedRealtime() + timeoutMs
+            while (SystemClock.elapsedRealtime() < deadline) {
                 try {
                     exitCode = process.exitValue()
                     break
@@ -598,15 +601,11 @@ object SpikeProbe {
                 }
             }
             if (exitCode == null) {
-                process.destroyForcibly()
-                try {
-                    process.waitFor()
-                } catch (_: Throwable) {
-                }
+                ProcessTree.kill(tracked, id)
             }
             stdoutThread.join(1_000)
             stderrThread.join(1_000)
-            val duration = System.currentTimeMillis() - started
+            val duration = SystemClock.elapsedRealtime() - started
             ProbeRecord(
                 id = id,
                 pass = exitCode == 0,
@@ -623,7 +622,7 @@ object SpikeProbe {
                 pass = false,
                 detail = "${t.javaClass.simpleName}: ${t.message}",
                 command = command,
-                durationMs = System.currentTimeMillis() - started,
+                durationMs = SystemClock.elapsedRealtime() - started,
                 stdout = snapshot(stdout),
                 stderr = snapshot(stderr),
             )

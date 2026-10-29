@@ -2,6 +2,7 @@ package io.github.spectordev9.opencode.spike
 
 import android.content.Context
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -24,7 +25,9 @@ object SpikeServerProbe {
     private const val MAX_REQUEST_BYTES = 1024 * 1024
     private const val HEALTH_TIMEOUT_MS = 90_000L
     private const val HEALTH_PROGRESS_INTERVAL_MS = 10_000L
+    private const val HEALTH_POLL_MS = 250L
     private const val PROMPT_TIMEOUT_MS = 120_000L
+    private const val SERVER_START_ATTEMPTS = 3
 
     fun run(context: Context): List<ProbeRecord> =
         try {
@@ -67,28 +70,19 @@ object SpikeServerProbe {
         writeDiagnostic(context, "probe-directories-ready")
 
         val provider = MockProvider()
-        val serverPort = reservePort()
         val password = randomSecret()
         val config = writeProviderConfig(root.resolve("s1/opencode.json"), provider.port)
-        writeDiagnostic(
-            context,
-            "probe-config-ready",
-            "serverPort=$serverPort mockPort=${provider.port}",
-        )
-        val command = listOf(
-            loader.toString(),
-            "--library-path",
-            runtime.toString(),
-            binary.toString(),
-            "serve",
-            "--hostname",
-            "127.0.0.1",
-            "--port",
-            serverPort.toString(),
-            "--print-logs",
-            "--log-level",
-            "ERROR",
-        )
+        val expectedVersion = runtimeManifestVersion(context)
+        if (expectedVersion == null) {
+            writeDiagnostic(context, "runtime-manifest-invalid")
+            return listOf(
+                ProbeRecord(
+                    id = "S1-server-mock",
+                    pass = false,
+                    detail = "runtime-manifest.json is missing or invalid",
+                ),
+            )
+        }
         val environment = SpikeProbe.runtimeEnvironment(context).apply {
             put("HOME", home.toString())
             put("XDG_CONFIG_HOME", home.resolve(".config").toString())
@@ -103,56 +97,81 @@ object SpikeServerProbe {
             put("OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER", "1")
             put("OPENCODE_DISABLE_FFF", "1")
         }
-        val output = BoundedOutput()
-        var process: Process? = null
-        val started = System.currentTimeMillis()
+        writeDiagnostic(
+            context,
+            "probe-config-ready",
+            "mockPort=${provider.port} expectedVersion=$expectedVersion",
+        )
+
+        var attempt: ServerAttempt? = null
+        var lastCommand: List<String> = emptyList()
+        val started = SystemClock.elapsedRealtime()
         try {
             provider.start()
             writeDiagnostic(context, "mock-provider-listening", "port=${provider.port}")
-            process = ProcessBuilder(command)
-                .directory(workingDirectory.toFile())
-                .apply {
-                    environment().remove("LD_PRELOAD")
-                    environment().putAll(environment)
-                    redirectErrorStream(true)
-                }
-                .start()
-            writeDiagnostic(context, "opencode-process-started", "alive=${process.isAlive}")
-            val processOutput = process.inputStream
-            val outputThread = Thread {
-                try {
-                    processOutput.use { input ->
-                        val buffer = ByteArray(4096)
-                        while (true) {
-                            val count = input.read(buffer)
-                            if (count < 0) break
-                            output.append(buffer, count)
-                        }
-                    }
-                } catch (_: Throwable) {
-                    // stopProcess() calls destroy(), which closes the process
-                    // streams from another thread and interrupts a pending read
-                    // with InterruptedIOException. That is expected teardown,
-                    // not a probe failure; it must not kill the harness.
-                }
-            }.apply { name = "s1-server-output"; isDaemon = true; start() }
-
-            val healthy = waitForHealth(serverPort, password, process)
-            writeDiagnostic(
-                context,
-                if (healthy.first) "authenticated-health-passed" else "authenticated-health-failed",
-                "status=${healthy.second} elapsedMs=${healthy.third} processExit=${process.exitValueOrNull()}",
+            for (index in 0 until SERVER_START_ATTEMPTS) {
+                val port = reservePort()
+                val command = serverCommand(loader, runtime, binary, port)
+                lastCommand = command
+                val attemptOutput = BoundedOutput()
+                val tracked = ProcessTree.startTracked(
+                    ProcessBuilder(command)
+                        .directory(workingDirectory.toFile())
+                        .apply {
+                            environment().remove("LD_PRELOAD")
+                            environment().putAll(environment)
+                            redirectErrorStream(true)
+                        },
+                )
+                val outputThread = startOutputDrain(tracked.process, attemptOutput)
+                writeDiagnostic(
+                    context,
+                    "opencode-process-started",
+                    "attempt=${index + 1} port=$port alive=${tracked.process.isAlive}",
+                )
+                val healthy = waitForHealth(
+                    port,
+                    password,
+                    tracked.process,
+                    expectedVersion,
+                    attemptOutput,
+                )
+                attempt = ServerAttempt(tracked, port, attemptOutput, outputThread, healthy)
+                writeDiagnostic(
+                    context,
+                    if (healthy.healthy) "authenticated-health-passed" else "authenticated-health-failed",
+                    "status=${healthy.status} elapsedMs=${healthy.elapsedMs} " +
+                        "processExit=${tracked.process.exitValueOrNull()} detail=${healthy.detail}",
+                )
+                if (healthy.healthy) break
+                val bindRace = !tracked.process.isAlive && hasBindFailure(attemptOutput.text())
+                if (!bindRace || index == SERVER_START_ATTEMPTS - 1) break
+                writeDiagnostic(context, "port-retry", "port=$port was taken before the server bound")
+                ProcessTree.kill(tracked, "S1-port-retry")
+                outputThread.join(1_000)
+                attempt = null
+            }
+            val active = attempt ?: return listOf(
+                ProbeRecord(
+                    id = "S1-server-mock",
+                    pass = false,
+                    detail = "server process did not start",
+                    command = lastCommand,
+                    durationMs = SystemClock.elapsedRealtime() - started,
+                ),
             )
-            if (!healthy.first) {
-                val detail = "health failed: ${healthy.second}; processExit=${process.exitValueOrNull()}; " +
-                    "server=${output.text().replace(password, "[REDACTED]")}"
+            val healthy = active.healthy
+            if (!healthy.healthy) {
+                val detail = "health failed: status=${healthy.status}; " +
+                    "processExit=${active.tracked.process.exitValueOrNull()}; detail=${healthy.detail}; " +
+                    "server=${active.output.text().replace(password, "[REDACTED]")}"
                 return listOf(
                     ProbeRecord(
                         id = "S1-server-health",
                         pass = false,
                         detail = detail,
-                        command = command,
-                        durationMs = System.currentTimeMillis() - started,
+                        command = lastCommand,
+                        durationMs = SystemClock.elapsedRealtime() - started,
                     ),
                 )
             }
@@ -160,12 +179,12 @@ object SpikeServerProbe {
             val healthRecord = ProbeRecord(
                 id = "S1-server-health",
                 pass = true,
-                detail = "authenticated /global/health returned HTTP ${healthy.second}",
-                command = command,
+                detail = "authenticated /global/health returned HTTP ${healthy.status}; ${healthy.detail}",
+                command = lastCommand,
                 exitCode = 0,
-                durationMs = healthy.third,
+                durationMs = healthy.elapsedMs,
             )
-            val prompt = runPrompt(serverPort, password, workingDirectory, provider, context)
+            val prompt = runPrompt(active.port, password, workingDirectory, provider, context)
             writeDiagnostic(
                 context,
                 if (prompt.pass) "mock-prompt-passed" else "mock-prompt-failed",
@@ -177,9 +196,9 @@ object SpikeServerProbe {
                     id = "S1-mock-provider-prompt",
                     pass = prompt.pass,
                     detail = prompt.detail,
-                    durationMs = System.currentTimeMillis() - started - healthy.third,
+                    durationMs = SystemClock.elapsedRealtime() - started - healthy.elapsedMs,
                     stdout = prompt.response,
-                    stderr = output.text().replace(password, "[REDACTED]"),
+                    stderr = active.output.text().replace(password, "[REDACTED]"),
                 ),
             )
         } catch (failure: Throwable) {
@@ -193,17 +212,62 @@ object SpikeServerProbe {
                     id = "S1-server-mock",
                     pass = false,
                     detail = "${failure.javaClass.simpleName}: ${failure.message}",
-                    command = command,
-                    durationMs = System.currentTimeMillis() - started,
-                    stderr = output.text().replace(password, "[REDACTED]"),
+                    command = lastCommand,
+                    durationMs = SystemClock.elapsedRealtime() - started,
+                    stderr = attempt?.output?.text()?.replace(password, "[REDACTED]") ?: "",
                 ),
             )
         } finally {
             writeDiagnostic(context, "probe-shutdown")
-            runCatching { process?.let(::stopProcess) }
+            attempt?.let { active ->
+                ProcessTree.kill(active.tracked, "S1-server-stop")
+                runCatching { active.outputThread.join(1_000) }
+            }
             runCatching { provider.close() }
         }
     }
+
+    private fun serverCommand(loader: Path, runtime: Path, binary: Path, port: Int): List<String> =
+        listOf(
+            loader.toString(),
+            "--library-path",
+            runtime.toString(),
+            binary.toString(),
+            "serve",
+            "--hostname",
+            "127.0.0.1",
+            "--port",
+            port.toString(),
+            "--print-logs",
+            "--log-level",
+            "ERROR",
+        )
+
+    private fun runtimeManifestVersion(context: Context): String? = runCatching {
+        context.assets.open("runtime-manifest.json").bufferedReader().use {
+            JSONObject(it.readText()).getString("version")
+        }
+    }.getOrNull()
+
+    private fun startOutputDrain(process: Process, output: BoundedOutput): Thread = Thread {
+        try {
+            process.inputStream.use { input ->
+                val buffer = ByteArray(4096)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    output.append(buffer, count)
+                }
+            }
+        } catch (_: Throwable) {
+            // Process teardown closes the stream and interrupts a pending read.
+        }
+    }.apply { name = "s1-server-output"; isDaemon = true; start() }
+
+    private fun hasBindFailure(text: String): Boolean =
+        text.contains("EADDRINUSE", ignoreCase = true) ||
+            text.contains("address already in use", ignoreCase = true) ||
+            text.contains("bind: address", ignoreCase = true)
 
     private fun runPrompt(
         port: Int,
@@ -263,9 +327,9 @@ object SpikeServerProbe {
         }
 
         writeDiagnostic(context, "prompt-accepted")
-        val deadline = System.currentTimeMillis() + PROMPT_TIMEOUT_MS
+        val deadline = SystemClock.elapsedRealtime() + PROMPT_TIMEOUT_MS
         var lastResponse = ""
-        while (System.currentTimeMillis() < deadline) {
+        while (SystemClock.elapsedRealtime() < deadline) {
             val messages = request(
                 url = "$baseUrl/session/$sessionID/message?$directoryQuery",
                 method = "GET",
@@ -327,12 +391,19 @@ object SpikeServerProbe {
         }
     }
 
-    private fun waitForHealth(port: Int, password: String, process: Process): Triple<Boolean, Int, Long> {
-        val started = System.currentTimeMillis()
+    private fun waitForHealth(
+        port: Int,
+        password: String,
+        process: Process,
+        expectedVersion: String,
+        output: BoundedOutput,
+    ): HealthOutcome {
+        val started = SystemClock.elapsedRealtime()
         val deadline = started + HEALTH_TIMEOUT_MS
         var lastStatus = 0
+        var lastDetail = ""
         var lastLoggedAt = started
-        while (System.currentTimeMillis() < deadline && process.isAlive) {
+        while (SystemClock.elapsedRealtime() < deadline && process.isAlive) {
             try {
                 val response = request(
                     url = "http://127.0.0.1:$port/global/health",
@@ -344,19 +415,49 @@ object SpikeServerProbe {
                 lastStatus = response.status
                 if (response.status == 200) {
                     val health = JSONObject(response.body)
-                    if (health.optBoolean("healthy") && health.optString("version") == "1.19.3") {
-                        return Triple(true, response.status, System.currentTimeMillis() - started)
+                    val healthy = health.optBoolean("healthy")
+                    val version = health.optString("version")
+                    lastDetail = "expectedVersion=$expectedVersion reportedVersion=$version " +
+                        "healthy=$healthy body=${response.body.take(500)}"
+                    if (healthy && version == expectedVersion) {
+                        return HealthOutcome(
+                            healthy = true,
+                            status = response.status,
+                            elapsedMs = SystemClock.elapsedRealtime() - started,
+                            detail = lastDetail,
+                        )
                     }
+                } else {
+                    lastDetail = "status=${response.status} body=${response.body.take(500)}"
                 }
-            } catch (_: IOException) {
-                Thread.sleep(250)
+            } catch (failure: Exception) {
+                lastDetail = "${failure.javaClass.simpleName}: ${failure.message}"
             }
-            if (System.currentTimeMillis() - lastLoggedAt >= HEALTH_PROGRESS_INTERVAL_MS) {
-                lastLoggedAt = System.currentTimeMillis()
-                Log.i(TAG, "S1 waiting for authenticated health; status=$lastStatus")
+            if (hasBindFailure(output.text())) {
+                return HealthOutcome(
+                    healthy = false,
+                    status = lastStatus,
+                    elapsedMs = SystemClock.elapsedRealtime() - started,
+                    detail = "bind failure observed in server output",
+                )
+            }
+            if (SystemClock.elapsedRealtime() - lastLoggedAt >= HEALTH_PROGRESS_INTERVAL_MS) {
+                lastLoggedAt = SystemClock.elapsedRealtime()
+                Log.i(TAG, "S1 waiting for authenticated health; status=$lastStatus detail=$lastDetail")
+            }
+            try {
+                Thread.sleep(HEALTH_POLL_MS)
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+                break
             }
         }
-        return Triple(false, lastStatus, System.currentTimeMillis() - started)
+        return HealthOutcome(
+            healthy = false,
+            status = lastStatus,
+            elapsedMs = SystemClock.elapsedRealtime() - started,
+            detail = lastDetail.ifBlank { "server process exited=${!process.isAlive}" },
+        )
     }
 
     private fun writeDiagnostic(context: Context, stage: String, detail: String = "") {
@@ -365,7 +466,7 @@ object SpikeServerProbe {
         try {
             SpikeReport.appendDiagnostic(context, line)
         } catch (failure: Throwable) {
-            Log.e(TAG, "Could not export S1 diagnostics to Downloads/OpenCodeSpike", failure)
+            Log.e(TAG, "Could not export S1 diagnostics to ${HarnessPaths.diagnosticsDisplayPath("s1-server-diagnostics.log")}", failure)
         }
     }
 
@@ -426,19 +527,6 @@ object SpikeServerProbe {
             Base64.getUrlEncoder().withoutPadding().encodeToString(it)
         }
 
-    private fun stopProcess(process: Process) {
-        process.destroy()
-        try {
-            if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
-                process.destroyForcibly()
-                process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
-            }
-        } catch (_: InterruptedException) {
-            process.destroyForcibly()
-            Thread.currentThread().interrupt()
-        }
-    }
-
     private fun Process.exitValueOrNull(): Int? =
         try {
             exitValue()
@@ -449,6 +537,21 @@ object SpikeServerProbe {
     private data class HttpResult(val status: Int, val body: String)
 
     private data class PromptOutcome(val pass: Boolean, val detail: String, val response: String)
+
+    private data class HealthOutcome(
+        val healthy: Boolean,
+        val status: Int,
+        val elapsedMs: Long,
+        val detail: String,
+    )
+
+    private data class ServerAttempt(
+        val tracked: ProcessTree.TrackedProcess,
+        val port: Int,
+        val output: BoundedOutput,
+        val outputThread: Thread,
+        val healthy: HealthOutcome,
+    )
 
     private class BoundedOutput {
         private val value = StringBuilder()
