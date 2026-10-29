@@ -74,6 +74,29 @@ class ChatControllerTest {
     }
 
     @Test
+    fun `detach marks an in-flight task interrupted and reconcile never resends`() = runBlocking {
+        val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
+        val client = FakeOpenCodeClient()
+        try {
+            val controller = ChatController(scope)
+            controller.attach(client, "/workspace")
+            assertTrue(controller.send("Long running task"))
+            assertEquals(TaskStatus.RUNNING, controller.state.value.taskStatus)
+            val sent = client.promptCalls
+
+            controller.reconcile()
+            assertEquals(sent, client.promptCalls)
+            assertEquals(TaskStatus.RUNNING, controller.state.value.taskStatus)
+
+            controller.detach()
+            assertEquals(TaskStatus.INTERRUPTED, controller.state.value.taskStatus)
+            assertEquals(sent, client.promptCalls)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
     fun `restores saved session instead of selecting the most recently updated one`() = runBlocking {
         val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
         val client = FakeOpenCodeClient().apply {

@@ -445,6 +445,7 @@ class FakeOpenCodeClient : OpenCodeClient {
         ),
     )
     var lastPrompt: PromptInput? = null
+    var promptCalls: Int = 0
     var lastPermission: Pair<String, PermissionResponse>? = null
 
     override suspend fun listSessions(directory: String): ApiResult<List<Session>> =
@@ -556,6 +557,7 @@ class FakeOpenCodeClient : OpenCodeClient {
         prompt: PromptInput,
     ): ApiResult<Unit> {
         lastPrompt = prompt
+        promptCalls++
         return ApiResult.Success(Unit)
     }
 
