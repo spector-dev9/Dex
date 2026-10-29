@@ -447,6 +447,7 @@ class FakeOpenCodeClient : OpenCodeClient {
     var lastPrompt: PromptInput? = null
     var promptCalls: Int = 0
     var lastPermission: Pair<String, PermissionResponse>? = null
+    private val serverEvents = MutableSharedFlow<ServerEvent>(extraBufferCapacity = 32)
 
     override suspend fun listSessions(directory: String): ApiResult<List<Session>> =
         ApiResult.Success(sessions.values.toList())
@@ -596,7 +597,11 @@ class FakeOpenCodeClient : OpenCodeClient {
     override suspend fun <T> call(operation: GatewayOperation<T>): ApiResult<T> =
         ApiResult.Failure(ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "not used by fake client"))
 
-    override fun events(directory: String?): Flow<ServerEvent> = MutableSharedFlow<ServerEvent>()
+    override fun events(directory: String?): Flow<ServerEvent> = serverEvents
+
+    fun emitEvent(event: ServerEvent) {
+        serverEvents.tryEmit(event)
+    }
 
     override suspend fun health(): ApiResult<GatewayHealth> =
         ApiResult.Success(GatewayHealth(version = "1.19.3", endpointPort = 4097))

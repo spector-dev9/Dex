@@ -1,8 +1,12 @@
 package io.github.spectordev9.opencode.chat
 
 import io.github.spectordev9.opencode.app.bridge.FakeOpenCodeClient
+import io.github.spectordev9.opencode.core.gateway.ServerEvent
 import io.github.spectordev9.opencode.core.model.Session
 import io.github.spectordev9.opencode.core.model.SessionTime
+import kotlinx.coroutines.delay
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.Json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +72,35 @@ class ChatControllerTest {
             assertTrue(controller.send("Do this verification"))
             assertEquals("opencode-mobile-mock", client.lastPrompt?.model?.providerID)
             assertEquals("mock", client.lastPrompt?.model?.modelID)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `idle events complete the task without resending the prompt`() = runBlocking {
+        val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
+        val client = FakeOpenCodeClient()
+        try {
+            val controller = ChatController(scope)
+            controller.attach(client, "/workspace")
+            assertTrue(controller.send("Finish this"))
+            val sent = client.promptCalls
+
+            client.emitEvent(
+                ServerEvent(
+                    type = "session.idle",
+                    payload = buildJsonObject { put("sessionID", "ses_123") },
+                ),
+            )
+            repeat(50) {
+                if (controller.state.value.taskStatus == TaskStatus.COMPLETED) return@repeat
+                delay(10)
+            }
+
+            assertEquals(TaskStatus.COMPLETED, controller.state.value.taskStatus)
+            assertEquals(false, controller.state.value.sending)
+            assertEquals(sent, client.promptCalls)
         } finally {
             scope.cancel()
         }
