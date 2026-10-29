@@ -112,54 +112,57 @@ class MainActivity : Activity() {
 
         root.addView(label("Runtime and probe actions"))
         root.addView(button("Download and verify pinned runtime (large download)") {
-            runProbes("runtime-download") { context, status ->
-                val started = SystemClock.elapsedRealtime()
-                try {
-                    val installed = SpikeRuntimeInstaller.install(context) { item, bytes, total ->
-                        val amount = if (total > 0) {
-                            "${bytes / 1_048_576} / ${total / 1_048_576} MiB"
-                        } else {
-                            "${bytes / 1_048_576} MiB"
+            runProbes(
+                label = "runtime-download",
+                probe = { context, status ->
+                    val started = SystemClock.elapsedRealtime()
+                    try {
+                        val installed = SpikeRuntimeInstaller.install(context) { item, bytes, total ->
+                            val amount = if (total > 0) {
+                                "${bytes / 1_048_576} / ${total / 1_048_576} MiB"
+                            } else {
+                                "${bytes / 1_048_576} MiB"
+                            }
+                            status("Downloading $item: $amount")
                         }
-                        status("Downloading $item: $amount")
+                        listOf(
+                            ProbeRecord(
+                                id = "runtime-download",
+                                pass = true,
+                                detail = installed,
+                                durationMs = SystemClock.elapsedRealtime() - started,
+                            ),
+                        )
+                    } catch (failure: Exception) {
+                        listOf(
+                            ProbeRecord(
+                                id = "runtime-download",
+                                pass = false,
+                                detail = "${failure.javaClass.simpleName}: ${failure.message}",
+                                durationMs = SystemClock.elapsedRealtime() - started,
+                            ),
+                        )
                     }
-                    listOf(
-                        ProbeRecord(
-                            id = "runtime-download",
-                            pass = true,
-                            detail = installed,
-                            durationMs = SystemClock.elapsedRealtime() - started,
-                        ),
-                    )
-                } catch (failure: Exception) {
-                    listOf(
-                        ProbeRecord(
-                            id = "runtime-download",
-                            pass = false,
-                            detail = "${failure.javaClass.simpleName}: ${failure.message}",
-                            durationMs = SystemClock.elapsedRealtime() - started,
-                        ),
-                    )
-                }
-            }
+                },
+            )
         })
         root.addView(button("Probe entrypoints (S1/S3 packaging)") {
-            runProbes("entrypoints") { context, _ -> SpikeProbe.probeEntrypoints(context) }
+            runProbes("entrypoints", probe = { context, _ -> SpikeProbe.probeEntrypoints(context) })
         })
         root.addView(button("Run loader/opencode --version (S1)") {
-            runProbes("loader") { context, _ -> listOf(SpikeProbe.runLoader(context)) }
+            runProbes("loader", probe = { context, _ -> listOf(SpikeProbe.runLoader(context)) })
         })
         root.addView(button("Start authenticated server + mock prompt (S1)") {
-            runProbes("S1-server-mock") { context, _ -> SpikeServerProbe.run(context) }
+            runProbes("S1-server-mock", probe = { context, _ -> SpikeServerProbe.run(context) })
         })
         root.addView(button("Run all available device probes (S1/S3)") {
-            runProbes("device-suite") { context, _ -> runAvailableDeviceSuite(context) }
+            runProbes("device-suite", probe = { context, _ -> runAvailableDeviceSuite(context) })
         })
         root.addView(button("Run PRoot guest shell (S3 partial)") {
-            runProbes("guest-shell") { context, _ -> listOf(SpikeProbe.runGuestShell(context)) }
+            runProbes("guest-shell", probe = { context, _ -> listOf(SpikeProbe.runGuestShell(context)) })
         })
         root.addView(button("Run native PTY TERM-5 probe") {
-            runProbes("term5-native-pty") { context, _ -> SpikeProbe.runTerm5NativePty(context) }
+            runProbes("term5-native-pty", probe = { context, _ -> SpikeProbe.runTerm5NativePty(context) })
         })
 
         root.addView(label("S7 lifecycle + child-workload diagnostics (harness service only)"))

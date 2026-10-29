@@ -60,9 +60,9 @@ object HarnessProbeRunner {
             mainHandler.post {
                 val finishedLabel = synchronized(this) {
                     running = false
-                    val current = label
-                    label = null
-                    statusMessage = "$current finished"
+                    val current = this.label
+                    this.label = null
+                    statusMessage = "${current ?: "probe"} finished"
                     current
                 }
                 SpikeReport.setActiveProbe(null)
