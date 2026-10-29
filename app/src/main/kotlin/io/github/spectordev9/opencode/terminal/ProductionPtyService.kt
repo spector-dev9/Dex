@@ -11,6 +11,7 @@ import io.github.spectordev9.opencode.core.terminal.PtyService
 import io.github.spectordev9.opencode.core.terminal.PtySession
 import io.github.spectordev9.opencode.core.terminal.PtySize
 import io.github.spectordev9.opencode.core.terminal.PtySpec
+import io.github.spectordev9.opencode.runtime.GuestBootstrap
 import java.io.File
 import java.nio.file.Files
 import kotlinx.coroutines.channels.awaitClose
@@ -51,10 +52,10 @@ class ProductionPtyService(private val context: Context) : PtyService {
                 ApiError(ErrorCode.E_RUNTIME_DOWN, "packaged PRoot loader is missing"),
             )
         }
-        // The host workspace is bound at /workspace inside the guest.
+        // Bind the same workspace the agent server and Git tab use.
         val hostWorkspace = io.github.spectordev9.opencode.runtime.RuntimePaths
-            .workspaceDirectory(context)
-        Files.createDirectories(hostWorkspace)
+            .serverWorkspaceDirectory(context)
+        GuestBootstrap.prepare(context, rootfs, hostWorkspace)
         val guestWorkingDirectory = when (spec.workingDirectory) {
             GUEST_WORKSPACE -> GUEST_WORKSPACE
             else -> GUEST_WORKSPACE // the production workspace is the only v1 mount
@@ -73,17 +74,13 @@ class ProductionPtyService(private val context: Context) : PtyService {
             spec.executable,
         ) + spec.arguments
 
-        val environment = mutableMapOf(
-            "PROOT_LOADER" to prootLoader.absolutePath,
-            "PROOT_TMP_DIR" to root.resolve("tmp").toString(),
-            "PROOT_NO_SECCOMP" to "1",
-            "LD_LIBRARY_PATH" to root.toString() + ":" +
-                io.github.spectordev9.opencode.runtime.RuntimePaths.runtimeDirectory(root),
-            "PATH" to "/system/bin:/system/xbin:/usr/local/sbin:/usr/local/bin:" +
-                "/usr/sbin:/usr/bin:/sbin:/bin",
-            "HOME" to "/root",
-            "TERM" to "xterm-256color",
-        )
+        val environment = GuestBootstrap.environment(rootfs, root).apply {
+            put("PROOT_LOADER", prootLoader.absolutePath)
+            put("PROOT_NO_SECCOMP", "1")
+            put("LD_LIBRARY_PATH", root.toString() + ":" +
+                io.github.spectordev9.opencode.runtime.RuntimePaths.runtimeDirectory(root))
+            put("TERM", "xterm-256color")
+        }
         spec.environment.forEach { (key, value) -> environment[key] = value }
 
         val handle = NativePty.open(

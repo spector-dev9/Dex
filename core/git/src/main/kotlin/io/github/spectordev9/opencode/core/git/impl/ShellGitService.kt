@@ -36,7 +36,7 @@ class ShellGitService(
         path: String?,
         staged: Boolean,
     ): ApiResult<GitDiff> = guarded {
-        validatePath(path)
+        path?.let(::validatePath)
         val command = buildString {
             append("cd ${quotePath(repositoryPath)} && git diff ")
             if (staged) append("--staged ")

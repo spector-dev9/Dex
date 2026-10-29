@@ -431,9 +431,10 @@ class ChatController(
     }
 
     private fun fallbackPromptModel(providers: List<ProviderInfo>): PromptModel? {
-        val provider = providers.firstOrNull { it.id == ON_DEVICE_MOCK_PROVIDER_ID }
-            ?: providers.firstOrNull()
-            ?: return null
+        // Prefer a real provider with a model; the offline mock is only a last resort.
+        val provider = providers.firstOrNull {
+            it.id != ON_DEVICE_MOCK_PROVIDER_ID && it.models.isNotEmpty()
+        } ?: providers.firstOrNull { it.models.isNotEmpty() } ?: return null
         val firstModel = provider.models.firstOrNull() ?: return null
         return PromptModel(provider.id, firstModel.id)
     }
@@ -748,9 +749,9 @@ class ChatController(
     }
 
     /**
-     * Stores an API key for [providerID] on the server (PUT /auth) so real
-     * provider profiles can route prompts once the D4 remote-profile work
-     * enables them.
+     * Stores an API key for [providerID] on the server (PUT /auth). Custom
+     * OpenAI-compatible endpoints use Settings -> AI provider; this remains
+     * available for built-in providers and remote profiles.
      */
     suspend fun saveApiKey(providerID: String, apiKey: String) {
         val activeClient = client ?: return

@@ -246,6 +246,7 @@ def build(manifest: dict, artifacts: Path, refresh: bool) -> dict:
     package_index = {item["name"]: index for index, item in enumerate(packages)}
     alpine_packages = list(manifest.get("alpineRuntimePackages", []))
     alpine_packages.extend(manifest.get("nodeRuntime", {}).get("packages", []))
+    alpine_packages.extend(manifest.get("alpineToolPackages", []))
     for spec in alpine_packages:
         mapping = repo_by_name.get(spec["name"])
         if mapping is None or mapping["version"] != spec["version"]:

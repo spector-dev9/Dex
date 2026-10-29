@@ -3,7 +3,9 @@ package io.github.spectordev9.opencode.git
 import android.content.Context
 import io.github.spectordev9.opencode.core.git.impl.ShellOutcome
 import io.github.spectordev9.opencode.core.git.impl.ShellRunner
+import io.github.spectordev9.opencode.runtime.GuestBootstrap
 import io.github.spectordev9.opencode.runtime.RuntimePaths
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
@@ -15,9 +17,9 @@ import kotlinx.coroutines.withContext
  * exec pattern as [io.github.spectordev9.opencode.terminal.ProductionPtyService]):
  * only APK-native executables are exec'd; guest binaries are loaded by PRoot.
  *
- * Output handling is deadlock-safe: stdin is written and closed first, the
- * merged output stream is drained to EOF, and only then is the exit code
- * awaited under a timeout.
+ * Output handling is deadlock-safe: output is drained on a helper thread
+ * while stdin is written and the process is awaited, so a command that emits
+ * more than a pipe buffer cannot stall before it exits.
  */
 class GuestGitRunner(private val context: Context) : ShellRunner {
 
@@ -36,8 +38,8 @@ class GuestGitRunner(private val context: Context) : ShellRunner {
         if (!proot.isFile) {
             return@withContext ShellOutcome(127, "", "packaged PRoot loader is missing")
         }
-        val hostWorkspace = RuntimePaths.workspaceDirectory(context)
-        Files.createDirectories(hostWorkspace)
+        val hostWorkspace = RuntimePaths.serverWorkspaceDirectory(context)
+        GuestBootstrap.prepare(context, rootfs, hostWorkspace)
 
         val arguments = listOf(
             proot.absolutePath,
@@ -53,17 +55,12 @@ class GuestGitRunner(private val context: Context) : ShellRunner {
             "-c",
             command,
         )
-        val environment = mutableMapOf(
-            "PROOT_LOADER" to File(nativeDir, "libproot_loader.so").absolutePath,
-            "PROOT_TMP_DIR" to root.resolve("tmp").toString(),
-            "PROOT_NO_SECCOMP" to "1",
-            "LD_LIBRARY_PATH" to root.toString() + ":" + RuntimePaths.runtimeDirectory(root),
-            "PATH" to "/system/bin:/system/xbin:/usr/local/sbin:/usr/local/bin:" +
-                "/usr/sbin:/usr/bin:/sbin:/bin",
-            "HOME" to "/root",
-            "TERM" to "xterm-256color",
-            "GIT_CONFIG_GLOBAL" to root.resolve("gitconfig").toString(),
-        )
+        val environment = GuestBootstrap.environment(rootfs, root).apply {
+            put("PROOT_LOADER", File(nativeDir, "libproot_loader.so").absolutePath)
+            put("PROOT_NO_SECCOMP", "1")
+            put("LD_LIBRARY_PATH", root.toString() + ":" + RuntimePaths.runtimeDirectory(root))
+            put("TERM", "xterm-256color")
+        }
 
         val process = try {
             ProcessBuilder(arguments)
@@ -78,6 +75,27 @@ class GuestGitRunner(private val context: Context) : ShellRunner {
             return@withContext ShellOutcome(127, "", "process launch failed: ${t.message}")
         }
 
+        val output = ByteArrayOutputStream()
+        var truncated = false
+        val drain = Thread({
+            try {
+                process.inputStream.use { input ->
+                    val buffer = ByteArray(16 * 1024)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        synchronized(output) {
+                            val remaining = MAX_OUTPUT_BYTES - output.size()
+                            if (remaining > 0) output.write(buffer, 0, minOf(count, remaining))
+                            if (count > remaining) truncated = true
+                        }
+                    }
+                }
+            } catch (_: Throwable) {
+                // The timeout path still reports the partial output.
+            }
+        }, "guest-git-output").apply { isDaemon = true }
+        drain.start()
         try {
             stdin?.let { payload ->
                 process.outputStream.use { stream ->
@@ -87,24 +105,33 @@ class GuestGitRunner(private val context: Context) : ShellRunner {
             } ?: process.outputStream.close()
 
             val finished = process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            val output = process.inputStream.readBytes().toString(Charsets.UTF_8)
-            if (!finished) {
-                process.destroyForcibly()
-                return@withContext ShellOutcome(exitCode = -1, stdout = output, stderr = "command timed out")
+            if (!finished) process.destroyForcibly()
+            drain.join(DRAIN_TIMEOUT_MILLIS)
+            val text = synchronized(output) {
+                output.toString(Charsets.UTF_8.name()) +
+                    if (truncated) "\n… output truncated" else ""
             }
-            ShellOutcome(
-                exitCode = process.exitValue(),
-                stdout = output,
-                stderr = "",
-            )
+            if (!finished) {
+                ShellOutcome(exitCode = -1, stdout = text, stderr = "command timed out")
+            } else {
+                ShellOutcome(
+                    exitCode = process.exitValue(),
+                    stdout = text,
+                    stderr = "",
+                )
+            }
         } catch (t: Throwable) {
             process.destroyForcibly()
-            ShellOutcome(exitCode = -1, stdout = "", stderr = t.message ?: "command failed")
+            drain.join(DRAIN_TIMEOUT_MILLIS)
+            val text = synchronized(output) { output.toString(Charsets.UTF_8.name()) }
+            ShellOutcome(exitCode = -1, stdout = text, stderr = t.message ?: "command failed")
         }
     }
 
     companion object {
         const val GUEST_WORKSPACE = "/workspace"
         const val COMMAND_TIMEOUT_SECONDS = 120L
+        const val DRAIN_TIMEOUT_MILLIS = 5_000L
+        const val MAX_OUTPUT_BYTES = 8 * 1024 * 1024
     }
 }

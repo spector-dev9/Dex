@@ -127,6 +127,9 @@ import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENT_BYTES
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES
 import io.github.spectordev9.opencode.chat.PromptAttachment
+import io.github.spectordev9.opencode.chat.LocalProviderSettings
+import io.github.spectordev9.opencode.chat.PROVIDER_SETTINGS_NOTE
+import io.github.spectordev9.opencode.chat.ProviderSettingsStore
 import io.github.spectordev9.opencode.chat.ServerProfileStore
 import io.github.spectordev9.opencode.chat.flattenFileTree
 import io.github.spectordev9.opencode.features.AdvancedTools
@@ -189,6 +192,8 @@ fun OpenCodeShell(
     advanced: AdvancedTools? = null,
     onConnectProfile: (suspend (String) -> String)? = null,
     onDisconnectProfile: (() -> Unit)? = null,
+    providerSettings: ProviderSettingsStore? = null,
+    onApplyProviderSettings: (suspend () -> String)? = null,
     runtimeStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.runtime.RuntimeState>? = null,
     serverStateFlow: kotlinx.coroutines.flow.StateFlow<io.github.spectordev9.opencode.core.supervisor.ServerState>? = null,
     onOpenLicenses: () -> Unit,
@@ -421,6 +426,8 @@ fun OpenCodeShell(
                 isConnected = chatState?.connected == true,
                 onConnectProfile = onConnectProfile,
                 onDisconnectProfile = onDisconnectProfile,
+                providerSettings = providerSettings,
+                onApplyProviderSettings = onApplyProviderSettings,
                 onDismiss = { showSettings = false },
             )
         }
@@ -2076,6 +2083,8 @@ private fun SettingsSheet(
     isConnected: Boolean,
     onConnectProfile: (suspend (String) -> String)? = null,
     onDisconnectProfile: (() -> Unit)? = null,
+    providerSettings: ProviderSettingsStore? = null,
+    onApplyProviderSettings: (suspend () -> String)? = null,
     onDismiss: () -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
@@ -2099,6 +2108,10 @@ private fun SettingsSheet(
             }
             if (workspace != null) {
                 InstructionsSection(workspace)
+                HorizontalDivider(color = palette.BorderCol)
+            }
+            if (providerSettings != null) {
+                LocalProviderSection(providerSettings, onApplyProviderSettings)
                 HorizontalDivider(color = palette.BorderCol)
             }
             if (profiles != null) {
@@ -2132,7 +2145,7 @@ private fun SettingsSheet(
                 )
             }
             Text(
-                "Provider keys are stored on the device server (PUT /auth) and picked up by real provider profiles when they ship.",
+                "Built-in provider keys are stored on the device server (PUT /auth). For any OpenAI-compatible endpoint, use AI provider above.",
                 fontSize = 11.sp,
                 color = palette.Muted2,
             )
@@ -2329,6 +2342,127 @@ private fun InstructionsSection(workspace: WorkspaceService) {
                     color = if (it.startsWith("Saved")) palette.SuccessCol else palette.DangerCol,
                 )
             }
+        }
+    }
+}
+
+/** Real OpenAI-compatible provider configuration for the local server. */
+@Composable
+private fun LocalProviderSection(
+    store: ProviderSettingsStore,
+    onApply: (suspend () -> String)?,
+) {
+    val palette = LocalOpencodePalette.current
+    val scope = rememberCoroutineScope()
+    val settings = store.settings.collectAsState().value
+    var baseUrl by remember(settings.baseUrl) { mutableStateOf(settings.baseUrl) }
+    var modelId by remember(settings.modelId) { mutableStateOf(settings.modelId) }
+    var name by remember(settings.name) { mutableStateOf(settings.name) }
+    var apiKey by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
+    var messageError by remember { mutableStateOf(false) }
+
+    fun applyStatus(status: String) {
+        message = status
+        messageError = !status.startsWith("Provider applied") &&
+            !status.startsWith("Saved") &&
+            !status.startsWith("No custom")
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("AI provider", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+            ChipBadge(
+                if (settings.configured) "CUSTOM" else "DEMO",
+                if (settings.configured) palette.SuccessCol else palette.WarningCol,
+            )
+            if (settings.hasApiKey) ChipBadge("KEY", palette.Accent)
+        }
+        Text(PROVIDER_SETTINGS_NOTE, fontSize = 11.sp, color = palette.Muted)
+        ProfileInputField(
+            label = "Base URL",
+            value = baseUrl,
+            onValueChange = { baseUrl = it },
+            placeholder = "https://api.example.com/v1",
+        )
+        ProfileInputField(
+            label = "Model",
+            value = modelId,
+            onValueChange = { modelId = it },
+            placeholder = "gpt-4o-mini",
+        )
+        ProfileInputField(
+            label = "Display name",
+            value = name,
+            onValueChange = { name = it },
+            placeholder = LocalProviderSettings.DEFAULT_NAME,
+        )
+        Text("API key (leave blank to keep the saved key)", fontSize = 11.sp, color = palette.Muted2)
+        BasicTextField(
+            value = apiKey,
+            onValueChange = { apiKey = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
+                .padding(horizontal = 10.dp, vertical = 9.dp),
+            singleLine = true,
+            textStyle = TextStyle(
+                color = palette.TextCol,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 12.sp,
+            ),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done,
+            ),
+            decorationBox = { innerTextField ->
+                Box {
+                    if (apiKey.isEmpty()) {
+                        Text("sk-…", color = palette.Muted2, fontSize = 12.sp)
+                    }
+                    innerTextField()
+                }
+            },
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        when (val saved = store.save(baseUrl, modelId, name, apiKey.ifBlank { null })) {
+                            is ApiResult.Success -> {
+                                apiKey = ""
+                                applyStatus(onApply?.invoke() ?: "Saved provider settings")
+                            }
+                            is ApiResult.Failure -> applyStatus(
+                                saved.error.message ?: "Provider settings could not be saved",
+                            )
+                        }
+                    }
+                },
+            ) {
+                Text("Save and restart", color = palette.Accent, fontWeight = FontWeight.SemiBold)
+            }
+            TextButton(
+                onClick = {
+                    scope.launch {
+                        store.clear()
+                        baseUrl = ""
+                        modelId = ""
+                        name = LocalProviderSettings.DEFAULT_NAME
+                        apiKey = ""
+                        applyStatus(onApply?.invoke() ?: "Using the offline demo provider")
+                    }
+                },
+            ) {
+                Text("Use demo provider", color = palette.Muted)
+            }
+        }
+        message?.let {
+            Text(
+                it,
+                fontSize = 11.sp,
+                color = if (messageError) palette.DangerCol else palette.SuccessCol,
+            )
         }
     }
 }

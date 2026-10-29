@@ -70,6 +70,7 @@ class PinnedRuntimeInstaller(private val context: Context) {
         val packages = manifest.getJSONArray("alpineRuntimePackages")
         val nodeRuntime = manifest.getJSONObject("nodeRuntime")
         val nodePackages = nodeRuntime.getJSONArray("packages")
+        val toolPackages = manifest.optJSONArray("alpineToolPackages") ?: org.json.JSONArray()
         val downloadSpecs = buildList {
             add(
                 DownloadSpec(
@@ -108,6 +109,18 @@ class PinnedRuntimeInstaller(private val context: Context) {
                         url = spec.getString("url"),
                         sha256 = spec.getString("sha256"),
                         destination = cache.resolve("$packageName-${spec.getString("version")}.apk"),
+                    ),
+                )
+            }
+            for (index in 0 until toolPackages.length()) {
+                val spec = toolPackages.getJSONObject(index)
+                val packageName = spec.getString("name")
+                add(
+                    DownloadSpec(
+                        item = "Alpine tool package $packageName",
+                        url = spec.getString("url"),
+                        sha256 = spec.getString("sha256"),
+                        destination = cache.resolve("tool-$packageName-${spec.getString("version")}.apk"),
                     ),
                 )
             }
@@ -180,6 +193,34 @@ class PinnedRuntimeInstaller(private val context: Context) {
         val nodePath = rootfs.resolve(nodeRuntime.getString("executable"))
         if (!Files.isRegularFile(nodePath) || !Files.isExecutable(nodePath)) {
             throw IOException("pinned Alpine Node package did not install an executable $nodePath")
+        }
+
+        for (index in 0 until toolPackages.length()) {
+            val spec = toolPackages.getJSONObject(index)
+            val packageName = spec.getString("name")
+            val archive = downloaded.getValue("Alpine tool package $packageName")
+            when (
+                val result = nodePackageInstaller.install(
+                    archive = archive,
+                    expectedArchiveSha256 = spec.getString("sha256"),
+                    packageName = packageName,
+                    rootfsDirectory = rootfs,
+                )
+            ) {
+                is ApiResult.Success -> Unit
+                is ApiResult.Failure ->
+                    throw IOException(result.error.message ?: "Alpine tool package installation failed")
+            }
+            packageEvidence += "tool:$packageName sha256=${spec.getString("sha256")} bytes=${Files.size(archive)}"
+        }
+        if ((0 until toolPackages.length()).any {
+                toolPackages.getJSONObject(it).getString("name") == "git"
+            }
+        ) {
+            val gitPath = rootfs.resolve("usr/bin/git")
+            if (!Files.isRegularFile(gitPath) || !Files.isExecutable(gitPath)) {
+                throw IOException("pinned Alpine Git package did not install $gitPath")
+            }
         }
 
         val runtimeLibraries = manifest.getJSONArray("runtimeLibraries")

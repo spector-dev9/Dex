@@ -144,6 +144,15 @@ class ShellGitServiceTest {
     }
 
     @Test
+    fun wholeWorktreeDiffOmitsPathValidation() = runBlocking {
+        val runner = FakeRunner(mapOf("git diff " to ShellOutcome(0, "diff --git a/x b/x\n", "")))
+        val diff = service(runner).diff("/repo", path = null).valueOrNull()!!
+        assertEquals(null, diff.path)
+        assertTrue(runner.commands.any { it.contains("git diff ") && !it.contains("-- ") })
+        Unit
+    }
+
+    @Test
     fun diffTruncationAndBinaryFlags() = runBlocking {
         val big = "x".repeat(200_000)
         val runner = FakeRunner(

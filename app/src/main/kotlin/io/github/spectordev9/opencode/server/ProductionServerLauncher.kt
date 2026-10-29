@@ -11,6 +11,8 @@ import io.github.spectordev9.opencode.core.supervisor.ServerEndpoint
 import io.github.spectordev9.opencode.core.supervisor.ServerHealth
 import io.github.spectordev9.opencode.core.supervisor.impl.ServerLauncher
 import io.github.spectordev9.opencode.core.supervisor.impl.StartedServer
+import io.github.spectordev9.opencode.chat.ProviderSettingsStore
+import io.github.spectordev9.opencode.chat.buildProviderConfig
 import io.github.spectordev9.opencode.runtime.RuntimePaths
 import java.io.File
 import java.net.HttpURLConnection
@@ -34,6 +36,7 @@ class ProductionServerLauncher(
     private val processLauncher: RuntimeProcessLauncher,
     private val secrets: LoopbackSecrets,
     private val mockPort: Int,
+    private val providerSettings: ProviderSettingsStore? = null,
 ) : ServerLauncher {
 
     override suspend fun nextEndpoint(): ApiResult<ServerEndpoint> = withContext(Dispatchers.IO) {
@@ -73,10 +76,15 @@ class ProductionServerLauncher(
                     home.resolve(".cache"), tmp).forEach { Files.createDirectories(it) }
 
                 val configFile = serverDir.resolve("opencode.json")
-                Files.write(
-                    configFile,
-                    serverConfig("http://127.0.0.1:$mockPort/v1").toByteArray(),
+                val mockBaseUrl = "http://127.0.0.1:$mockPort/v1"
+                val config = providerSettings?.let { store ->
+                    buildProviderConfig(store.settings.value, store.apiKey(), mockBaseUrl)
+                } ?: buildProviderConfig(
+                    io.github.spectordev9.opencode.chat.LocalProviderSettings(),
+                    null,
+                    mockBaseUrl,
                 )
+                Files.write(configFile, config.toByteArray())
 
                 val loader = File(context.applicationInfo.nativeLibraryDir, "libldmusl.so")
                 val runtimeDirectory = RuntimePaths.runtimeDirectory(root)
@@ -191,33 +199,5 @@ class ProductionServerLauncher(
 
     private companion object {
         const val ENDPOINT_ATTEMPTS = 5
-
-        /**
-         * The server starts with a deterministic local model configuration so
-         * that prompt round trips work offline; the mock provider is served by
-         * [MockLlmServer] on loopback and real provider profiles arrive with
-         * the D4 remote-profile work.
-         */
-        fun serverConfig(mockBaseUrl: String): String = """
-            {
-              "model": "opencode-mobile-mock/mock",
-              "provider": {
-                "opencode-mobile-mock": {
-                  "npm": "@ai-sdk/openai-compatible",
-                  "name": "OpenCode Mobile on-device mock",
-                  "options": {
-                    "baseURL": "$mockBaseUrl",
-                    "apiKey": "placeholder-not-a-secret"
-                  },
-                  "models": {
-                    "mock": {
-                      "name": "On-device mock model",
-                      "limit": { "context": 8192, "output": 1024 }
-                    }
-                  }
-                }
-              }
-            }
-        """.trimIndent()
     }
 }

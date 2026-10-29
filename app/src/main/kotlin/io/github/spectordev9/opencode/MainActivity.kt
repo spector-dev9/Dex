@@ -31,6 +31,8 @@ class MainActivity : ComponentActivity() {
                 advanced = appRuntime.advanced,
                 onConnectProfile = { name -> appRuntime.connectProfile(name) },
                 onDisconnectProfile = { appRuntime.disconnectProfile() },
+                providerSettings = appRuntime.providerSettings,
+                onApplyProviderSettings = { appRuntime.applyProviderSettings() },
                 runtimeStateFlow = appRuntime.runtimeState,
                 serverStateFlow = appRuntime.serverState,
                 onOpenLicenses = {

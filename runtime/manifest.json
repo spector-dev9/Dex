@@ -184,5 +184,67 @@
     "sha256": "8395f12e26df2d16610760ae224daf87da1d253a9883bf230be2c53984fe99ea",
     "tag": "v1.19.3",
     "commit": "e3c4eb242585dcd77be1a867391b7c25fd47ce52"
-  }
+  },
+  "alpineToolPackages": [
+    {
+      "name": "git",
+      "version": "2.45.4-r0",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/git-2.45.4-r0.apk",
+      "sha256": "ae3cdcc1f97c907320456f8eb2e517f3c08cb15c66bb4862e3a0049e6c567026"
+    },
+    {
+      "name": "git-init-template",
+      "version": "2.45.4-r0",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/git-init-template-2.45.4-r0.apk",
+      "sha256": "d54e50bf3687f1dbef9b0579721c0201f862305f9cbe5dc9e1b8a40829d35096"
+    },
+    {
+      "name": "libcurl",
+      "version": "8.14.1-r2",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libcurl-8.14.1-r2.apk",
+      "sha256": "11276806ae9be63a6d1b91c0a5d553b51ce106a8120b41f67a6f58d9d6b993ae"
+    },
+    {
+      "name": "libexpat",
+      "version": "2.8.1-r0",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libexpat-2.8.1-r0.apk",
+      "sha256": "aaa809c87a49648f254f9d9e453b4421e875210c0a328370b98dcb2be481e3f4"
+    },
+    {
+      "name": "pcre2",
+      "version": "10.43-r0",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/pcre2-10.43-r0.apk",
+      "sha256": "eb3924e37469c5b679e35cc3c44180abf5a45503b86e9d21961319feffc0e356"
+    },
+    {
+      "name": "libidn2",
+      "version": "2.3.7-r0",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libidn2-2.3.7-r0.apk",
+      "sha256": "9f54693247960850be5923a9b0444c993660501ec9e5e57a7e30101887fa2df5"
+    },
+    {
+      "name": "libunistring",
+      "version": "1.2-r0",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libunistring-1.2-r0.apk",
+      "sha256": "bbf1d385ff4ea84147f78c343ccb1953e3139c75f862cff3550f0b823f9938b6"
+    },
+    {
+      "name": "libpsl",
+      "version": "0.21.5-r1",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/libpsl-0.21.5-r1.apk",
+      "sha256": "c0186040eed5ce9184236117cffe112be15a29876984212e7dfbaf3905edc1f8"
+    },
+    {
+      "name": "zstd-libs",
+      "version": "1.5.6-r0",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/zstd-libs-1.5.6-r0.apk",
+      "sha256": "accb18819efcfaead2c9e04ec632ab3941bbe03af44af1754f65b7321030de70"
+    },
+    {
+      "name": "ca-certificates-bundle",
+      "version": "20261020-r0",
+      "url": "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/ca-certificates-bundle-20261020-r0.apk",
+      "sha256": "5bc874de833464f185771142446a0dcce293f1d4b94ded177eebb9fdc4f8c879"
+    }
+  ]
 }

@@ -5,8 +5,11 @@
 // an Alpine guest shell). The master end is polled by the JVM reader;
 // writes/resize/signal requests arrive here through JNI.
 //
-// Handles are small integers indexing a process-local registry guarded by
-// a mutex. Every function validates its handle before touching the child.
+// Handles are small integers indexing a process-local registry. The registry
+// is guarded by a short-lived global mutex; each session has its own mutex so
+// a blocking poll/read/write on one terminal never stalls the others. Close
+// takes the same per-session mutex, so the master fd cannot be closed (or
+// reused) while another thread is using it.
 // Argument and environment vectors are materialised before forkpty() so the
 // child only calls async-signal-safe code between fork and exec.
 
@@ -19,11 +22,13 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <climits>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -35,10 +40,12 @@ struct PtySession {
     int master = -1;
     long exit_code = -1;  // meaningful once the child was reaped
     bool reaped = false;
+    bool closed = false;
+    std::mutex mutex;
 };
 
 std::mutex g_sessions_mutex;
-std::map<jint, PtySession> g_sessions;
+std::map<jint, std::shared_ptr<PtySession>> g_sessions;
 jint g_next_handle = 1;
 
 std::string fromJava(JNIEnv* env, jstring value) {
@@ -63,65 +70,65 @@ std::vector<std::string> stringList(JNIEnv* env, jobjectArray values) {
     return result;
 }
 
-jint registerSession(JNIEnv* env, pid_t child, int master) {
+// Returns -1 when the handle space is exhausted. The caller still owns the
+// master fd and child in that case, and terminates them.
+jint registerSession(pid_t child, int master) {
     std::lock_guard<std::mutex> lock(g_sessions_mutex);
+    if (g_next_handle <= 0 || g_next_handle == INT_MAX) return -1;
     const jint handle = g_next_handle++;
-    if (g_next_handle < 0) {
-        // handle space exhausted; refuse instead of wrapping
-        close(master);
-        close(master);
-        g_next_handle = 1;
-        return -1;
-    }
-    g_sessions.emplace(handle, PtySession{child, master, -1, false});
+    auto session = std::make_shared<PtySession>();
+    session->child = child;
+    session->master = master;
+    g_sessions.emplace(handle, std::move(session));
     return handle;
 }
 
-PtySession* lockedSession(JNIEnv* env, jint handle) {
-    auto it = g_sessions.find(handle);
-    if (it == g_sessions.end()) {
-        env->ThrowNew(env->FindClass("java/lang/IllegalStateException"),
-                      "PTY session handle is not open");
-        return nullptr;
-    }
-    return &it->second;
+std::shared_ptr<PtySession> findSession(jint handle) {
+    std::lock_guard<std::mutex> lock(g_sessions_mutex);
+    const auto found = g_sessions.find(handle);
+    return found == g_sessions.end() ? nullptr : found->second;
 }
 
-// Reap the child if it has exited (WNOHANG). Returns true when reaped.
-bool tryReap(JNIEnv* env, jint handle, PtySession* session) {
-    if (session->reaped) return true;
+void latchStatus(PtySession& session, int status) {
+    if (WIFEXITED(status)) {
+        session.exit_code = WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+        session.exit_code = 128 + WTERMSIG(status);
+    } else {
+        session.exit_code = -1;
+    }
+    session.reaped = true;
+}
+
+// Reap the child if it has exited. WUNTRACED is deliberately absent: a
+// stopped child is still alive and must not latch an exit code.
+bool tryReap(PtySession& session) {
+    if (session.reaped) return true;
     int status = 0;
-    const pid_t result = waitpid(session->child, &status, WNOHANG | WUNTRACED);
-    if (result == session->child) {
-        if (WIFEXITED(status)) {
-            session->exit_code = WEXITSTATUS(status);
-        } else if (WIFSIGNALED(status)) {
-            session->exit_code = 128 + WTERMSIG(status);
-        }
-        session->reaped = true;
+    const pid_t result = waitpid(session.child, &status, WNOHANG);
+    if (result == session.child) {
+        latchStatus(session, status);
         return true;
     }
-    return (void)env, false;
+    return false;
 }
 
-bool reapBlocking(JNIEnv* env, jint handle, PtySession* session) {
-    if (session->reaped) return true;
+bool reapBlocking(PtySession& session) {
+    if (session.reaped) return true;
     int status = 0;
     pid_t result;
     do {
-        result = waitpid(session->child, &status, 0);
+        result = waitpid(session.child, &status, 0);
     } while (result < 0 && errno == EINTR);
-    if (result == session->child) {
-        if (WIFEXITED(status)) session->exit_code = WEXITSTATUS(status);
-        else if (WIFSIGNALED(status)) session->exit_code = 128 + WTERMSIG(status);
-        else session->exit_code = -1;
-        session->reaped = true;
+    if (result == session.child) {
+        latchStatus(session, status);
         return true;
     }
-    return (void)handle, false;
+    return false;
 }
 
-void terminateGroup(int child) {
+void terminateGroup(pid_t child) {
+    if (child <= 0) return;
     kill(-child, SIGTERM);
     for (int attempt = 0; attempt < 30; ++attempt) {  // ~300 ms
         int status = 0;
@@ -130,6 +137,9 @@ void terminateGroup(int child) {
         usleep(10 * 1000);
     }
     kill(-child, SIGKILL);
+    int status = 0;
+    while (waitpid(child, &status, 0) < 0 && errno == EINTR) {
+    }
 }
 
 }  // namespace
@@ -198,7 +208,12 @@ Java_io_github_spectordev9_opencode_terminal_NativePty_open(
     const int flags = fcntl(master, F_GETFL, 0);
     if (flags >= 0) fcntl(master, F_SETFL, flags | O_NONBLOCK);
 
-    return registerSession(env, child, master);
+    const jint handle = registerSession(child, master);
+    if (handle < 0) {
+        close(master);  // exactly once
+        terminateGroup(child);
+    }
+    return handle;
 }
 
 // Returns
@@ -209,22 +224,30 @@ Java_io_github_spectordev9_opencode_terminal_NativePty_open(
 extern "C" JNIEXPORT jint JNICALL
 Java_io_github_spectordev9_opencode_terminal_NativePty_pollRead(
     JNIEnv* env, jobject, jint handle, jbyteArray buffer, jint timeout_millis) {
-    std::lock_guard<std::mutex> lock(g_sessions_mutex);
-    PtySession* session = lockedSession(env, handle);
-    if (session == nullptr) return -2;
+    const auto session = findSession(handle);
+    if (session == nullptr) {
+        env->ThrowNew(env->FindClass("java/lang/IllegalStateException"),
+                      "PTY session handle is not open");
+        return -2;
+    }
+    std::lock_guard<std::mutex> lock(session->mutex);
+    if (session->closed) return -2;
     if (session->reaped) return -1;
 
     struct pollfd descriptor {};
     descriptor.fd = session->master;
     descriptor.events = POLLIN;
     const int ready = poll(&descriptor, 1, timeout_millis);
+    if (session->closed) return -2;
     if (ready == 0) return 0;
     if (ready < 0) {
         if (errno == EINTR) return 0;
         return -2;
     }
-    if (ready > 0 && (descriptor.revents & (POLLHUP | POLLERR | POLLNVAL))) {
-        char scratch[16384];
+    if (descriptor.revents & POLLNVAL) return -2;
+
+    char scratch[16384];
+    if (descriptor.revents & (POLLHUP | POLLERR)) {
         const ssize_t first = read(session->master, scratch, sizeof(scratch));
         if (first > 0) {
             const jint copy = static_cast<jint>(first < 16384 ? first : 16384);
@@ -232,10 +255,9 @@ Java_io_github_spectordev9_opencode_terminal_NativePty_pollRead(
                                     reinterpret_cast<const jbyte*>(scratch));
             return copy;
         }
-        tryReap(env, handle, session);
+        tryReap(*session);
         return -1;
     }
-    char scratch[16384];
     const ssize_t count = read(session->master, scratch, sizeof(scratch));
     if (count > 0) {
         const jint copy = static_cast<jint>(count < 16384 ? count : 16384);
@@ -244,7 +266,7 @@ Java_io_github_spectordev9_opencode_terminal_NativePty_pollRead(
         return copy;
     }
     if (count == 0 || errno == EIO) {
-        tryReap(env, handle, session);
+        tryReap(*session);
         return -1;
     }
     if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) return 0;
@@ -254,9 +276,10 @@ Java_io_github_spectordev9_opencode_terminal_NativePty_pollRead(
 extern "C" JNIEXPORT jint JNICALL
 Java_io_github_spectordev9_opencode_terminal_NativePty_write(
     JNIEnv* env, jobject, jint handle, jbyteArray data, jint length) {
-    std::lock_guard<std::mutex> lock(g_sessions_mutex);
-    PtySession* session = lockedSession(env, handle);
+    const auto session = findSession(handle);
     if (session == nullptr || length <= 0) return -2;
+    std::lock_guard<std::mutex> lock(session->mutex);
+    if (session->closed) return -2;
 
     std::vector<char> bytes(static_cast<size_t>(length));
     env->GetByteArrayRegion(data, 0, length,
@@ -277,7 +300,7 @@ Java_io_github_spectordev9_opencode_terminal_NativePty_write(
             continue;
         }
         if (count < 0 && errno == EINTR) continue;
-        tryReap(env, handle, session);
+        tryReap(*session);
         return written > 0 ? static_cast<jint>(written) : -1;
     }
     return static_cast<jint>(written);
@@ -286,23 +309,26 @@ Java_io_github_spectordev9_opencode_terminal_NativePty_write(
 extern "C" JNIEXPORT jint JNICALL
 Java_io_github_spectordev9_opencode_terminal_NativePty_resize(
     JNIEnv* env, jobject, jint handle, jint columns, jint rows) {
-    std::lock_guard<std::mutex> lock(g_sessions_mutex);
-    PtySession* session = lockedSession(env, handle);
+    const auto session = findSession(handle);
     if (session == nullptr) return -2;
+    if (columns <= 0 || rows <= 0) return -1;
+    std::lock_guard<std::mutex> lock(session->mutex);
+    if (session->closed) return -2;
     struct winsize size {};
     size.ws_col = static_cast<unsigned short>(columns);
     size.ws_row = static_cast<unsigned short>(rows);
     if (ioctl(session->master, TIOCSWINSZ, &size) < 0) return -1;
-    // Deliver SIGWINCH semantics to the child group; plain shells ignore it.
+    // The kernel delivers SIGWINCH to the foreground process group.
     return 0;
 }
 
 extern "C" JNIEXPORT jint JNICALL
 Java_io_github_spectordev9_opencode_terminal_NativePty_signal(
     JNIEnv* env, jobject, jint handle, jint number) {
-    std::lock_guard<std::mutex> lock(g_sessions_mutex);
-    PtySession* session = lockedSession(env, handle);
+    const auto session = findSession(handle);
     if (session == nullptr) return -2;
+    std::lock_guard<std::mutex> lock(session->mutex);
+    if (session->closed) return -2;
     const int sent = kill(-session->child, number);
     if (sent < 0) return kill(session->child, number) < 0 ? -1 : 0;
     return 0;
@@ -312,44 +338,46 @@ Java_io_github_spectordev9_opencode_terminal_NativePty_signal(
 extern "C" JNIEXPORT jint JNICALL
 Java_io_github_spectordev9_opencode_terminal_NativePty_isAlive(
     JNIEnv* env, jobject, jint handle) {
-    std::lock_guard<std::mutex> lock(g_sessions_mutex);
-    PtySession* session = lockedSession(env, handle);
+    const auto session = findSession(handle);
     if (session == nullptr) return -1;
-    if (tryReap(env, handle, session)) return 0;
+    std::lock_guard<std::mutex> lock(session->mutex);
+    if (session->closed) return -1;
+    if (tryReap(*session)) return 0;
     return 1;
 }
 
 extern "C" JNIEXPORT jint JNICALL
 Java_io_github_spectordev9_opencode_terminal_NativePty_exitCode(
     JNIEnv* env, jobject, jint handle) {
-    std::lock_guard<std::mutex> lock(g_sessions_mutex);
-    PtySession* session = lockedSession(env, handle);
+    const auto session = findSession(handle);
     if (session == nullptr) return -1;
-    if (!session->reaped && !reapBlocking(env, handle, session)) return -1;
+    std::lock_guard<std::mutex> lock(session->mutex);
+    if (session->closed) return -1;
+    if (!session->reaped && !reapBlocking(*session)) return -1;
     return static_cast<jint>(session->exit_code);
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_io_github_spectordev9_opencode_terminal_NativePty_close(
     JNIEnv* env, jobject, jint handle) {
-    PtySession session;
+    std::shared_ptr<PtySession> session;
     {
         std::lock_guard<std::mutex> lock(g_sessions_mutex);
-        auto it = g_sessions.find(handle);
-        if (it == g_sessions.end()) return;
-        session = it->second;
-        g_sessions.erase(it);
+        const auto found = g_sessions.find(handle);
+        if (found == g_sessions.end()) return;
+        session = found->second;
+        g_sessions.erase(found);
     }
-    if (session.master >= 0) close(session.master);
-    if (!session.reaped) {
-        int status = 0;
-        const pid_t result = waitpid(session.child, &status, WNOHANG);
-        if (result != session.child) {
-            terminateGroup(session.child);
-            pid_t finalStatus = 0;
-            do {
-                finalStatus = waitpid(session.child, &status, 0);
-            } while (finalStatus < 0 && errno == EINTR);
-        }
+
+    std::lock_guard<std::mutex> lock(session->mutex);
+    if (session->closed) return;
+    session->closed = true;
+    if (session->master >= 0) {
+        close(session->master);
+        session->master = -1;
+    }
+    if (!session->reaped) {
+        terminateGroup(session->child);
+        session->reaped = true;
     }
 }

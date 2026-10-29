@@ -5,6 +5,8 @@ import io.github.spectordev9.opencode.chat.ChatController
 import io.github.spectordev9.opencode.chat.ChatTaskEvent
 import io.github.spectordev9.opencode.chat.ChatTaskEventListener
 import io.github.spectordev9.opencode.chat.FilesController
+import io.github.spectordev9.opencode.chat.ProviderSettingsStore
+import io.github.spectordev9.opencode.chat.SharedPrefsProviderSettingsStore
 import io.github.spectordev9.opencode.chat.SharedPreferencesChatSessionStore
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.diagnostics.DiagnosticLevel
@@ -62,7 +64,10 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         processLauncher = processLauncher,
     )
 
-    /** On-device OpenAI-compatible stand-in; the default config model routes here. */
+    /** User-selected real provider; the offline mock is only the fallback. */
+    val providerSettings: ProviderSettingsStore = SharedPrefsProviderSettingsStore(this.context)
+
+    /** On-device OpenAI-compatible stand-in; used until a real provider is saved. */
     private val mockLlm = MockLlmServer()
 
     private val secrets = LoopbackSecrets(AndroidKeystoreSecretStore(this.context))
@@ -72,6 +77,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         processLauncher = processLauncher,
         secrets = secrets,
         mockPort = mockLlm.port,
+        providerSettings = providerSettings,
     )
 
     val supervisor = ProcessServerSupervisor(scope, serverLauncher)
@@ -103,7 +109,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         ChatTaskEventListener { event -> onChatTaskEvent(event) },
     )
     val files = FilesController(scope)
-    private val workspaceDirectory = RuntimePaths.workspaceDirectory(this.context).also {
+    private val workspaceDirectory = RuntimePaths.serverWorkspaceDirectory(this.context).also {
         Files.createDirectories(it)
     }
 
@@ -325,6 +331,23 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
             builds.clear()
         }
         return result
+    }
+
+    /**
+     * Applies saved provider settings by restarting the supervised local
+     * server. Remote profiles stay authoritative until disconnected.
+     */
+    suspend fun applyProviderSettings(): String {
+        if (remoteProfileName != null) {
+            return "Disconnect the remote profile before applying provider settings"
+        }
+        if (!providerSettings.settings.value.configured) {
+            return "No custom provider is configured; the offline demo provider remains active"
+        }
+        return when (val restarted = supervisor.restart()) {
+            is ApiResult.Success -> "Provider applied; server restarted on port ${restarted.value.port}"
+            is ApiResult.Failure -> "Provider saved, but server restart failed: ${restarted.error.message}"
+        }
     }
 
     /** Reconciles authoritative state after the app returns to the foreground (F48). */
