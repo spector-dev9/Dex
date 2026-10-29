@@ -79,7 +79,7 @@ class SharedPrefsProviderSettingsStore(context: Context) : ProviderSettingsStore
         name: String,
         apiKey: String?,
     ): ApiResult<LocalProviderSettings> {
-        val cleanBaseUrl = ServerProfileStore.validateProfileEndpoint(baseUrl)
+        val cleanBaseUrl = SharedPrefsServerProfileStore.validateProfileEndpoint(baseUrl)
             ?: return ApiResult.Failure(
                 ApiError(
                     ErrorCode.E_PATH_DENIED,

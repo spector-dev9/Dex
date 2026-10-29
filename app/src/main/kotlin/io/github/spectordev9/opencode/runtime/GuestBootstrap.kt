@@ -79,10 +79,14 @@ object GuestBootstrap {
     }
 
     private fun writeIfChanged(path: Path, content: String) {
-        if (Files.isRegularFile(path) && Files.readString(path) == content) return
-        Files.writeString(
+        if (Files.isRegularFile(path) &&
+            String(Files.readAllBytes(path), Charsets.UTF_8) == content
+        ) {
+            return
+        }
+        Files.write(
             path,
-            content,
+            content.toByteArray(Charsets.UTF_8),
             StandardOpenOption.CREATE,
             StandardOpenOption.TRUNCATE_EXISTING,
             StandardOpenOption.WRITE,
