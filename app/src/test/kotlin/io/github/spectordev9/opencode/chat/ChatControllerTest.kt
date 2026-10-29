@@ -172,6 +172,34 @@ class ChatControllerTest {
             scope.cancel()
         }
     }
+
+    @Test
+    fun `default model parser reads the config providers map shape`() {
+        val model = parseDefaultModel(
+            Json,
+            """{"providers":[],"default":{"opencode-mobile-mock":"mock"}}""",
+        )
+
+        assertEquals("opencode-mobile-mock", model?.providerID)
+        assertEquals("mock", model?.modelID)
+    }
+
+    @Test
+    fun `default model parser still accepts the flat legacy shape`() {
+        val model = parseDefaultModel(
+            Json,
+            """{"default":{"providerID":"p","modelID":"m"}}""",
+        )
+
+        assertEquals("p", model?.providerID)
+        assertEquals("m", model?.modelID)
+    }
+
+    @Test
+    fun `default model parser ignores an unusable default map`() {
+        assertEquals(null, parseDefaultModel(Json, """{"providers":[]}"""))
+        assertEquals(null, parseDefaultModel(Json, """{"default":{}}"""))
+    }
 }
 
 private class InMemoryChatSessionStore(initialSessionID: String?) : ChatSessionStore {

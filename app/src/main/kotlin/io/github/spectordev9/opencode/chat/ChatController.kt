@@ -41,6 +41,7 @@ const val MAX_PROMPT_ATTACHMENTS = 5
 
 private const val REPLY_POLL_INTERVAL_MS = 1_500L
 private const val REPLY_POLL_TIMEOUT_MS = 180_000L
+private const val ON_DEVICE_MOCK_PROVIDER_ID = "opencode-mobile-mock"
 private const val MAX_COMMAND_NAME_CHARS = 128
 
 private val emptyPermissionRules: MutableStateFlow<Map<String, PermissionResponse>> = MutableStateFlow(emptyMap())
@@ -426,13 +427,15 @@ class ChatController(
         return _state.value.selectedModel
             ?: _state.value.defaultModel
             ?: fallbackPromptModel(_state.value.providers)
-            ?: PromptModel("opencode-mobile-mock", "mock")
+            ?: PromptModel(ON_DEVICE_MOCK_PROVIDER_ID, "mock")
     }
 
     private fun fallbackPromptModel(providers: List<ProviderInfo>): PromptModel? {
-        val firstProvider = providers.firstOrNull() ?: return null
-        val firstModel = firstProvider.models.firstOrNull() ?: return null
-        return PromptModel(firstProvider.id, firstModel.id)
+        val provider = providers.firstOrNull { it.id == ON_DEVICE_MOCK_PROVIDER_ID }
+            ?: providers.firstOrNull()
+            ?: return null
+        val firstModel = provider.models.firstOrNull() ?: return null
+        return PromptModel(provider.id, firstModel.id)
     }
 
     private suspend fun loadAgents(activeClient: OpenCodeClient) {
@@ -1081,9 +1084,16 @@ internal fun parseProviders(json: Json, raw: String): List<ProviderInfo> {
 internal fun parseDefaultModel(json: Json, raw: String): PromptModel? {
     val root = runCatching { json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return null
     val default = root["default"] as? JsonObject ?: return null
-    val providerID = default.string("providerID") ?: default.string("provider") ?: return null
-    val modelID = default.string("modelID") ?: default.string("model") ?: return null
-    return PromptModel(providerID, modelID)
+    // Legacy flat shape: {"providerID": "...", "modelID": "..."}.
+    val providerID = default.string("providerID") ?: default.string("provider")
+    val modelID = default.string("modelID") ?: default.string("model")
+    if (providerID != null && modelID != null) return PromptModel(providerID, modelID)
+    // Contract shape for GET /config/providers: {"<providerID>": "<modelID>"}.
+    val entry = default.entries.firstOrNull { (_, value) ->
+        (value as? JsonPrimitive)?.isString == true
+    } ?: return null
+    val selectedModelID = (entry.value as? JsonPrimitive)?.contentOrNull ?: return null
+    return PromptModel(entry.key, selectedModelID)
 }
 
 private fun JsonObject.string(name: String): String? =
