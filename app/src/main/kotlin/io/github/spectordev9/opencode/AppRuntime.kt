@@ -9,6 +9,7 @@ import io.github.spectordev9.opencode.chat.SharedPreferencesChatSessionStore
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.diagnostics.DiagnosticLevel
 import io.github.spectordev9.opencode.features.AdvancedTools
+import io.github.spectordev9.opencode.features.classifyFailure
 import io.github.spectordev9.opencode.features.BuildController
 import io.github.spectordev9.opencode.features.DeviceCompatibility
 import io.github.spectordev9.opencode.features.DiagnosticsController
@@ -366,10 +367,15 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
             },
             category = "task",
             message = event.title,
-            attributes = mapOf(
-                "kind" to event.kind.name,
-                "session" to (event.sessionID ?: "none"),
-            ),
+            attributes = buildMap {
+                put("kind", event.kind.name)
+                put("session", event.sessionID ?: "none")
+                if (event.kind == io.github.spectordev9.opencode.chat.ChatTaskEventKind.FAILED) {
+                    val classification = classifyFailure(event.body)
+                    put("failure_class", classification.kind.name)
+                    put("retryable", classification.retryable.toString())
+                }
+            },
         )
     }
 

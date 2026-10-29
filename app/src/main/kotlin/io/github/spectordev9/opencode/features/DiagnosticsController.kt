@@ -46,6 +46,42 @@ class SecretRedactingScrubber : LogScrubber {
     }
 }
 
+
+/** Classifies failures so diagnostics distinguish the source (F77). */
+enum class FailureClass {
+    API,
+    PROVIDER,
+    MISSING_BINARY,
+    PERMISSION,
+    PTY,
+    LIFECYCLE,
+    APP,
+}
+
+data class FailureClassification(
+    val kind: FailureClass,
+    val retryable: Boolean,
+)
+
+fun classifyFailure(message: String?): FailureClassification {
+    val text = message?.lowercase().orEmpty()
+    val kind = when {
+        text.contains("pty") || text.contains("terminal") -> FailureClass.PTY
+        text.contains("lifecycle") || text.contains("interrupted") -> FailureClass.LIFECYCLE
+        text.contains("permission") || text.contains("denied") ||
+            text.contains("unauthorized") || text.contains("e_path_denied") -> FailureClass.PERMISSION
+        text.contains("no such file") || text.contains("not found") ||
+            text.contains("missing executable") || text.contains("command not found") -> FailureClass.MISSING_BINARY
+        text.contains("provider") || text.contains("model") ||
+            text.contains("api key") || text.contains("authentication") -> FailureClass.PROVIDER
+        text.contains("http") || text.contains("upstream") ||
+            text.contains("timeout") || text.contains("failed to fetch") -> FailureClass.API
+        else -> FailureClass.APP
+    }
+    val retryable = kind == FailureClass.API || kind == FailureClass.PTY || kind == FailureClass.LIFECYCLE
+    return FailureClassification(kind, retryable)
+}
+
 @Serializable
 data class DiagnosticExport(
     val format: String = "opencode-mobile-diagnostics",
