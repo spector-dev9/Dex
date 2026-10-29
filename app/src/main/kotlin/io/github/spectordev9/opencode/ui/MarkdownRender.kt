@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -291,16 +292,18 @@ fun CodeBlock(
                     Text("Share", fontSize = 10.sp, color = palette.Accent)
                 }
             }
-            Text(
-                text = highlightCode(code, language, palette),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                fontFamily = FontFamily.Monospace,
-                fontSize = fontSize.sp,
-                lineHeight = (fontSize + 6).sp,
-            )
+            SelectionContainer {
+                Text(
+                    text = highlightCode(code, language, palette),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = fontSize.sp,
+                    lineHeight = (fontSize + 6).sp,
+                )
+            }
         }
     }
 }
