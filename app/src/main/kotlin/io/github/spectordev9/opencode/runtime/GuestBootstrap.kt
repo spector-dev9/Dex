@@ -1,8 +1,6 @@
 package io.github.spectordev9.opencode.runtime
 
 import android.content.Context
-import android.net.ConnectivityManager
-import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
@@ -61,17 +59,7 @@ object GuestBootstrap {
         "PROOT_TMP_DIR" to root.resolve("tmp").toString(),
     )
 
-    private fun dnsServers(context: Context): List<String> {
-        val fallback = listOf("1.1.1.1", "8.8.8.8")
-        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-        val network = manager?.activeNetwork ?: return fallback
-        val servers = manager.getLinkProperties(network)?.dnsServers.orEmpty()
-            .mapNotNull(InetAddress::getHostAddress)
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(3)
-        return servers.ifEmpty { fallback }
-    }
+    private fun dnsServers(context: Context): List<String> = listOf("1.1.1.1", "8.8.8.8")
 
     private fun writeIfMissing(path: Path, content: String) {
         if (Files.isRegularFile(path)) return
