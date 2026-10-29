@@ -406,4 +406,7 @@ especially for Android lifecycle, terminal, and runtime behavior, has not yet
 been collected for the full production app. Newly implemented surfaces in the
 2026-10-29 revision cover project switching, extension config, environment
 secrets, build execution/artifacts, diagnostics export, notifications, task
-status, session import/search/fork, remote profiles, and compatibility checks.END OF SPECIFICATION
+status, session import/search/fork, remote profiles, deep links, failure
+classification, and compatibility checks.
+
+END OF SPECIFICATION
