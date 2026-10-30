@@ -1,4 +1,4 @@
-package io.github.spectordev9.opencode.connection
+package io.github.spectordev9.opencode.core.connection
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -312,7 +312,7 @@ class ChatRepository(
                     ?.string("message")
                     ?: properties.obj("error")?.string("name")
                     ?: "session error"
-                state.copy(error = ServerError(ErrorMapping.redact(message)))
+                state.copy(error = ServerError(statusCode = 500, detail = ErrorMapping.redact(message)))
             }
             "permission.asked", "permission.v2.asked" -> {
                 val sessionID = properties.string("sessionID") ?: return state

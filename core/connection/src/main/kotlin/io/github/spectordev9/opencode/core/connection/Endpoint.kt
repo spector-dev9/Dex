@@ -1,4 +1,4 @@
-package io.github.spectordev9.opencode.connection
+package io.github.spectordev9.opencode.core.connection
 
 import okhttp3.Credentials
 import okhttp3.HttpUrl

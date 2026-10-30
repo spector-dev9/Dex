@@ -1,4 +1,4 @@
-package io.github.spectordev9.opencode.connection
+package io.github.spectordev9.opencode.core.connection
 
 class ConnectionLog(
     private val capacity: Int = 256,

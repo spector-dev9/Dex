@@ -1,4 +1,4 @@
-package io.github.spectordev9.opencode.connection
+package io.github.spectordev9.opencode.core.connection
 
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive

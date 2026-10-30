@@ -1,4 +1,4 @@
-package io.github.spectordev9.opencode.connection
+package io.github.spectordev9.opencode.core.connection
 
 import java.net.SocketTimeoutException
 import kotlin.random.Random

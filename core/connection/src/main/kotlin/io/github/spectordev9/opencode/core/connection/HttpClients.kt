@@ -1,4 +1,4 @@
-package io.github.spectordev9.opencode.connection
+package io.github.spectordev9.opencode.core.connection
 
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -39,6 +39,7 @@ class HttpClients(
         .followSslRedirects(false)
         .addInterceptor(auth)
         .addInterceptor(redacting)
+        .build()
 
     val rest: OkHttpClient = base.newBuilder()
         .connectTimeout(3, TimeUnit.SECONDS)
