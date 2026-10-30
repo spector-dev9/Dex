@@ -11,6 +11,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -51,6 +52,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -65,7 +68,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -86,12 +88,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -106,12 +110,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.withStyle
 import io.github.spectordev9.opencode.chat.MAX_SESSION_EXPORT_BYTES
 import io.github.spectordev9.opencode.chat.decodeSessionExport
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.longOrNull
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.spectordev9.opencode.chat.ChatController
@@ -179,6 +185,172 @@ private enum class AppTab(val label: String, val glyph: String) {
 }
 
 @Composable
+private fun OpenCodeMark(size: Dp) {
+    Image(
+        painter = painterResource(R.drawable.logo_mark),
+        contentDescription = "OpenCode",
+        contentScale = ContentScale.Fit,
+        modifier = Modifier.size(size),
+    )
+}
+
+@Composable
+private fun TopStatusPill(label: String, online: Boolean) {
+    val palette = LocalOpencodePalette.current
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(palette.Panel2)
+            .border(1.dp, palette.BorderCol, RoundedCornerShape(50))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(7.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (online) palette.SuccessCol else palette.WarningCol),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = palette.Muted, fontSize = 11.sp, maxLines = 1)
+    }
+}
+
+@Composable
+private fun RoundIconButton(
+    glyph: String,
+    onClick: () -> Unit,
+) {
+    val palette = LocalOpencodePalette.current
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = palette.Panel2,
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+        modifier = Modifier
+            .size(38.dp)
+            .clickable(onClick = onClick),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(glyph, color = palette.Muted, fontSize = 16.sp)
+        }
+    }
+}
+
+@Composable
+private fun OpenCodeTopBar(
+    online: Boolean,
+    statusLabel: String,
+    selectedTab: AppTab,
+    onSelectTab: (AppTab) -> Unit,
+    onRefresh: () -> Unit,
+    onNewSession: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenTools: (() -> Unit)?,
+    onOpenLicenses: () -> Unit,
+) {
+    val palette = LocalOpencodePalette.current
+    val toolsAction = onOpenTools
+    var menuExpanded by remember { mutableStateOf(false) }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(palette.TopbarBg),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OpenCodeMark(34.dp)
+            Spacer(Modifier.width(10.dp))
+            Text("OpenCode", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+            Spacer(Modifier.weight(1f))
+            TopStatusPill(statusLabel, online)
+            Spacer(Modifier.width(8.dp))
+            RoundIconButton("↻", onRefresh)
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = palette.Panel2,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clickable { menuExpanded = true },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("☰", color = palette.Muted, fontSize = 16.sp)
+                    }
+                }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Settings", color = palette.TextCol) },
+                        onClick = {
+                            menuExpanded = false
+                            onOpenSettings()
+                        },
+                    )
+                    if (toolsAction != null) {
+                        DropdownMenuItem(
+                            text = { Text("Tools", color = palette.TextCol) },
+                            onClick = {
+                                menuExpanded = false
+                                toolsAction()
+                            },
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("Licenses", color = palette.TextCol) },
+                        onClick = {
+                            menuExpanded = false
+                            onOpenLicenses()
+                        },
+                    )
+                }
+            }
+            val chatSelected = selectedTab == AppTab.Chat
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (chatSelected) palette.AccentSoft else palette.Panel2,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (chatSelected) palette.AccentStrong.copy(alpha = 0.55f) else palette.BorderCol,
+                ),
+                modifier = Modifier.clickable { onSelectTab(AppTab.Chat) },
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("✳", color = palette.Accent, fontSize = 13.sp)
+                    Text(
+                        "Chat",
+                        color = if (chatSelected) palette.TextCol else palette.Muted,
+                        fontSize = 12.sp,
+                        fontWeight = if (chatSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    )
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            RoundIconButton("＋", onNewSession)
+        }
+        HorizontalDivider(color = palette.BorderCol)
+    }
+}
+
+@Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun OpenCodeShell(
     ptyService: PtyService? = null,
@@ -206,6 +378,7 @@ fun OpenCodeShell(
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Chat) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showTools by rememberSaveable { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val palette = rememberOpencodePalette(uiPrefs)
     val darkTheme = when (
@@ -216,6 +389,17 @@ fun OpenCodeShell(
         UiPrefs.ThemeMode.DARK -> true
     }
 
+    val online = serverState?.status ==
+        io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY
+    val connectionLabel = when {
+        online -> "Connected"
+        runtimeState?.status == io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED -> "Failed"
+        serverState?.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.STARTING ||
+            serverState?.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.BACKOFF ||
+            serverState?.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.CRASH_LOOP -> "Starting"
+        else -> "Offline"
+    }
+
     MaterialTheme(
         colorScheme = materialScheme(palette, darkTheme),
     ) {
@@ -224,57 +408,22 @@ fun OpenCodeShell(
             containerColor = palette.DarkBg,
             topBar = {
                 if (!imeVisible) {
-                    TopAppBar(
-                        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                            containerColor = palette.TopbarBg,
-                        ),
-                        title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                Text("◈", color = palette.Accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                                Column {
-                                    Text("OPENCODE", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                    Text(
-                                        "MOBILE WORKSPACE",
-                                        fontSize = 9.sp,
-                                        letterSpacing = 1.4.sp,
-                                        color = palette.Muted2,
-                                    )
-                                }
-                                val online = serverState?.status ==
-                                    io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY
-                                Box(
-                                    Modifier
-                                        .padding(start = 4.dp)
-                                        .size(7.dp)
-                                        .clip(RoundedCornerShape(50))
-                                        .background(
-                                            when {
-                                                online -> palette.SuccessCol
-                                                runtimeState?.status ==
-                                                    io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED
-                                                    -> palette.DangerCol
-                                                else -> palette.WarningCol
-                                            },
-                                        ),
-                                )
-                            }
+                    OpenCodeTopBar(
+                        online = online,
+                        statusLabel = connectionLabel,
+                        selectedTab = selectedTab,
+                        onSelectTab = { selectedTab = it },
+                        onRefresh = onRetryRuntime,
+                        onNewSession = {
+                            if (chat != null) scope.launch { chat.newSession() }
                         },
-                        actions = {
-                            if (advanced != null) {
-                                TextButton(onClick = { showTools = true }) {
-                                    Text("Tools", color = palette.Muted, fontSize = 12.sp)
-                                }
-                            }
-                            TextButton(onClick = { showSettings = true }) {
-                                Text("Settings", color = palette.Muted, fontSize = 12.sp)
-                            }
-                            TextButton(onClick = onOpenLicenses) {
-                                Text("Licenses", color = palette.Muted, fontSize = 12.sp)
-                            }
+                        onOpenSettings = { showSettings = true },
+                        onOpenTools = if (advanced != null) {
+                            { showTools = true }
+                        } else {
+                            null
                         },
+                        onOpenLicenses = onOpenLicenses,
                     )
                 }
             },
@@ -449,6 +598,7 @@ private fun ChatHome(
     val palette = LocalOpencodePalette.current
     val banner = runtimeBanner(runtimeState, serverState, palette)
     val chatState = chat?.state?.collectAsState()?.value
+    val connected = chatState?.connected == true
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     Column(
@@ -458,7 +608,7 @@ private fun ChatHome(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (!imeVisible) {
+        if (!imeVisible && !connected) {
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = palette.Panel,
@@ -508,6 +658,7 @@ private fun ChatHome(
                 chat = chat,
                 state = chatState,
                 uiPrefs = uiPrefs,
+                serverVersion = banner.version,
                 modifier = Modifier.weight(1f),
             )
         } else {
@@ -557,10 +708,133 @@ private fun ChatTaskStatusChip(state: ChatUiState?) {
 }
 
 @Composable
+private fun EmptyWorkspace(
+    state: ChatUiState,
+    serverVersion: String?,
+    onNewSession: () -> Unit,
+) {
+    val palette = LocalOpencodePalette.current
+    val project = state.directory.trimEnd('/').substringAfterLast('/').ifBlank { "Workspace" }
+    val serverLabel = serverVersion?.takeIf { it.isNotBlank() }?.let { "Server v$it" } ?: "Server online"
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 18.dp, bottom = 24.dp),
+    ) {
+        Text(
+            "YOUR WORKSPACE",
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.8.sp,
+            color = palette.Muted2,
+        )
+        Spacer(Modifier.height(7.dp))
+        Text(
+            "What are we building?",
+            fontSize = 28.sp,
+            lineHeight = 33.sp,
+            fontWeight = FontWeight.Bold,
+            color = palette.TextCol,
+        )
+        Spacer(Modifier.height(3.dp))
+        Text(
+            "Your coding agent, in a workspace of your own.",
+            fontSize = 14.sp,
+            color = palette.Muted,
+        )
+        Spacer(Modifier.height(12.dp))
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = palette.Panel2,
+            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("◈", color = palette.Accent, fontSize = 12.sp)
+                Text(project, color = palette.Muted, fontSize = 12.sp, maxLines = 1)
+            }
+        }
+        Spacer(Modifier.height(30.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            OpenCodeMark(72.dp)
+            Spacer(Modifier.height(18.dp))
+            Text(
+                "Start a conversation.",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = palette.TextCol,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Create a session for this project. You can choose a model, send prompts, " +
+                    "use slash commands, and stop a running agent.",
+                fontSize = 13.sp,
+                lineHeight = 20.sp,
+                textAlign = TextAlign.Center,
+                color = palette.Muted,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Spacer(Modifier.height(18.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Brush.linearGradient(listOf(palette.Accent, palette.AccentStrong)))
+                    .clickable(onClick = onNewSession)
+                    .padding(horizontal = 26.dp, vertical = 13.dp),
+            ) {
+                Text(
+                    "＋  New session",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            ) {
+                MetaChip("◈ $serverLabel")
+                MetaChip("⌁ $project")
+                MetaChip("◫ Workspace")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetaChip(text: String) {
+    val palette = LocalOpencodePalette.current
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = palette.Panel2,
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+    ) {
+        Text(
+            text,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            color = palette.Muted2,
+            fontSize = 11.sp,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 private fun ChatScreen(
     chat: ChatController,
     state: ChatUiState,
     uiPrefs: UiPrefs?,
+    serverVersion: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalOpencodePalette.current
@@ -570,6 +844,7 @@ private fun ChatScreen(
     val scope = rememberCoroutineScope()
     var showSessions by rememberSaveable { mutableStateOf(false) }
     var showModelPicker by rememberSaveable { mutableStateOf(false) }
+    var showModeMenu by rememberSaveable { mutableStateOf(false) }
     var showDiffDialog by rememberSaveable { mutableStateOf(false) }
     var pendingExportSessionID by rememberSaveable { mutableStateOf<String?>(null) }
     var exportError by remember { mutableStateOf<String?>(null) }
@@ -776,62 +1051,11 @@ private fun ChatScreen(
         ) {
             if (state.messages.isEmpty() && !state.sending) {
                 item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Box(
-                            Modifier
-                                .size(46.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(palette.AccentSoft)
-                                .border(1.dp, palette.AccentStrong.copy(alpha = 0.4f), RoundedCornerShape(50)),
-                        ) {
-                            Text(
-                                "✳",
-                                modifier = Modifier.align(Alignment.Center),
-                                color = palette.Accent,
-                                fontSize = 20.sp,
-                            )
-                        }
-                        Text("What should we work on?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
-                        Text(
-                            "Send the first prompt to start this session.",
-                            fontSize = 12.sp,
-                            color = palette.Muted,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("◈ Server online", fontSize = 10.sp, color = palette.Muted2)
-                            Text("⌁ ${modelLabel(state)}", fontSize = 10.sp, color = palette.Muted2, maxLines = 1)
-                            Text("◫ workspace", fontSize = 10.sp, color = palette.Muted2)
-                        }
-                    }
-                }
-                items(SUGGESTIONS) { suggestion ->
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = palette.Panel2,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable {
-                                draft = TextFieldValue()
-                                sessionDrafts = sessionDrafts +
-                                    ((state.activeSessionId ?: NEW_SESSION_DRAFT_KEY) to "")
-                                scope.launch { chat.sendOrStart(suggestion) }
-                            },
-                    ) {
-                        Text(
-                            suggestion,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
-                            fontSize = 13.sp,
-                            color = palette.Muted,
-                        )
-                    }
+                    EmptyWorkspace(
+                        state = state,
+                        serverVersion = serverVersion,
+                        onNewSession = { scope.launch { chat.newSession() } },
+                    )
                 }
             }
             items(state.messages, key = { it.info.id }) { message ->
@@ -868,11 +1092,82 @@ private fun ChatScreen(
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(15.dp),
+            shape = RoundedCornerShape(18.dp),
             color = palette.Panel2,
             border = androidx.compose.foundation.BorderStroke(1.dp, palette.ToolChipBorder),
         ) {
-            Column(Modifier.padding(horizontal = 13.dp, vertical = 10.dp)) {
+            Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
+                val agentOptions = state.agents.ifEmpty {
+                    listOf(
+                        io.github.spectordev9.opencode.chat.AgentInfo("build", null, "primary"),
+                        io.github.spectordev9.opencode.chat.AgentInfo("plan", null, "primary"),
+                    )
+                }
+                val currentMode = agentOptions.firstOrNull { it.id == state.mode }?.id ?: state.mode
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box {
+                        Surface(
+                            shape = RoundedCornerShape(9.dp),
+                            color = palette.Panel3,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                            modifier = Modifier.clickable { showModeMenu = true },
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            ) {
+                                Text("◈", color = palette.Accent, fontSize = 11.sp)
+                                Text(
+                                    "AI Mode: ${currentMode.replaceFirstChar { it.uppercase() }}",
+                                    color = palette.Muted,
+                                    fontSize = 11.sp,
+                                )
+                                Text("▾", color = palette.Muted2, fontSize = 9.sp)
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = showModeMenu,
+                            onDismissRequest = { showModeMenu = false },
+                        ) {
+                            agentOptions.forEach { agent ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            agent.id.replaceFirstChar { it.uppercase() },
+                                            color = if (agent.id == currentMode) palette.Accent else palette.TextCol,
+                                        )
+                                    },
+                                    onClick = {
+                                        showModeMenu = false
+                                        scope.launch { chat.setMode(agent.id) }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Surface(
+                        shape = RoundedCornerShape(9.dp),
+                        color = palette.Panel3,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                        modifier = Modifier.clickable { showModelPicker = true },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Text("◎", color = palette.Accent, fontSize = 11.sp)
+                            Text("AI Select", color = palette.Muted, fontSize = 11.sp)
+                            Text("▾", color = palette.Muted2, fontSize = 9.sp)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
                 if (attachments.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -924,7 +1219,7 @@ private fun ChatScreen(
                     textStyle = TextStyle(color = palette.TextCol, fontSize = 14.sp, lineHeight = 20.sp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
                     decorationBox = { innerTextField ->
-                        Box(Modifier.heightIn(min = 40.dp)) {
+                        Box(Modifier.heightIn(min = 42.dp)) {
                             if (draft.text.isEmpty()) {
                                 Text(
                                     "Ask OpenCode to inspect, explain, or change this project…",
@@ -937,49 +1232,32 @@ private fun ChatScreen(
                     },
                 )
                 Row(
-                    modifier = Modifier.padding(top = 6.dp),
+                    modifier = Modifier.padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    TextButton(
-                        onClick = { attachmentPicker.launch(arrayOf("*/*")) },
-                        enabled = !state.sending && attachments.size < MAX_PROMPT_ATTACHMENTS,
+                    val canAttach = !state.sending && attachments.size < MAX_PROMPT_ATTACHMENTS
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = palette.Panel3,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clickable(enabled = canAttach) {
+                                attachmentPicker.launch(arrayOf("*/*"))
+                            },
                     ) {
-                        Text("＋ Attach", color = palette.Accent, fontSize = 11.sp)
-                    }
-                    val agentOptions = state.agents.ifEmpty {
-                        listOf(
-                            io.github.spectordev9.opencode.chat.AgentInfo("build", null, "primary"),
-                            io.github.spectordev9.opencode.chat.AgentInfo("plan", null, "primary"),
-                        )
-                    }
-                    agentOptions.forEach { agent ->
-                        val selected = state.mode == agent.id
-                        Surface(
-                            shape = RoundedCornerShape(7.dp),
-                            color = if (selected) palette.AccentSoft else Color.Transparent,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (selected) palette.AccentStrong.copy(alpha = 0.5f) else palette.BorderCol,
-                            ),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(7.dp))
-                                .clickable { scope.launch { chat.setMode(agent.id) } },
-                        ) {
+                        Box(contentAlignment = Alignment.Center) {
                             Text(
-                                agent.id.replaceFirstChar { it.uppercase() },
-                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                                fontSize = 11.sp,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (selected) palette.TextCol else palette.Muted2,
+                                "＋",
+                                color = if (canAttach) palette.Muted else palette.Muted2.copy(alpha = 0.4f),
+                                fontSize = 16.sp,
                             )
                         }
                     }
                     Spacer(Modifier.weight(1f))
                     val canSend = !state.sending &&
                         (draft.text.isNotBlank() || attachments.isNotEmpty())
-                    // STR-4: while the agent is streaming the send control
-                    // becomes the cancel affordance (abort() → session.idle).
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = when {
@@ -993,8 +1271,7 @@ private fun ChatScreen(
                             null
                         },
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .size(38.dp)
                             .clickable(enabled = state.sending || canSend) {
                                 if (state.sending) {
                                     scope.launch { chat.abort() }
@@ -1086,9 +1363,6 @@ private fun ChatScreen(
         )
     }
 }
-
-private fun modelLabel(state: ChatUiState): String =
-    (state.selectedModel ?: state.defaultModel)?.let { "${it.providerID}/${it.modelID}" } ?: "no model"
 
 private fun readPromptAttachment(context: Context, uri: Uri): PromptAttachment {
     val resolver = context.contentResolver
@@ -3018,12 +3292,6 @@ private fun RuntimeOfflinePanel(
 
 private const val MAX_COMPOSER_CHARS = 20_000
 private const val NEW_SESSION_DRAFT_KEY = "__new_session__"
-private val SUGGESTIONS = listOf(
-    "Explain this project and its main entry points.",
-    "Find one likely bug and explain how to fix it.",
-    "Suggest a small feature that would improve this app.",
-)
-
 @Composable
 private fun TerminalScreen(
     modifier: Modifier = Modifier,
