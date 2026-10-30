@@ -113,7 +113,7 @@ class ProductionServerLauncher(
 
                 val dnsScript = serverDir.resolve("dns-set.js")
                 val dnsServers = SystemDnsServers.get(context)
-                val dnsContent = "try { require('node:dns').setServers([${dnsServers.joinToString(",") { "\"$it\"" }}]); } catch (_) {}\n"
+                val dnsContent = "try { require('dns').setServers([${dnsServers.joinToString(",") { "\"$it\"" }}]); } catch (_) {}\n"
                 Files.write(dnsScript, dnsContent.toByteArray())
 
                 val environment = RuntimePaths.baseEnvironment(context, home).apply {
