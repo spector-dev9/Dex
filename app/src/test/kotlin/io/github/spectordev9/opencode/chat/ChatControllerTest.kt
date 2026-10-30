@@ -4,6 +4,7 @@ import io.github.spectordev9.opencode.app.bridge.FakeOpenCodeClient
 import io.github.spectordev9.opencode.core.gateway.ServerEvent
 import io.github.spectordev9.opencode.core.model.Session
 import io.github.spectordev9.opencode.core.model.SessionTime
+import io.github.spectordev9.opencode.core.opencode.client.PromptModel
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -41,6 +42,88 @@ class ChatControllerTest {
     fun `agent parser rejects an invalid top-level response shape`() {
         assertThrows(kotlinx.serialization.SerializationException::class.java) {
             parseAgents(Json, """{"agents":[]}""")
+        }
+    }
+
+    @Test
+    fun `provider parser exposes model variants from object metadata`() {
+        val providers = parseProviders(
+            Json,
+            """
+            {
+              "providers": [
+                {
+                  "id": "openai",
+                  "name": "OpenAI",
+                  "models": {
+                    "gpt-5": {
+                      "name": "GPT-5",
+                      "variants": {"low": {}, "medium": {}, "high": {}, "max": {}}
+                    }
+                  }
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(listOf("low", "medium", "high", "max"), providers.single().models.single().variants)
+    }
+
+    @Test
+    fun `provider parser accepts array variant metadata`() {
+        val providers = parseProviders(
+            Json,
+            """
+            {
+              "providers": [
+                {
+                  "id": "anthropic",
+                  "name": "Anthropic",
+                  "models": {
+                    "claude": {
+                      "name": "Claude",
+                      "variants": [{"id": "high"}, {"id": "max"}]
+                    }
+                  }
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(listOf("high", "max"), providers.single().models.single().variants)
+    }
+
+    @Test
+    fun `selected intensity is sent with the prompt`() = runBlocking {
+        val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
+        val client = FakeOpenCodeClient()
+        try {
+            val controller = ChatController(scope)
+            controller.attach(client, "/workspace")
+            controller.setIntensity(PromptIntensity.HIGH)
+
+            assertTrue(controller.send("Think harder"))
+            assertEquals("high", client.lastPrompt?.variant)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `changing model resets intensity to auto`() = runBlocking {
+        val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
+        try {
+            val controller = ChatController(scope)
+            controller.setModel(PromptModel("provider", "first"))
+            controller.setIntensity(PromptIntensity.MAX)
+            assertEquals(PromptIntensity.MAX, controller.state.value.intensity)
+
+            controller.setModel(PromptModel("provider", "second"))
+            assertEquals(PromptIntensity.AUTO, controller.state.value.intensity)
+        } finally {
+            scope.cancel()
         }
     }
 

@@ -1,11 +1,13 @@
 package io.github.spectordev9.opencode
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.WindowCompat
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -35,6 +37,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
@@ -71,6 +74,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -96,6 +100,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -132,6 +137,7 @@ import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENT_BYTES
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS
 import io.github.spectordev9.opencode.chat.MAX_PROMPT_ATTACHMENTS_TOTAL_BYTES
 import io.github.spectordev9.opencode.chat.PromptAttachment
+import io.github.spectordev9.opencode.chat.PromptIntensity
 import io.github.spectordev9.opencode.chat.LocalProviderSettings
 import io.github.spectordev9.opencode.chat.PROVIDER_SETTINGS_NOTE
 import io.github.spectordev9.opencode.chat.ProviderSettingsStore
@@ -299,6 +305,157 @@ private fun StudioActionChip(
     }
 }
 
+private val DefaultPromptIntensities = listOf(
+    PromptIntensity.LOW,
+    PromptIntensity.MEDIUM,
+    PromptIntensity.HIGH,
+    PromptIntensity.MAX,
+)
+
+private fun promptIntensityOptions(variants: List<String>): List<PromptIntensity> {
+    val advertised = variants.mapNotNull { variant ->
+        PromptIntensity.entries.firstOrNull { it.variant == variant }
+    }.distinct()
+    return if (advertised.isEmpty()) DefaultPromptIntensities else advertised
+}
+
+private fun promptIntensityTone(intensity: PromptIntensity, palette: OpencodePalette): Color = when (intensity) {
+    PromptIntensity.AUTO -> palette.Muted2
+    PromptIntensity.LOW -> palette.Muted
+    PromptIntensity.MEDIUM -> palette.Accent
+    PromptIntensity.HIGH -> palette.Highlight
+    PromptIntensity.MAX -> palette.DangerCol
+}
+
+@Composable
+private fun IntensityControl(
+    current: PromptIntensity,
+    options: List<PromptIntensity>,
+    onSelect: (PromptIntensity) -> Unit,
+) {
+    val palette = LocalOpencodePalette.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val tone = promptIntensityTone(current, palette)
+    val menuOptions = (listOf(PromptIntensity.AUTO) + options + current).distinct()
+
+    Box {
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = if (current == PromptIntensity.AUTO) palette.Panel2 else tone.copy(alpha = 0.13f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                if (current == PromptIntensity.AUTO) palette.BorderCol else tone.copy(alpha = 0.38f),
+            ),
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .semantics { contentDescription = "Intensity: ${current.label}" }
+                .clickable { expanded = true },
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text("◔", color = tone, fontSize = 10.sp)
+                Text(
+                    current.shortLabel,
+                    color = if (current == PromptIntensity.AUTO) palette.Muted else tone,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+                Text("⌄", color = tone.copy(alpha = 0.7f), fontSize = 8.sp)
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(224.dp),
+            shape = RoundedCornerShape(18.dp),
+            containerColor = palette.Panel3,
+            tonalElevation = 0.dp,
+            shadowElevation = 18.dp,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                palette.BorderStrong.copy(alpha = 0.55f),
+            ),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.linearGradient(
+                            listOf(palette.AccentSoft, Color.Transparent),
+                        ),
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        "INTENSITY",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.7.sp,
+                        color = palette.Accent,
+                    )
+                    Text(
+                        "Reasoning depth for the next prompt",
+                        fontSize = 10.sp,
+                        color = palette.Muted2,
+                    )
+                }
+            }
+            HorizontalDivider(color = palette.BorderCol)
+            menuOptions.forEach { option ->
+                val optionTone = promptIntensityTone(option, palette)
+                val selected = option == current
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(7.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(optionTone),
+                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Text(
+                                    option.label,
+                                    color = if (selected) palette.TextCol else palette.Muted,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                )
+                                Text(
+                                    option.description,
+                                    color = palette.Muted2,
+                                    fontSize = 10.sp,
+                                )
+                            }
+                        }
+                    },
+                    trailingIcon = {
+                        if (selected) Text("✓", color = optionTone, fontSize = 13.sp)
+                    },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    },
+                )
+            }
+            HorizontalDivider(color = palette.BorderCol)
+            Text(
+                "Applies to your next message",
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                fontSize = 9.sp,
+                color = palette.Muted2,
+            )
+        }
+    }
+}
+
 @Composable
 private fun StudioScreenHeader(
     kicker: String,
@@ -355,7 +512,8 @@ private fun OpenCodeTopBar(
     Column(
         Modifier
             .fillMaxWidth()
-            .background(palette.TopbarBg.copy(alpha = 0.96f)),
+            .background(palette.TopbarBg.copy(alpha = 0.96f))
+            .statusBarsPadding(),
     ) {
         Row(
             modifier = Modifier
@@ -460,6 +618,14 @@ fun OpenCodeShell(
         UiPrefs.ThemeMode.LIGHT -> false
         UiPrefs.ThemeMode.DARK -> true
     }
+    val view = LocalView.current
+    SideEffect {
+        val activity = view.context as? Activity ?: return@SideEffect
+        WindowCompat.getInsetsController(activity.window, view).apply {
+            isAppearanceLightStatusBars = !darkTheme
+            isAppearanceLightNavigationBars = !darkTheme
+        }
+    }
 
     val connected = chatState?.connected == true
     val online = serverState?.status ==
@@ -553,6 +719,15 @@ fun OpenCodeShell(
                                     palette.DarkBg,
                                     palette.Panel.copy(alpha = 0.45f),
                                     palette.DarkBg,
+                                ),
+                            ),
+                        )
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    palette.Accent.copy(alpha = 0.075f),
+                                    palette.Accent.copy(alpha = 0.018f),
+                                    Color.Transparent,
                                 ),
                             ),
                         ),
@@ -1577,6 +1752,12 @@ private fun ChatScreen(
                     }
                     Spacer(Modifier.weight(1f))
                     val composerModel = state.selectedModel ?: state.defaultModel
+                    val composerVariants = state.providers
+                        .firstOrNull { it.id == composerModel?.providerID }
+                        ?.models
+                        ?.firstOrNull { it.id == composerModel?.modelID }
+                        ?.variants
+                        .orEmpty()
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = palette.AccentSoft,
@@ -1585,7 +1766,8 @@ private fun ChatScreen(
                             palette.AccentStrong.copy(alpha = 0.28f),
                         ),
                         modifier = Modifier
-                            .weight(1f, fill = false)
+                            .sizeIn(maxWidth = 150.dp)
+                            .clip(RoundedCornerShape(50))
                             .clickable { showModelPicker = true },
                     ) {
                         Row(
@@ -1605,6 +1787,14 @@ private fun ChatScreen(
                             Text("▾", color = palette.Accent.copy(alpha = 0.65f), fontSize = 8.sp)
                         }
                     }
+                    Spacer(Modifier.width(6.dp))
+                    IntensityControl(
+                        current = state.intensity,
+                        options = promptIntensityOptions(composerVariants),
+                        onSelect = { intensity ->
+                            scope.launch { chat.setIntensity(intensity) }
+                        },
+                    )
                 }
                 Spacer(Modifier.height(6.dp))
                 if (attachments.isNotEmpty()) {

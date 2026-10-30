@@ -103,6 +103,19 @@ enum class TaskStatus {
     INTERRUPTED,
 }
 
+enum class PromptIntensity(
+    val variant: String?,
+    val label: String,
+    val shortLabel: String,
+    val description: String,
+) {
+    AUTO(null, "Auto", "Auto", "Use the model default"),
+    LOW("low", "Low", "Low", "Fast, minimal reasoning"),
+    MEDIUM("medium", "Medium", "Med", "Balanced reasoning"),
+    HIGH("high", "High", "High", "Deeper reasoning"),
+    MAX("max", "Max", "Max", "Maximum reasoning budget"),
+}
+
 class ChatController(
     private val scope: CoroutineScope,
     private val sessionStore: ChatSessionStore? = null,
@@ -140,8 +153,9 @@ class ChatController(
             ChatUiState(
                 connected = true,
                 directory = directory,
-                // carry composer mode across reconnects
+                // carry composer controls across reconnects
                 mode = it.mode,
+                intensity = it.intensity,
             )
         }
         eventsJob = scope.launch {
@@ -193,6 +207,7 @@ class ChatController(
                 it.taskStatus == TaskStatus.WAITING_APPROVAL
             ChatUiState(
                 mode = it.mode,
+                intensity = it.intensity,
                 taskStatus = if (interrupted) TaskStatus.INTERRUPTED else TaskStatus.IDLE,
             )
         }
@@ -428,7 +443,18 @@ class ChatController(
     }
 
     suspend fun setModel(model: PromptModel?) {
-        _state.update { it.copy(selectedModel = model) }
+        _state.update { current ->
+            val changed = current.selectedModel?.providerID != model?.providerID ||
+                current.selectedModel?.modelID != model?.modelID
+            current.copy(
+                selectedModel = model,
+                intensity = if (changed) PromptIntensity.AUTO else current.intensity,
+            )
+        }
+    }
+
+    suspend fun setIntensity(intensity: PromptIntensity) {
+        _state.update { it.copy(intensity = intensity) }
     }
 
     private suspend fun loadProviders(activeClient: OpenCodeClient) {
@@ -552,6 +578,7 @@ class ChatController(
                 },
                 model = model,
                 agent = _state.value.mode,
+                variant = _state.value.intensity.variant,
             ),
         )
         when (result) {
@@ -603,6 +630,7 @@ class ChatController(
             arguments = arguments,
             agent = _state.value.mode,
             model = resolvePromptModel(),
+            variant = _state.value.intensity.variant,
         )
         return when (result) {
             is ApiResult.Success -> {
@@ -1026,6 +1054,7 @@ data class ProviderInfo(
 data class ModelInfo(
     val id: String,
     val name: String,
+    val variants: List<String> = emptyList(),
 )
 
 data class AgentInfo(
@@ -1045,6 +1074,7 @@ data class ChatUiState(
     val agentError: String? = null,
     val defaultModel: PromptModel? = null,
     val selectedModel: PromptModel? = null,
+    val intensity: PromptIntensity = PromptIntensity.AUTO,
     val mode: String = "build",
     val sending: Boolean = false,
     val taskStatus: TaskStatus = TaskStatus.IDLE,
@@ -1114,14 +1144,37 @@ internal fun parseProviders(json: Json, raw: String): List<ProviderInfo> {
     return providers.mapNotNull { element ->
         val obj = element as? JsonObject ?: return@mapNotNull null
         val id = obj.string("id") ?: obj.string("name") ?: return@mapNotNull null
-        val models = (obj["models"] as? JsonObject)?.mapValues { (_, value) ->
-            (value as? JsonObject)?.string("name")?.takeIf { it.isNotBlank() }
-                ?: (value as? JsonObject)?.string("id")
+        val models = (obj["models"] as? JsonObject)?.map { (key, value) ->
+            val model = value as? JsonObject
+            val name = model?.string("name")?.takeIf { it.isNotBlank() }
+                ?: model?.string("id")
                 ?: (value as? JsonPrimitive)?.contentOrNull
                 ?: ""
-        }?.map { (key, name) -> ModelInfo(key, name.ifBlank { key }) }?.sortedBy { it.name } ?: emptyList()
+            ModelInfo(
+                id = key,
+                name = name.ifBlank { key },
+                variants = model?.variantIds().orEmpty(),
+            )
+        }?.sortedBy { it.name } ?: emptyList()
         ProviderInfo(id, obj.string("name") ?: id, models)
     }
+}
+
+private fun JsonObject.variantIds(): List<String> {
+    val variants = this["variants"] ?: return emptyList()
+    return when (variants) {
+        is JsonObject -> variants.keys.toList()
+        is kotlinx.serialization.json.JsonArray -> variants.mapNotNull { element ->
+            when (element) {
+                is JsonPrimitive -> element.contentOrNull
+                is JsonObject -> element.string("id")
+                else -> null
+            }
+        }
+        else -> emptyList()
+    }.map { it.trim().lowercase() }
+        .filter { it.isNotEmpty() }
+        .distinct()
 }
 
 internal fun parseConfigModel(json: Json, raw: String): PromptModel? {

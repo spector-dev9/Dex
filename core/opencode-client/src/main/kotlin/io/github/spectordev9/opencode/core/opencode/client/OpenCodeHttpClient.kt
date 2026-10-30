@@ -401,6 +401,7 @@ class OpenCodeHttpClient(
         arguments: String,
         agent: String?,
         model: PromptModel?,
+        variant: String?,
         messageID: String?,
     ): ApiResult<Message> {
         val body = buildJsonObject {
@@ -408,6 +409,7 @@ class OpenCodeHttpClient(
             put("arguments", arguments)
             messageID?.let { put("messageID", it) }
             agent?.let { put("agent", it) }
+            variant?.let { put("variant", it) }
             model?.let { ref ->
                 put(
                     "model",

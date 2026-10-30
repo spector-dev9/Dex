@@ -83,6 +83,7 @@ interface OpenCodeClient : OpenCodeGateway {
         arguments: String,
         agent: String? = null,
         model: PromptModel? = null,
+        variant: String? = null,
         messageID: String? = null,
     ): ApiResult<Message>
 

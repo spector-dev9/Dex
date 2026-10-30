@@ -572,6 +572,7 @@ class FakeOpenCodeClient : OpenCodeClient {
         arguments: String,
         agent: String?,
         model: PromptModel?,
+        variant: String?,
         messageID: String?,
     ): ApiResult<Message> = ApiResult.Success(message(sessionID))
 
