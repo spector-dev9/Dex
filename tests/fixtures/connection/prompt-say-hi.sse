@@ -1,0 +1,55 @@
+data: {"id":"evt_18d3c5b1600105ytgcbRExbFI8","type":"server.connected","properties":{}}
+
+data: {"id":"evt_18d3c5f09001iFZ3u3hDLnxUuK","type":"session.created","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","slug":"witty-sailor","version":"1.19.3","projectID":"ae3f9876eb708aec4526c9ab348f62c2baed5f38","directory":"/workspace","path":"","title":"phase0-fixture-2","cost":0,"tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}},"time":{"created":1793370906375,"updated":1793370906375}}}}
+
+data: {"id":"evt_18d3c5f9c0017OSh3IqiVsgDIs","type":"session.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","slug":"witty-sailor","projectID":"ae3f9876eb708aec4526c9ab348f62c2baed5f38","directory":"/workspace","path":"","title":"phase0-fixture-2","agent":"build","model":{"id":"big-pickle","providerID":"opencode","variant":"default"},"version":"1.19.3","cost":0,"tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}},"time":{"created":1793370906375,"updated":1793370906507}}}}
+
+data: {"id":"evt_18d3c5fb7001jbwy6CZih7BLjh","type":"message.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"msg_18d3c5f8b001dmqXBT0c0oxud8","role":"user","sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","time":{"created":1793370906507},"agent":"build","model":{"providerID":"opencode","modelID":"big-pickle"}}}}
+
+data: {"id":"evt_18d3c5fc30012dwNwsylgCII7d","type":"message.part.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","part":{"type":"text","text":"say hi","messageID":"msg_18d3c5f8b001dmqXBT0c0oxud8","sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","id":"prt_18d3c5fb40011Wam9ggX0WJO1U"},"time":1793370906562}}
+
+data: {"id":"evt_18d3c5fd2001n1oaFwHsNoQWBu","type":"session.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","slug":"witty-sailor","projectID":"ae3f9876eb708aec4526c9ab348f62c2baed5f38","directory":"/workspace","path":"","title":"phase0-fixture-2","agent":"build","model":{"id":"big-pickle","providerID":"opencode","variant":"default"},"version":"1.19.3","cost":0,"tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}},"time":{"created":1793370906375,"updated":1793370906576}}}}
+
+data: {"id":"evt_18d3c6022001h2FtxQ3vFa0Lp5","type":"session.status","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","status":{"type":"busy"}}}
+
+data: {"id":"evt_18d3c6029001wk7bb1ANolXbsg","type":"message.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"msg_18d3c6028001h3jCkPODKt2N4h","parentID":"msg_18d3c5f8b001dmqXBT0c0oxud8","role":"assistant","mode":"build","agent":"build","path":{"cwd":"/workspace","root":"/workspace"},"cost":0,"tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}},"modelID":"big-pickle","providerID":"opencode","time":{"created":1793370906664},"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg"}}}
+
+data: {"id":"evt_18d3c6186001wyfKzwDPrHPHbh","type":"session.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","slug":"witty-sailor","projectID":"ae3f9876eb708aec4526c9ab348f62c2baed5f38","directory":"/workspace","path":"","title":"phase0-fixture-2","agent":"build","model":{"id":"big-pickle","providerID":"opencode","variant":"default"},"version":"1.19.3","summary":{"additions":0,"deletions":0,"files":0},"cost":0,"tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}},"time":{"created":1793370906375,"updated":1793370906984}}}}
+
+data: {"id":"evt_18d3c618e001h1eIZfbqlb7bxX","type":"session.diff","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","diff":[]}}
+
+data: {"id":"evt_18d3c6190001zt6j6Z7ZJdja3w","type":"message.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"role":"user","time":{"created":1793370906507},"agent":"build","model":{"providerID":"opencode","modelID":"big-pickle"},"id":"msg_18d3c5f8b001dmqXBT0c0oxud8","sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","summary":{"diffs":[]}}}}
+
+data: {"id":"evt_18d3c61a2001O8m3RjjGSpUA2g","type":"session.status","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","status":{"type":"busy"}}}
+
+data: {"id":"evt_18d3c7750001OFFsx6vKRXl5Dn","type":"message.part.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","part":{"id":"prt_18d3c7750001ctl4UgaI7OaPNm","messageID":"msg_18d3c6028001h3jCkPODKt2N4h","sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","snapshot":"3de6b2825fbbf2558215ad6efce1aafc05a4be83","type":"step-start"},"time":1793370912592}}
+
+data: {"id":"evt_18d3c77e70017UbTKhocn5O3AL","type":"message.part.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","part":{"id":"prt_18d3c77e6001lfSzg2LhCZReN1","messageID":"msg_18d3c6028001h3jCkPODKt2N4h","sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","type":"text","text":"","time":{"start":1793370912742}},"time":1793370912743}}
+
+data: {"id":"evt_18d3c77f4001PYEpuDuiWv5Pyi","type":"message.part.delta","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","messageID":"msg_18d3c6028001h3jCkPODKt2N4h","partID":"prt_18d3c77e6001lfSzg2LhCZReN1","field":"text","delta":"Hi"}}
+
+data: {"id":"evt_18d3c77fa001WhBcwN7AAXvoAx","type":"message.part.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","part":{"id":"prt_18d3c77e6001lfSzg2LhCZReN1","messageID":"msg_18d3c6028001h3jCkPODKt2N4h","sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","type":"text","text":"Hi","time":{"start":1793370912742,"end":1793370912762}},"time":1793370912762}}
+
+data: {"id":"evt_18d3c78a5001gdjAxIwdUCsBr0","type":"message.part.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","part":{"id":"prt_18d3c78a4001SNH7VVXcQK1o6N","reason":"stop","snapshot":"3de6b2825fbbf2558215ad6efce1aafc05a4be83","messageID":"msg_18d3c6028001h3jCkPODKt2N4h","sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","type":"step-finish","tokens":{"total":26319,"input":24524,"output":3,"reasoning":0,"cache":{"write":0,"read":1792}},"cost":0},"time":1793370912933}}
+
+data: {"id":"evt_18d3c78be001xdh4ogl389C0ij","type":"message.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"msg_18d3c6028001h3jCkPODKt2N4h","parentID":"msg_18d3c5f8b001dmqXBT0c0oxud8","role":"assistant","mode":"build","agent":"build","path":{"cwd":"/workspace","root":"/workspace"},"cost":0,"tokens":{"total":26319,"input":24524,"output":3,"reasoning":0,"cache":{"write":0,"read":1792}},"modelID":"big-pickle","providerID":"opencode","time":{"created":1793370906664},"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","finish":"stop"}}}
+
+data: {"id":"evt_18d3c7965001GuO9s7Tf1tVtY5","type":"message.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"msg_18d3c6028001h3jCkPODKt2N4h","parentID":"msg_18d3c5f8b001dmqXBT0c0oxud8","role":"assistant","mode":"build","agent":"build","path":{"cwd":"/workspace","root":"/workspace"},"cost":0,"tokens":{"total":26319,"input":24524,"output":3,"reasoning":0,"cache":{"write":0,"read":1792}},"modelID":"big-pickle","providerID":"opencode","time":{"created":1793370906664,"completed":1793370913124},"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","finish":"stop"}}}
+
+data: {"id":"evt_18d3c796b001HbD0mXBubWyQia","type":"session.status","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","status":{"type":"busy"}}}
+
+data: {"id":"evt_18d3c7972001Si71wmbBeYT9Bp","type":"session.status","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","status":{"type":"idle"}}}
+
+data: {"id":"evt_18d3c79720021Plh9yVKRCOUnU","type":"session.idle","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg"}}
+
+data: {"id":"evt_18d3c7974001wQkUfbFsT0k4Jq","type":"session.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"id":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","slug":"witty-sailor","projectID":"ae3f9876eb708aec4526c9ab348f62c2baed5f38","directory":"/workspace","path":"","title":"phase0-fixture-2","agent":"build","model":{"id":"big-pickle","providerID":"opencode","variant":"default"},"version":"1.19.3","summary":{"additions":0,"deletions":0,"files":0},"cost":0,"tokens":{"input":24524,"output":3,"reasoning":0,"cache":{"read":1792,"write":0}},"time":{"created":1793370906375,"updated":1793370913139}}}}
+
+data: {"id":"evt_18d3c797e001TNagNoqCoPHdUK","type":"session.diff","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","diff":[]}}
+
+data: {"id":"evt_18d3c79e7001pd2mnuah7mfFee","type":"message.updated","properties":{"sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg","info":{"role":"user","time":{"created":1793370906507},"agent":"build","model":{"providerID":"opencode","modelID":"big-pickle"},"summary":{"diffs":[]},"id":"msg_18d3c5f8b001dmqXBT0c0oxud8","sessionID":"ses_e72c3a0f9ffe8SDcNCPpAphrYg"}}}
+
+data: {"id":"evt_18d3c8241001YLk6bBTeqr7VBR","type":"server.heartbeat","properties":{}}
+
+data: {"id":"evt_18d3ca953001kNJ2dD9h1WValw","type":"server.heartbeat","properties":{}}
+
+data: {"id":"evt_18d3cd078001TWsejucUdLtuQj","type":"server.heartbeat","properties":{}}
