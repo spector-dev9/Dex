@@ -344,12 +344,12 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         if (connection.isRemote) {
             return "Disconnect the remote profile before applying provider settings"
         }
-        if (!providerSettings.settings.value.configured) {
-            return "No custom provider is configured; the offline demo provider remains active"
-        }
         return when (val restarted = supervisor.restart()) {
-            is ApiResult.Success -> "Provider applied; server restarted on port ${restarted.value.port}"
-            is ApiResult.Failure -> "Provider saved, but server restart failed: ${restarted.error.message}"
+            is ApiResult.Success -> {
+                val msg = if (providerSettings.settings.value.configured) "Provider applied; server restarted on port ${restarted.value.port}" else "Offline demo provider active; server restarted on port ${restarted.value.port}"
+                msg
+            }
+            is ApiResult.Failure -> "Provider settings could not be applied: ${restarted.error.message}"
         }
     }
 

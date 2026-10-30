@@ -467,11 +467,14 @@ class ChatController(
             }
             val default = configured ?: parseDefaultModel(json, result.value)
             val resolved = default ?: fallbackPromptModel(providers)
+            val selected = it.selectedModel?.takeIf { s ->
+                providers.any { p -> p.id == s.providerID && p.models.any { m -> m.id == s.modelID } }
+            } ?: resolved
             _state.update {
                 it.copy(
                     providers = providers,
                     defaultModel = default ?: resolved,
-                    selectedModel = it.selectedModel ?: resolved,
+                    selectedModel = selected,
                 )
             }
         }

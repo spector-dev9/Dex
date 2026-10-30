@@ -15,6 +15,7 @@ import io.github.spectordev9.opencode.chat.ProviderSettingsStore
 import io.github.spectordev9.opencode.chat.buildProviderConfig
 import io.github.spectordev9.opencode.runtime.GuestBootstrap
 import io.github.spectordev9.opencode.runtime.RuntimePaths
+import io.github.spectordev9.opencode.runtime.SystemDnsServers
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.ServerSocket
@@ -110,6 +111,11 @@ class ProductionServerLauncher(
                 )
                 Files.write(configFile, config.toByteArray())
 
+                val dnsScript = serverDir.resolve("dns-set.js")
+                val dnsServers = SystemDnsServers.get(context)
+                val dnsContent = "try { require('node:dns').setServers([${dnsServers.joinToString(",") { "\"$it\"" }}]); } catch (_) {}\n"
+                Files.write(dnsScript, dnsContent.toByteArray())
+
                 val environment = RuntimePaths.baseEnvironment(context, home).apply {
                     put("XDG_CONFIG_HOME", home.resolve(".config").toString())
                     put("XDG_DATA_HOME", home.resolve(".local/share").toString())
@@ -130,6 +136,7 @@ class ProductionServerLauncher(
                     put("OPENCODE_DISABLE_DEFAULT_PLUGINS", "1")
                     put("OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER", "1")
                     put("OPENCODE_DISABLE_FFF", "1")
+                    put("BUN_OPTIONS", "--preload ${dnsScript.absolutePath}")
                 }
 
                 val spec = ProcessSpec(

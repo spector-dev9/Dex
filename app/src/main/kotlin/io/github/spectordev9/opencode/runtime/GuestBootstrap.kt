@@ -59,7 +59,7 @@ object GuestBootstrap {
         "PROOT_TMP_DIR" to root.resolve("tmp").toString(),
     )
 
-    private fun dnsServers(context: Context): List<String> = listOf("1.1.1.1", "8.8.8.8")
+    private fun dnsServers(context: Context): List<String> = SystemDnsServers.get(context)
 
     private fun writeIfMissing(path: Path, content: String) {
         if (Files.isRegularFile(path)) return
