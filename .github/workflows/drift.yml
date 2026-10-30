@@ -2,6 +2,11 @@ name: Contract drift
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "OpenCode release tag to test (blank = GitHub latest)"
+        required: false
+        default: ""
   schedule:
     - cron: "17 3 * * *"
 
@@ -23,13 +28,19 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Resolve latest upstream release
+      - name: Resolve upstream release
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG_INPUT: ${{ inputs.tag }}
         run: |
-          tag=$(gh api repos/anomalyco/opencode/releases/latest --jq .tag_name)
-          url=$(gh api repos/anomalyco/opencode/releases/latest \
+          if [ -n "$TAG_INPUT" ]; then
+            release_api="repos/anomalyco/opencode/releases/tags/$TAG_INPUT"
+          else
+            release_api="repos/anomalyco/opencode/releases/latest"
+          fi
+          tag=$(gh api "$release_api" --jq .tag_name)
+          url=$(gh api "$release_api" \
             --jq '.assets[] | select(.name == "opencode-linux-x64.tar.gz") | .browser_download_url')
           test -n "$tag"
           test -n "$url"
@@ -128,6 +139,18 @@ jobs:
             gh issue close "$existing" \
               --comment "Latest release \`$TAG\` passed the pinned-contract check."
           fi
+
+      - name: Upload drift evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-drift-${{ steps.release.outputs.tag }}
+          path: |
+            ${{ runner.temp }}/latest-doc.json
+            ${{ runner.temp }}/drift.json
+            ${{ runner.temp }}/drift.md
+            ${{ runner.temp }}/server.log
+          if-no-files-found: warn
 
       - name: Stop server
         if: always()
