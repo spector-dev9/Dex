@@ -1,6 +1,6 @@
 {
  "gate": "G3",
- "updated": "2026-10-27",
+ "updated": "2026-10-30",
  "reference_device": "Infinix X6870 (INFINIX, Android 16/API 36, arm64-v8a, 4 KB pages, 5.58 GB RAM)",
  "criteria": [
   {
@@ -113,26 +113,30 @@
    "id": "WS-2",
    "status": "PARTIAL",
    "evidence": [
+    "docs/evidence/g3/device-ws2-1000-20261030.log",
+    "docs/evidence/g3/g3-device-quick-20261027.json",
     "docs/evidence/g3/ws2-stress-300.log",
     "docs/evidence/g3/host-tests.md"
    ],
-   "notes": "300/1000 SIGKILL atomic-write stress runs passed on the reference device JVM; app-sandbox SIGKILL run and the remaining runs are pending."
+   "notes": "The 2026-10-30 post-hardening 1,000-run device attempt still failed: 0 commits, 1,000 kills before commit, 0 corrupt/missing, 0 bind failures, and all 9 completion controls failed. Worker bind/pid publication works, but the separate :ws2 worker never completes a write; worker-stage logging and BIND_IMPORTANT were added for the next diagnostic run. The earlier 100-run quick check was also vacuous (0 commits); the 300/1000 host-JVM run passed."
   },
   {
    "id": "WS-3",
-   "status": "PARTIAL",
+   "status": "PASS",
    "evidence": [
+    "docs/evidence/g3/device-ws3-ws4-20261030.log",
     "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt"
    ],
-   "notes": "Stale-precondition conflicts are rejected (E_CONFLICT path); external-change-between-open-and-save UI flow not exercised."
+   "notes": "50/50 external-change conflict runs on the reference device rejected the stale save with E_CONFLICT; silent overwrites 0 and recovery writes 50."
   },
   {
    "id": "WS-4",
-   "status": "PARTIAL",
+   "status": "PASS",
    "evidence": [
+    "docs/evidence/g3/device-ws3-ws4-20261030.log",
     "core/workspace/src/test/kotlin/io/github/spectordev9/opencode/core/workspace/impl/FileWorkspaceServiceTest.kt"
    ],
-   "notes": "Bounded reads of a sparse 1 GiB file pass; first-screen latency and peak memory thresholds not measured."
+   "notes": "100 MB text first screen 3 ms and 1 GB sparse binary first screen 4 ms in the initial run; post-hardening re-run measured 5 ms and 6 ms, peak extra PSS 0 MB, 40/40 ranged reads, 20 MB of binary read. Image decode was not exercised by this harness."
   },
   {
    "id": "WS-5",
@@ -217,18 +221,20 @@
    "evidence": [
     "core/supervisor/src/test/kotlin/io/github/spectordev9/opencode/core/supervisor/impl/ProcessServerSupervisorTest.kt",
     "docs/evidence/g3/host-tests.md",
-    "docs/evidence/g3/device-lc3-20261027-raw.txt"
+    "docs/evidence/g3/device-lc3-20261027-raw.txt",
+    "docs/evidence/g3/device-lc3-20261030.log"
    ],
-   "notes": "Host supervisor restart/health-timeout/crash-loop tests pass; on-device 50 SIGKILL restarts pass (50/50 healthy, p95 4,132 ms, sessionsLost=0)."
+   "notes": "Host supervisor restart/health-timeout/crash-loop tests pass. Post-hardening device re-run: 50/50 SIGKILL restarts healthy, p95 4,499 ms, max 5,149 ms, sessionsLost=0, portStuck=0. Exactly-one-listener inventory is not readable from the app sandbox (listenerInventory=hostRequired); host-side confirmation remains desirable."
   },
   {
    "id": "LC-4",
    "status": "PARTIAL",
    "evidence": [
     "docs/evidence/g3/idle-top-60s-raw.txt",
-    "docs/evidence/g3/device-lc4-20261027-raw.txt"
+    "docs/evidence/g3/device-lc4-20261027-raw.txt",
+    "docs/evidence/g3/device-lc4-20261030.log"
    ],
-   "notes": "Canonical zero-interaction 10-min run: stop-after-idle passes (stoppedAfterIdle=true, postStopTicks=0) but idle server process-tree CPU averages 3.458% of one core vs the 1.0% threshold (max 12.58%). Per-thread idle investigation queued."
+   "notes": "2026-10-30 post-hardening run: stop-after-idle passes (stoppedAfterIdle=true, postStopTicks=0), but idle server-process-tree CPU averages 4.511% of one core (max 24.27%) against the 1.0% threshold. topThreads capture was added for the next diagnostic run."
   },
   {
    "id": "LC-5",
@@ -248,14 +254,15 @@
   },
   {
    "id": "SEC-1",
-   "status": "PARTIAL",
+   "status": "PASS",
    "evidence": [
+    "docs/evidence/g3/device-sec1-20261030.log",
     "tests/spikes/results/raw/g3-host-auth-summary.json",
     "docs/evidence/g3/host-runtime-probe.md",
     "docs/evidence/g3/spike-harness.md",
     "docs/evidence/g3/spike-harness-report.json"
    ],
-   "notes": "Health, doc, project, session, PTY and event routes return 401 without the secret and 200 with Basic auth on the host; the harness app also reached authenticated /global/health from its sandbox. A second-UID instrumented client was not run."
+   "notes": "Second-UID g3client exercised all 30 route/auth combinations on /global/health, /doc, /project, /session, /pty and /event. Every no-auth, empty-user, bearer and wrong-password request returned 401; every Basic request returned 200. Initial report: sec1-20261030-030333.json. Re-run after the g3-client hardening also passed 30/30: sec1-20261030-074004.json."
   },
   {
    "id": "SEC-2",
@@ -264,9 +271,10 @@
     "docs/evidence/g3/device-baseline.md",
     "docs/evidence/g3/spike-harness-exec-audit.txt",
     "docs/evidence/g3/spike-harness.md",
-    "docs/evidence/g3/g3-device-quick-20261027.json"
+    "docs/evidence/g3/g3-device-quick-20261027.json",
+    "docs/evidence/g3/device-sec2-20261030.log"
    ],
-   "notes": "Host scan: no secret patterns, no execute_no_trans denials (25 vendor perf_ioctl only). On-device scan (spike quick): 0 credential findings, 3/3 denied paths enforced, no extra APK entries."
+   "notes": "Post-hardening harness scan: 14 APK/file/process entries, 0 secret findings, 3/3 denied paths, backup disabled, 0 credential files. logcatScan=hostScriptRequired. This is harness scope; the production APK plus host logcat/app-log/crash-dump/process-argument scan during a full E2E run is still required."
   },
   {
    "id": "SEC-3",

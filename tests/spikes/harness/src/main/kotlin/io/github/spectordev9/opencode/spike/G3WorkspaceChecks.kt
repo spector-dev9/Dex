@@ -31,7 +31,16 @@ internal object G3WorkspaceChecks {
         root.listFiles()?.forEach { it.deleteRecursively() }
         val target = File(root, "target.bin")
         val pidFile = File(root, Ws2WorkerService.PID_FILE)
+        val statusFile = File(root, Ws2WorkerService.STATUS_FILE)
         val sizes = intArrayOf(1024, 64 * 1024, 1024 * 1024, 8 * 1024 * 1024, 50 * 1024 * 1024)
+        if (root.usableSpace < 256L * 1024 * 1024) {
+            return ProbeRecord(
+                "WS-2",
+                false,
+                "insufficient free space: ${root.usableSpace / (1024 * 1024)} MiB",
+                durationMs = elapsed(started),
+            )
+        }
         val service = FileWorkspaceService(root.toPath())
         val seeded = runCatching {
             runBlocking {
@@ -45,21 +54,95 @@ internal object G3WorkspaceChecks {
         if (seeded !is ApiResult.Success<*>) {
             return ProbeRecord("WS-2", false, "could not seed target: $seeded", durationMs = elapsed(started))
         }
-        var oldRun = 0
-        var oldSize = sizes[0]
         var oldSha = G3Support.sha256(target)
+        var committed = 0
         var killedOld = 0
-        var completed = 0
         var corrupt = 0
         var missing = 0
         var failedBinds = 0
+        var failedControls = 0
+        var controls = 0
+        val workerFailures = mutableListOf<String>()
+        var controlEvery = max(1, runs / 10)
+        if (controlEvery % sizes.size == 0) controlEvery++
         for (run in 1..runs) {
             if (run % max(1, runs / 20) == 0) {
-                progress("WS-2 run $run/$runs killedOld=$killedOld completed=$completed corrupt=$corrupt")
+                progress("WS-2 run $run/$runs killedOld=$killedOld committed=$committed corrupt=$corrupt")
             }
             val size = sizes[(run - 1) % sizes.size]
             val newSha = G3Support.sha256Generated(run, size)
+            deleteStaleTemporaryFiles(root)
+            val worker = startWorker(context, root, run, size, pidFile)
+            if (worker == null) {
+                failedBinds++
+                continue
+            }
+            try {
+                if (run % controlEvery == 0) {
+                    if (waitForWrite(target, newSha, size, 20_000)) {
+                        controls++
+                    } else {
+                        failedControls++
+                        recordWorkerFailure(workerFailures, run, statusFile)
+                        Process.killProcess(worker.pid)
+                    }
+                } else {
+                    Thread.sleep(killDelay(size))
+                    Process.killProcess(worker.pid)
+                }
+            } finally {
+                runCatching { context.unbindService(worker.connection) }
+            }
+            Thread.sleep(50)
+            val actual = runCatching { G3Support.sha256(target) }.getOrNull()
+            when {
+                actual == null -> missing++
+                actual == newSha -> {
+                    committed++
+                    oldSha = actual
+                }
+                actual == oldSha -> {
+                    killedOld++
+                    if (workerFailures.size < 3) {
+                        recordWorkerFailure(workerFailures, run, statusFile)
+                    }
+                }
+                else -> corrupt++
+            }
+            deleteStaleTemporaryFiles(root)
+        }
+        val pass = failedBinds == 0 && failedControls == 0 && missing == 0 && corrupt == 0 &&
+            controls == runs / controlEvery && (killedOld + committed) == runs
+        val detail = buildString {
+            append("runs=$runs committed=$committed killedBeforeCommit=$killedOld corrupt=$corrupt")
+            append(" missing=$missing failedBinds=$failedBinds failedControls=$failedControls")
+            append(" controls=$controls/${runs / controlEvery}")
+            append(" sizes=1KB..50MB final=${target.length()}B")
+            append(" sha=${oldSha.take(16)}")
+            if (workerFailures.isNotEmpty()) {
+                append(" workerFailures=[${workerFailures.joinToString("; ")}]")
+            }
+        }
+        return ProbeRecord(
+            id = "WS-2",
+            pass = pass,
+            detail = detail,
+            durationMs = elapsed(started),
+        )
+    }
+
+    private fun startWorker(
+        context: Context,
+        root: File,
+        run: Int,
+        size: Int,
+        pidFile: File,
+    ): BoundWorker? {
+        val statusFile = File(root, Ws2WorkerService.STATUS_FILE)
+        repeat(3) {
             pidFile.delete()
+            statusFile.delete()
+            deleteStaleTemporaryFiles(root)
             val connection = object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {}
 
@@ -70,50 +153,61 @@ internal object G3WorkspaceChecks {
                 .putExtra(Ws2WorkerService.EXTRA_RUN, run)
                 .putExtra(Ws2WorkerService.EXTRA_SIZE, size)
             val bound = runCatching {
-                context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+                context.bindService(
+                    intent,
+                    connection,
+                    Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT or Context.BIND_ABOVE_CLIENT,
+                )
             }.getOrDefault(false)
-            if (!bound) {
-                failedBinds++
-                continue
+            if (bound) {
+                val pid = waitForPid(pidFile, 5_000)
+                if (pid != null) return BoundWorker(connection, pid)
             }
-            val workerPid = waitForPid(pidFile, 5_000)
-            if (workerPid == null) {
-                failedBinds++
-                runCatching { context.unbindService(connection) }
-                continue
-            }
-            Thread.sleep(Random.nextLong(5, 200))
-            Process.killProcess(workerPid)
             runCatching { context.unbindService(connection) }
-            Thread.sleep(50)
-            val actual = runCatching { G3Support.sha256(target) }.getOrNull()
-            when {
-                actual == null -> missing++
-                actual == newSha -> {
-                    completed++
-                    oldRun = run
-                    oldSize = size
-                    oldSha = actual
-                }
-                actual == oldSha -> killedOld++
-                else -> corrupt++
+            Thread.sleep(100)
+        }
+        return null
+    }
+
+    private fun waitForWrite(target: File, expectedSha: String, size: Int, timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (target.length() == size.toLong() &&
+                runCatching { G3Support.sha256(target) }.getOrNull() == expectedSha
+            ) {
+                return true
+            }
+            Thread.sleep(20)
+        }
+        return false
+    }
+
+    private fun killDelay(size: Int): Long = when {
+        size <= 64 * 1024 -> Random.nextLong(5, 100)
+        size <= 1024 * 1024 -> Random.nextLong(10, 300)
+        size <= 8 * 1024 * 1024 -> Random.nextLong(50, 1_000)
+        else -> Random.nextLong(100, 3_000)
+    }
+
+    private fun recordWorkerFailure(failures: MutableList<String>, run: Int, statusFile: File) {
+        val status = runCatching { statusFile.readText().trim().replace('\n', ' ') }
+            .getOrDefault("missing")
+            .take(240)
+        failures += "run=$run $status"
+    }
+
+    private fun deleteStaleTemporaryFiles(root: File) {
+        root.listFiles()?.forEach { file ->
+            if (file.isFile && file.name.startsWith(TEMP_PREFIX) && file.name.endsWith(TEMP_SUFFIX)) {
+                file.delete()
             }
         }
-        val pass = failedBinds == 0 && missing == 0 && corrupt == 0 &&
-            (killedOld + completed) == runs
-        val detail = buildString {
-            append("runs=$runs completed=$completed killedBeforeCommit=$killedOld corrupt=$corrupt")
-            append(" missing=$missing failedBinds=$failedBinds")
-            append(" sizes=1KB..50MB final=${target.length()}B")
-            append(" sha=${oldSha.take(16)}")
-        }
-        return ProbeRecord(
-            id = "WS-2",
-            pass = pass,
-            detail = detail,
-            durationMs = elapsed(started),
-        )
     }
+
+    private data class BoundWorker(
+        val connection: ServiceConnection,
+        val pid: Int,
+    )
 
     fun runWs3(
         context: Context,
@@ -306,6 +400,9 @@ internal object G3WorkspaceChecks {
     }
 
     private fun elapsed(started: Long): Long = System.currentTimeMillis() - started
+
+    private const val TEMP_PREFIX = ".workspace-write-"
+    private const val TEMP_SUFFIX = ".tmp"
 
     private fun <T> timed(block: () -> ApiResult<T>): TimedRead<T> {
         val start = System.currentTimeMillis()

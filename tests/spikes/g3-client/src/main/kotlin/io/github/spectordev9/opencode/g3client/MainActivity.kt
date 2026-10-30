@@ -101,11 +101,7 @@ class MainActivity : Activity() {
                     }
                     val expectRejected = authCase.label != "basic"
                     val (status, error) = request(url, authCase.header, route == "/event")
-                    val ok = if (expectRejected) {
-                        status == 401
-                    } else {
-                        status == 200 || (status != 401 && status != 403)
-                    }
+                    val ok = if (expectRejected) status == 401 else status == 200
                     results += Result(route, authCase.label, status, ok, error)
                     runOnUiThread {
                         resultView.text = results.joinToString("\n") {
@@ -117,7 +113,7 @@ class MainActivity : Activity() {
             }
             val rejected = results.count { it.case != "basic" && it.status == 401 }
             val accepted = results.count { it.case == "basic" && it.status == 200 }
-            val pass = results.all { it.ok } && rejected == routes.size * 4
+            val pass = results.all { it.ok } && rejected == routes.size * 4 && accepted == routes.size
             val json = JSONObject()
                 .put("check", "SEC-1")
                 .put("generatedAt", SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).format(Date()))
@@ -162,6 +158,7 @@ class MainActivity : Activity() {
             connection.requestMethod = "GET"
             connection.connectTimeout = 5_000
             connection.readTimeout = if (sse) 1_500 else 5_000
+            connection.instanceFollowRedirects = false
             connection.setRequestProperty("Accept", if (sse) "text/event-stream" else "application/json")
             if (authorization != null) {
                 connection.setRequestProperty("Authorization", authorization)

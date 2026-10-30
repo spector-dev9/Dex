@@ -1,0 +1,13 @@
+G3 LC-4 idle CPU, re-run after harness hardening
+Captured 2026-10-30 on the Infinix X6870 reference device
+Harness APK sha256: e0db00fad78d5f09397d3dccb34fd7ae63ea8e6041584f22d7a8d6612a4bee68
+Source: owner-provided harness report
+
+FAIL idleMinutes=10 samples=119 avgCpu=4.511% maxCpu=24.27% stoppedAfterIdle=true postStopTicks=0 idleTimeout=10min default
+
+Notes:
+- Stop-after-idle and post-stop tick checks pass.
+- Average server-process-tree CPU is 4.511% of one core against the 1.0%
+  threshold; the 24.27% maximum shows periodic CPU bursts during idle.
+- The harness now records a top-thread sample at the end of the idle run so
+  the next run identifies the responsible thread.

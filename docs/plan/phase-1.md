@@ -80,8 +80,8 @@ the bridge.
 - [ ] Implement SSE reconnect/resync from the last event ID and authoritative
       state reconciliation for STR-5.
 - [ ] Prove STR-1: no periodic message-list polling while connected.
-- [ ] Prove SEC-1 from a second-UID app: every documented route rejects
-      requests without the secret; only expected listeners exist.
+- [~] Prove SEC-1 from a second-UID app: the harness matrix passes 30/30;
+      repeat against the production gateway and record the listener inventory.
 - [ ] Prove SEC-2: scan APK, logcat, app logs, crash dumps and process
       arguments; zero secret findings; restrictive credential permissions.
 - [~] Add production log scrubbing and diagnostics redaction; the in-memory

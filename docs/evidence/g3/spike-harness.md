@@ -77,9 +77,9 @@ not exercised.
   production terminal service.
 - **TERM-5 (partial)**: scripted native-PTY byte round trip, including
   signals. Gboard and the production terminal UI remain untested.
-- **SEC-1 (partial)**: authenticated loopback from an app sandbox works. No
-  second-UID client and no unauthenticated-rejection matrix were run from the
-  harness.
+- **SEC-1 (superseded)**: this harness only proved authenticated loopback from
+  an app sandbox. The later second-UID `g3client` run passed the full 30/30
+  route/auth matrix; see [`device-sec1-20261030.log`](device-sec1-20261030.log).
 - **SEC-2 (partial)**: no execute denials and no secret material in the
   report. The production APK scan remains the authoritative check.
 

@@ -1,0 +1,16 @@
+G3 LC-3 SIGKILL recovery, re-run after harness hardening
+Captured 2026-10-30 on the Infinix X6870 reference device
+Harness: rebuilt spike-harness APK with the corrected LC-3 listener reporting
+Source: owner-provided harness output
+
+PASS runs=50 restarts=50 p95=4499ms max=5149ms unhealthy=0 sessionsLost=0 portStuck=0 listenerInventory=hostRequired crashLoopBreaker=notExercised
+
+Notes:
+- 50/50 SIGKILL restarts reached authenticated health within 10 s; p95 4,499 ms, max 5,149 ms.
+- The session created before the restart loop survived every restart (sessionsLost=0).
+- Port teardown completed after every kill and restart (portStuck=0).
+- Exactly-one-listener inventory cannot be read from the app sandbox on Android 16;
+  the harness reports listenerInventory=hostRequired and a host-side `ss`/netstat
+  inventory during a healthy run is still the definitive check.
+- crashLoopBreaker=notExercised refers to the supervisor-level breaker covered by
+  the host test suite.

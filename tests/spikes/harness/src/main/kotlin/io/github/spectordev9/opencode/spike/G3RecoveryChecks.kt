@@ -27,7 +27,6 @@ internal object G3RecoveryChecks {
         val durations = mutableListOf<Long>()
         var unhealthy = 0
         var sessionsLost = 0
-        var extraListeners = 0
         var portStuck = 0
         var failed = false
         for (run in 1..runs) {
@@ -56,18 +55,18 @@ internal object G3RecoveryChecks {
                 failed = true
                 break
             }
-            if (G3Support.canBind(port)) extraListeners++
         }
         val p95 = percentile95(durations)
         session.stop()
         G3Support.waitForPortFree(port, 5_000)
         val pass = !failed && runs > 0 && unhealthy == 0 && sessionsLost == 0 &&
-            extraListeners == 0 && portStuck == 0 && p95 in 0..10_000
+            portStuck == 0 && p95 in 0..10_000
         val detail = buildString {
             append("runs=$runs restarts=${durations.size}")
             append(" p95=${p95}ms max=${durations.maxOrNull() ?: 0}ms")
             append(" unhealthy=$unhealthy sessionsLost=$sessionsLost")
-            append(" extraListeners=$extraListeners portStuck=$portStuck")
+            append(" portStuck=$portStuck")
+            append(" listenerInventory=hostRequired")
             append(" crashLoopBreaker=notExercised")
         }
         return ProbeRecord("LC-3", pass, detail, durationMs = elapsed(started))
@@ -112,6 +111,7 @@ internal object G3RecoveryChecks {
         }
         val average = if (samples.isEmpty()) 100.0 else samples.average()
         val maximum = samples.maxOrNull() ?: 100.0
+        val topThreads = topThreads(pid)
         val aliveBeforeStop = session.isAlive()
         val stopped = runCatching {
             session.stop()
@@ -125,9 +125,23 @@ internal object G3RecoveryChecks {
             append(" avgCpu=${"%.3f".format(average)}% maxCpu=${"%.2f".format(maximum)}%")
             append(" stoppedAfterIdle=$stopped postStopTicks=$cpuAfterStop")
             append(" idleTimeout=10min default")
+            append(" topThreads=[${topThreads.joinToString("; ")}]")
         }
         return ProbeRecord("LC-4", pass, detail, durationMs = elapsed(started))
     }
+
+    private fun topThreads(pid: Int): List<String> = runCatching {
+        val process = ProcessBuilder("/system/bin/top", "-H", "-b", "-n", "1", "-p", pid.toString())
+            .redirectErrorStream(true)
+            .start()
+        val text = process.inputStream.bufferedReader().use { it.readText() }
+        process.waitFor()
+        text.lineSequence()
+            .filter { it.trim().firstOrNull()?.isDigit() == true }
+            .take(5)
+            .map { it.replace(Regex("\\s+"), " ").trim().take(140) }
+            .toList()
+    }.getOrDefault(emptyList())
 
     private fun percentile95(values: List<Long>): Long {
         if (values.isEmpty()) return Long.MAX_VALUE

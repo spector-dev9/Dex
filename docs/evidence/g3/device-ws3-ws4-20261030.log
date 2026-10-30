@@ -1,0 +1,12 @@
+G3 workspace device diagnostics
+Captured 2026-10-30 on the Infinix X6870 reference device
+Source: owner-provided G3 checks output
+
+WS-3 PASS 751ms
+runs=50 conflicts=50 silentOverwrites=0 recoveryWrites=50
+
+WS-4 PASS 8406ms
+text100MB=100MB firstText=3ms firstBinary=4ms peakExtraPss=0MB reads=40 failed=0 binaryRead=20MB imageDecode=notExercised
+
+WS-4 re-run after harness hardening PASS 11660ms
+text100MB=100MB firstText=5ms firstBinary=6ms peakExtraPss=0MB reads=40 failed=0 binaryRead=20MB imageDecode=notExercised

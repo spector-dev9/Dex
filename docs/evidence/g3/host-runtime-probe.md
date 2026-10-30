@@ -42,5 +42,7 @@ Raw evidence:
 This proves the pinned artifact boots and behaves correctly on the reference
 device under the unconfined Termux host. It does **not** prove app-sandbox
 execution (`execute_no_trans`, targetSdk 36 W^X), app-sandbox cold-start
-thresholds, UI/streaming latency, or the full security matrix from a
-second-UID instrumented app. Those remain G3 pending items.
+thresholds or UI/streaming latency. The full second-UID security matrix has
+since passed against the harness gateway; see
+[`device-sec1-20261030.log`](device-sec1-20261030.log). Production-path
+security remains pending.

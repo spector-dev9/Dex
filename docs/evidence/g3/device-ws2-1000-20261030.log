@@ -1,0 +1,20 @@
+G3 WS-2 full atomic-write stress
+Captured 2026-10-30 on the Infinix X6870 reference device
+Source: owner-provided G3 long-run output
+
+WS-2 FAIL runs=1000 completed=0 killedBeforeCommit=998 corrupt=0 missing=0 failedBinds=2 sizes=1KB..50MB final=1024B sha=c24f5742cb4c67b7
+
+## Re-run after harness hardening
+
+Captured 2026-10-30 on the Infinix X6870 with harness APK
+sha256 e0db00fad78d5f09397d3dccb34fd7ae63ea8e6041584f22d7a8d6612a4bee68.
+
+FAIL runs=1000 committed=0 killedBeforeCommit=1000 corrupt=0 missing=0 failedBinds=0 failedControls=9 controls=0/9 sizes=1KB..50MB final=1024B sha=c24f5742cb4c67b7
+
+Notes:
+- Binding and worker-pid publication succeeded for all 1,000 attempts.
+- All nine 20-second completion controls failed, so the worker never produced
+  a committed target even without a SIGKILL race.
+- This points at the separate `:ws2` worker path, not kill timing. The harness
+  now records worker stage/error files and binds with BIND_IMPORTANT; a
+  diagnostic quick run is pending.

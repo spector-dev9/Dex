@@ -1,6 +1,6 @@
 # G3 acceptance status — Infinix X6870
 
-Updated: 2026-10-27. Reference device: Infinix X6870, Android 16/API 36,
+Updated: 2026-10-30. Reference device: Infinix X6870, Android 16/API 36,
 arm64-v8a, 4 KB pages, 5.58 GB RAM. Gate definition: `docs/spec.md:319`.
 Machine-readable tracker: [`status.json`](status.json) (validated by
 `scripts/check-g3-status.py`).
@@ -9,14 +9,14 @@ Machine-readable tracker: [`status.json`](status.json) (validated by
 
 | Status | Count |
 | --- | --- |
-| PASS | 6 |
-| PARTIAL | 14 |
-| PENDING | 12 |
+| PASS | 9 |
+| PARTIAL | 12 |
+| PENDING | 11 |
 | BLOCKED | 5 |
 | DEFERRED (LC-5, LC-6) | 2 |
 | **Total** | **39** |
 
-G3 is **not green**. The six passing criteria are verified by CI or by tests /
+G3 is **not green**. The nine passing criteria are verified by CI or by tests /
 probes executed on the reference device. Most remaining criteria are blocked by
 the production app wiring not yet being smoke-tested on the device
 (`RUNTIME OFFLINE`), not by an observed failure. The isolated spike harness adds
@@ -38,9 +38,9 @@ runtime, PTY and auth paths; see [`spike-harness.md`](spike-harness.md).
 | STR-4 | PARTIAL | [chat shell](../../app/src/main/kotlin/io/github/spectordev9/opencode/OpenCodeShell.kt), [chat controller](../../app/src/main/kotlin/io/github/spectordev9/opencode/chat/ChatController.kt) | Cancel wired: stop button aborts the streaming reply; on-device cancel run pending |
 | STR-5 | PARTIAL | `ui/src/bridge/resync.test.ts`, [probe](host-runtime-probe.md) | 500-trial simulation passes; live 500-drop run pending |
 | WS-1 | PASS | [host tests](host-tests.md) | 100,000-case path safety run passed |
-| WS-2 | PARTIAL | [stress](ws2-stress-300.log), [host tests](host-tests.md), [device quick](g3-device-quick-20261027.json) | 300/1000 host-JVM runs passed; spike quick 100/100 on device (corrupt=0, missing=0, sha verified); FULL 1000 SIGKILL device run pending |
-| WS-3 | PARTIAL | [host tests](host-tests.md) | Stale-precondition conflict covered; open/save flow pending |
-| WS-4 | PARTIAL | [host tests](host-tests.md) | 1 GiB bounded reads pass; latency/memory thresholds not measured |
+| WS-2 | PARTIAL | [full-device FAIL](device-ws2-1000-20261030.log), [stress](ws2-stress-300.log), [host tests](host-tests.md) | Post-hardening 1,000-run retry still failed: 0 commits, 1,000 killed before commit, 0 bind failures, 9/9 controls failed; separate `:ws2` worker binds but never completes a write. Worker-stage diagnostics + BIND_IMPORTANT added; quick rerun pending |
+| WS-3 | PASS | [device](device-ws3-ws4-20261030.log), [host tests](host-tests.md) | 50/50 conflicts rejected, silent overwrites 0, recovery writes 50 |
+| WS-4 | PASS | [device](device-ws3-ws4-20261030.log), [host tests](host-tests.md) | Initial 100 MB text 3 ms / 1 GB binary 4 ms; post-hardening re-run 5 ms / 6 ms, +0 MB PSS, 40/40 reads; image decode not exercised |
 | WS-5 | PASS | [host tests](host-tests.md) | 60/60 operation matrix passed |
 | WS-6 | BLOCKED | — | No git service implementation |
 | TERM-1 | BLOCKED | — | `ptyService` is null; terminal not wired |
@@ -50,12 +50,12 @@ runtime, PTY and auth paths; see [`spike-harness.md`](spike-harness.md).
 | TERM-5 | PARTIAL | [harness](spike-harness.md) | Scripted PTY bytes pass (text, Enter, Backspace, Tab, Esc, Up, Ctrl-C, Alt-x); Gboard/UI untested |
 | LC-1 | PENDING | — | Needs wired UI/runtime |
 | LC-2 | PENDING | — | Needs wired runtime |
-| LC-3 | PASS | [host tests](host-tests.md), [device raw](device-lc3-20261027-raw.txt) | Host supervisor crash tests pass; on-device 50/50 SIGKILL restarts healthy, p95 4,132 ms, sessionsLost=0 |
-| LC-4 | PARTIAL | [idle raw](idle-top-60s-raw.txt), [device raw](device-lc4-20261027-raw.txt) | Zero-interaction 10-min run: stop-after-idle passes (postStopTicks=0); idle server CPU 3.458% avg vs 1.0% threshold — per-thread investigation queued |
+| LC-3 | PASS | [host tests](host-tests.md), [2026-10-30 device](device-lc3-20261030.log), [2026-10-27 raw](device-lc3-20261027-raw.txt) | Post-hardening 50/50 SIGKILL restarts healthy, p95 4,499 ms, max 5,149 ms, sessionsLost=0, portStuck=0; exactly-one-listener inventory is host-side only |
+| LC-4 | PARTIAL | [2026-10-30 run](device-lc4-20261030.log), [2026-10-27 raw](device-lc4-20261027-raw.txt), [idle raw](idle-top-60s-raw.txt) | Stop-after-idle passes; idle server CPU 4.511% avg / 24.27% max vs 1.0% threshold. top-thread capture added; per-thread investigation pending |
 | LC-5 | DEFERRED | `docs/spec.md` | Post-v1 optional per gate |
 | LC-6 | DEFERRED | `docs/spec.md` | Post-v1 optional per gate |
-| SEC-1 | PARTIAL | [auth summary](../../../tests/spikes/results/raw/g3-host-auth-summary.json), [harness](spike-harness.md) | Routes 401 without secret / 200 with Basic; harness authenticated from its sandbox; second-UID client not run |
-| SEC-2 | PARTIAL | [baseline](device-baseline.md), [audit](spike-harness-exec-audit.txt), [device quick](g3-device-quick-20261027.json) | No secret patterns; no exec denials (25 vendor perf_ioctl only); on-device scan 0 findings, 3/3 denied paths; full E2E scan pending |
+| SEC-1 | PASS | [second-UID matrix](device-sec1-20261030.log), [host auth](../../../tests/spikes/results/raw/g3-host-auth-summary.json) | 30/30 route/auth combinations: all four invalid modes 401, Basic 200 on six routes; post-hardening client re-run also 30/30 |
+| SEC-2 | PARTIAL | [post-hardening harness scan](device-sec2-20261030.log), [baseline](device-baseline.md), [audit](spike-harness-exec-audit.txt) | Harness scan: 14 entries, 0 findings, 3/3 denied paths, backup disabled, 0 credential files; logcatScan=hostScriptRequired. Production APK + full E2E logcat/crash scan pending |
 | SEC-3 | PASS | `scripts/check-release-manifest.py`, CI | Release manifest invariants enforced and green |
 | SEC-4 | PENDING | — | Permission prompts need runtime/UI wiring |
 | SEC-5 | PARTIAL | `docs/licenses/README.md`, CI | SBOM/licenses/pins green; osv-scanner and source offer missing |

@@ -1,0 +1,73 @@
+G3 SEC-1 second-UID authentication matrix
+Captured 2026-10-30 on the Infinix X6870 reference device
+Client: io.github.spectordev9.opencode.g3client.debug (different UID)
+Device report: /data/user/0/io.github.spectordev9.opencode.g3client.debug/files/reports/sec1-20261030-030333.json
+Source: owner-provided client output
+
+PASS 401 no-auth /global/health ()
+PASS 200 basic /global/health ({"healthy":true,"version":"1.19.3"})
+PASS 401 basic-empty-user /global/health ()
+PASS 401 bearer /global/health ()
+PASS 401 wrong-password /global/health ()
+PASS 401 no-auth /doc ()
+PASS 200 basic /doc ({"openapi":"3.1.0","info":{"title":"opencode","version":"1.0.0","description":"opencode api"},"paths":{"/auth/{providerID}":{"put":{"tags":["control"],"operationId":"auth.set","parameters":[{"name":"p)
+PASS 401 basic-empty-user /doc ()
+PASS 401 bearer /doc ()
+PASS 401 wrong-password /doc ()
+PASS 401 no-auth /project ()
+PASS 200 basic /project ([{"id":"global","worktree":"/","time":{"created":1793309177456,"updated":1793309610897},"sandboxes":[]}])
+PASS 401 basic-empty-user /project ()
+PASS 401 bearer /project ()
+PASS 401 wrong-password /project ()
+PASS 401 no-auth /session ()
+PASS 200 basic /session ([{"id":"ses_e767185d2ffesNIDxOMko126zG","slug":"tidy-cabin","projectID":"global","directory":"/data/data/io.github.spectordev9.opencode.spike.debug/files/g3/server/workspace","path":"data/data/io.gith)
+PASS 401 basic-empty-user /session ()
+PASS 401 bearer /session ()
+PASS 401 wrong-password /session ()
+PASS 401 no-auth /pty ()
+PASS 200 basic /pty ([])
+PASS 401 basic-empty-user /pty ()
+PASS 401 bearer /pty ()
+PASS 401 wrong-password /pty ()
+PASS 401 no-auth /event
+PASS 200 basic /event
+PASS 401 basic-empty-user /event
+PASS 401 bearer /event
+PASS 401 wrong-password /event
+
+## Re-run after client hardening
+
+Device report: /data/user/0/io.github.spectordev9.opencode.g3client.debug/files/reports/sec1-20261030-074004.json
+Source: owner-provided client output after the rebuilt g3-client APK was installed.
+Result: 30/30 PASS (six routes x five auth modes).
+
+PASS 401 no-auth /global/health ()
+PASS 200 basic /global/health ({"healthy":true,"version":"1.19.3"})
+PASS 401 basic-empty-user /global/health ()
+PASS 401 bearer /global/health ()
+PASS 401 wrong-password /global/health ()
+PASS 401 no-auth /doc ()
+PASS 200 basic /doc ({"openapi":"3.1.0","info":{"title":"opencode","version":"1.0.0","description":"opencode api"},"paths":{"/auth/{providerID}":{"put":{"tags":["control"],"operationId":"auth.set","parameters":[{"name":"p)
+PASS 401 basic-empty-user /doc ()
+PASS 401 bearer /doc ()
+PASS 401 wrong-password /doc ()
+PASS 401 no-auth /project ()
+PASS 200 basic /project ([{"id":"global","worktree":"/","time":{"created":1793326201191,"updated":1793326201191},"sandboxes":[]}])
+PASS 401 basic-empty-user /project ()
+PASS 401 bearer /project ()
+PASS 401 wrong-password /project ()
+PASS 401 no-auth /session ()
+PASS 200 basic /session ([])
+PASS 401 basic-empty-user /session ()
+PASS 401 bearer /session ()
+PASS 401 wrong-password /session ()
+PASS 401 no-auth /pty ()
+PASS 200 basic /pty ([])
+PASS 401 basic-empty-user /pty ()
+PASS 401 bearer /pty ()
+PASS 401 wrong-password /pty ()
+PASS 401 no-auth /event
+PASS 200 basic /event
+PASS 401 basic-empty-user /event
+PASS 401 bearer /event
+PASS 401 wrong-password /event

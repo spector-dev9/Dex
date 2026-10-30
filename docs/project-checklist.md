@@ -124,8 +124,12 @@ separately. Passing automated checks alone does not unblock G0.
   host tests.
 - [x] Preserve host evidence for the 100,000-case path run, 1,000-interruption
   atomic-write stress, and sparse 1 GiB bounded-range test.
-- [ ] Measure workspace memory/latency budgets on target devices and validate
-  durability and file-operation matrices on required target filesystems.
+- [x] Measure WS-3 conflict and WS-4 memory/latency budgets on the reference
+  device (50/50 conflicts rejected, 3 ms/4 ms first screen, +0 MB PSS).
+- [ ] Pass WS-2 on device: the 2026-10-30 1,000-run attempt observed 0 commits
+  and 2 bind failures; harness retry/cleanup/control fix applied, rerun pending.
+- [ ] Validate durability and the WS-5 file-operation matrix on required target
+  filesystems, and exercise image decode within the 32 MB bound.
 - [ ] Wire WorkspaceService through the production composition root; test
   hostile paths, symlinks, conflicts, interruption, and restore flows.
 - [ ] Implement guest Git as the single source of truth and measure status on
@@ -140,8 +144,8 @@ separately. Passing automated checks alone does not unblock G0.
 - [~] Core credential generation/authentication and an encrypted-file
   `SecretStore` adapter have host coverage; production gateway/lifecycle
   binding and Android Keystore device verification remain open.
-- [ ] SEC-1: instrument Android Keystore and verify unauthorized second-UID
-  requests are rejected across protected routes.
+- [~] SEC-1: the second-UID matrix passes 30/30 (invalid auth rejected, Basic
+  accepted); repeat through the production Android Keystore-backed gateway.
 - [ ] SEC-2: scan APK, logcat, app logs, crash dumps, and process arguments for
   secrets; implement production log redaction and credential handling.
 - [ ] SEC-3: run the merged release-manifest checker in Android CI and inspect

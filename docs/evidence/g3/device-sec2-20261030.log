@@ -1,0 +1,27 @@
+G3 SEC-2 harness security scan, post-hardening re-run
+Captured 2026-10-30 on the Infinix X6870 reference device
+Source: owner-provided harness output
+Scope: rebuilt spike-harness APK only; not the production APK or full E2E run
+
+{
+  "id": "SEC-2",
+  "pass": true,
+  "detail": "apkFiles=1 scannedEntries=14 findings=0 deniedPaths=3/3 allowBackup=true credentials=0 logcatScan=hostScriptRequired",
+  "command": [],
+  "exitCode": null,
+  "durationMs": 145,
+  "stdout": "",
+  "stderr": ""
+}
+
+Interpretation:
+- 14 APK/file/process entries scanned; 0 secret-pattern findings.
+- 3/3 denied paths remained unreadable: production app data, Termux data,
+  and /proc/1/environ.
+- allowBackup=true in the harness detail means backup is disabled
+  (the field reports backupDisabled).
+- credentials=0: the harness has no provider credential file to check for
+  mode 600.
+- logcatScan=hostScriptRequired: the harness cannot read the full logcat
+  buffer. A host `adb logcat` scan during a production E2E run is still
+  required to close the G3 SEC-2 criterion.
