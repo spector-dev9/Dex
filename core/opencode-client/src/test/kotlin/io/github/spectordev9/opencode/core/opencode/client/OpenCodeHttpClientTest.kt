@@ -3,6 +3,8 @@ package io.github.spectordev9.opencode.core.opencode.client
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.common.ErrorCode
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.random.Random
 
 class OpenCodeHttpClientTest {
     private lateinit var server: MockWebServer
@@ -26,11 +29,16 @@ class OpenCodeHttpClientTest {
     fun setUp() {
         server = MockWebServer()
         server.start()
-        client = OpenCodeHttpClient(server.url("/").toString(), "test-password")
+        client = OpenCodeHttpClient(
+            server.url("/").toString(),
+            "test-password",
+            random = Random(0),
+        )
     }
 
     @AfterEach
     fun tearDown() {
+        client.close()
         server.shutdown()
     }
 
@@ -332,6 +340,29 @@ class OpenCodeHttpClientTest {
         assertEquals("/workspace", request.requestUrl?.queryParameter("directory"))
         assertEquals(Credentials.basic("opencode", "test-password"), request.getHeader("Authorization"))
         assertEquals("text/event-stream", request.getHeader("Accept"))
+    }
+
+    @Test
+    fun `event reconnect sends the last delivered event id`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "text/event-stream")
+                .setBody("data: {\"id\":\"evt_1\",\"type\":\"server.connected\",\"properties\":{}}\n\n"),
+        )
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "text/event-stream")
+                .setBody("data: {\"id\":\"evt_2\",\"type\":\"server.connected\",\"properties\":{}}\n\n"),
+        )
+
+        val events = client.events("/workspace").take(2).toList()
+        val first = server.takeRequest()
+        val second = server.takeRequest()
+
+        assertEquals(listOf("evt_1", "evt_2"), events.map { it.id })
+        assertEquals(null, first.getHeader("Last-Event-ID"))
+        assertEquals("evt_1", second.getHeader("Last-Event-ID"))
+        assertEquals("/workspace", second.requestUrl?.queryParameter("directory"))
     }
 
     @Test

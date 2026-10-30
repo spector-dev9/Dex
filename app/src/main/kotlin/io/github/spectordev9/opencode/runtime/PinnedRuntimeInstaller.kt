@@ -43,7 +43,12 @@ class PinnedRuntimeInstaller(private val context: Context) {
         phase: (String) -> Unit = { },
     ): String {
         val nativeDirectory = Path.of(context.applicationInfo.nativeLibraryDir)
-        listOf("libldmusl.so", "libproot.so", "libproot_loader.so").forEach { name ->
+        listOf(
+            "libldmusl.so",
+            "libproot.so",
+            "libproot_loader.so",
+            "libopencode_shell.so",
+        ).forEach { name ->
             if (!Files.isRegularFile(nativeDirectory.resolve(name), NOFOLLOW_LINKS)) {
                 throw IOException("$name is not packaged in the APK")
             }

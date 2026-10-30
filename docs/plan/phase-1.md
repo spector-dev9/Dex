@@ -77,8 +77,13 @@ the bridge.
 - [ ] Compose `OpenCodeHttpClient` with an ephemeral loopback listener and a
       per-launch password provisioned through `SecretStore`.
 - [ ] Authenticate health, SSE and every protected route with Basic auth.
-- [ ] Implement SSE reconnect/resync from the last event ID and authoritative
-      state reconciliation for STR-5.
+- [~] Implement SSE reconnect/resync and authoritative state reconciliation
+      for STR-5. The client reconnects with backoff, sends `Last-Event-ID` when
+      available, and `ChatController` reconciles on `server.connected`; the app
+      connection manager reattaches after health recovery. Pinned OpenCode
+      1.19.3 does not emit SSE IDs or honor `Last-Event-ID`, so reconciliation
+      is the authoritative recovery path. Focused tests and device evidence
+      remain pending.
 - [ ] Prove STR-1: no periodic message-list polling while connected.
 - [~] Prove SEC-1 from a second-UID app: the harness matrix passes 30/30;
       repeat against the production gateway and record the listener inventory.

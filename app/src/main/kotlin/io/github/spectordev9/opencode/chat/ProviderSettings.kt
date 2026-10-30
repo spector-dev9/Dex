@@ -147,8 +147,9 @@ internal fun buildProviderConfig(
     settings: LocalProviderSettings,
     apiKey: String?,
     mockBaseUrl: String,
+    shellPath: String? = null,
 ): String {
-    if (!settings.configured) return mockServerConfig(mockBaseUrl)
+    if (!settings.configured) return mockServerConfig(mockBaseUrl, shellPath)
     val options = JSONObject()
         .put("baseURL", settings.baseUrl)
         .put("apiKey", apiKey.orEmpty())
@@ -163,10 +164,11 @@ internal fun buildProviderConfig(
     return JSONObject()
         .put("model", "$CUSTOM_PROVIDER_ID/${settings.modelId}")
         .put("provider", JSONObject().put(CUSTOM_PROVIDER_ID, provider))
+        .apply { if (shellPath != null) put("shell", shellPath) }
         .toString(2)
 }
 
-internal fun mockServerConfig(mockBaseUrl: String): String = JSONObject()
+internal fun mockServerConfig(mockBaseUrl: String, shellPath: String? = null): String = JSONObject()
     .put("model", "$MOCK_PROVIDER_ID/mock")
     .put(
         "provider",
@@ -187,6 +189,7 @@ internal fun mockServerConfig(mockBaseUrl: String): String = JSONObject()
                 ),
         ),
     )
+    .apply { if (shellPath != null) put("shell", shellPath) }
     .toString(2)
 
 internal const val CUSTOM_PROVIDER_ID = "device"

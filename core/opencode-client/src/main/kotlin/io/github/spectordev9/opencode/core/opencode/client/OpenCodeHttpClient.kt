@@ -50,7 +50,9 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.random.Random
@@ -58,11 +60,13 @@ import kotlin.random.Random
 class OpenCodeHttpClient(
     baseUrl: String,
     password: String,
-    httpClient: OkHttpClient = OkHttpClient(),
+    httpClient: OkHttpClient? = null,
     private val random: Random = Random.Default,
-) : OpenCodeClient {
+) : OpenCodeClient, AutoCloseable {
+    private val ownsHttpClient = httpClient == null
+    private val closed = AtomicBoolean(false)
     private val baseUrl: HttpUrl = baseUrl.toHttpUrl()
-    private val httpClient = httpClient.newBuilder()
+    private val httpClient = (httpClient ?: OkHttpClient()).newBuilder()
         .readTimeout(OperationTimeouts.SSE_IDLE_MILLIS, TimeUnit.MILLISECONDS)
         .build()
     private val eventSourceFactory = EventSources.createFactory(this.httpClient)
@@ -505,7 +509,8 @@ class OpenCodeHttpClient(
 
     override fun events(directory: String?): Flow<ServerEvent> = callbackFlow {
         val attempt = AtomicInteger(0)
-        val request = request(
+        val lastEventID = AtomicReference<String?>(null)
+        val baseRequest = request(
             GatewayRequest(
                 method = HttpMethod.GET,
                 path = path("event"),
@@ -516,6 +521,9 @@ class OpenCodeHttpClient(
         val worker = launch {
             while (currentCoroutineContext().isActive) {
                 val reconnect = CompletableDeferred<Boolean>()
+                val request = baseRequest.newBuilder()
+                    .apply { lastEventID.get()?.let { header("Last-Event-ID", it) } }
+                    .build()
                 val source = eventSourceFactory.newEventSource(
                     request,
                     object : EventSourceListener() {
@@ -546,6 +554,8 @@ class OpenCodeHttpClient(
                             if (trySend(event).isFailure) {
                                 close(IllegalStateException("OpenCode event consumer cannot keep up"))
                                 reconnect.complete(false)
+                            } else {
+                                (id ?: event.id)?.let(lastEventID::set)
                             }
                         }
 
@@ -584,6 +594,14 @@ class OpenCodeHttpClient(
             }
         }
         awaitClose { worker.cancel() }
+    }
+
+    override fun close() {
+        if (!ownsHttpClient || !closed.compareAndSet(false, true)) return
+        httpClient.dispatcher.cancelAll()
+        httpClient.dispatcher.executorService.shutdown()
+        httpClient.connectionPool.evictAll()
+        httpClient.cache?.close()
     }
 
     private fun parseEvent(data: String, directory: String?): ServerEvent {

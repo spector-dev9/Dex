@@ -12,7 +12,7 @@ set; G0 is governed by `docs/spec.md` and this phase plan.
 | Decision | Current resolution | Status at G0 | Evidence / remaining work |
 | --- | --- | --- | --- |
 | D1 — distribution | GitHub Releases + Obtainium first; self-hosted F-Droid after reproducible builds; Play deferred; Apache-2.0 app code. | Accepted by owner; release work remains. | `docs/adr/0001-distribution.md`. Complete the S9 legal, source-offer, signing and reproducible-build blockers before release. |
-| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | Harness runs verify Node guest-shell/native-PTY feasibility and S1 mock-provider round trips on the Infinix X6870 (Android 16/arm64/4 KB pages). Profile A/B comparison, production agent-shell wiring, and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
+| D4 — runtime profile | Profile A remains the candidate default; Profile B is the fallback only under the documented S1/S3 rules. | **Not frozen.** Do not encode either profile as the accepted default yet. | Harness runs verify Node guest-shell/native-PTY feasibility and S1 mock-provider round trips on the Infinix X6870 (Android 16/arm64/4 KB pages). Profile A/B comparison, production device validation of the now-wired agent shell, and D4 evidence rules remain open; see `docs/evidence/RESULTS.md`. |
 | D5 — version pin | Keep OpenCode **1.19.3** as the exact current baseline; verify its manifest hash; reject unknown major versions. Re-evaluate only when a distributable 2.x artifact is available. | Resolved for the current baseline; 2.x compatibility is unverified. | `runtime/manifest.json`, `tests/spikes/results/S6-2.x.md`. The 2.x release-artifact check is blocked, not a reason to silently change the pin. |
 
 **G0 is not complete.** The specification requires S1–S6 and S9 on the
@@ -64,8 +64,9 @@ Production should hold a foreground service and partial wake lock only
 while an agent task is active, explain any battery-optimization exemption
 request, document OEM autostart/background controls (including Infinix and
 Nothing), and release resources when idle. On resume, reconcile process and
-session health, reconnect SSE from the last event ID, and re-fetch session
-state. PRoot/Node child-process survival under Android 12+ phantom-process
+session health, reconnect SSE, and re-fetch authoritative session state;
+pinned OpenCode 1.19.3 cannot replay from `Last-Event-ID`. PRoot/Node
+child-process survival under Android 12+ phantom-process
 killing is a separate risk and must not be inferred from service survival.
 The isolated harness does not implement these production lifecycle
 behaviors.
@@ -263,7 +264,7 @@ See `docs/architecture/g1-contracts.md` and `docs/plan/phase-1.md`.
 | --- | --- | --- |
 | S1 | partial (host + Infinix X6870; loader, health, and mock prompt) | `tests/spikes/results/S1-host-smoke.md`, `docs/evidence/Device 1` |
 | S2 | partial (host); device + git/npm + thermals pending | `tests/spikes/results/S2-host-profiles.md` |
-| S3 | partial (harness verifies Node and matching guest/PTY fields on the Infinix X6870; production agent-shell wiring pending) | `tests/spikes/results/S3-shell.md`, `docs/evidence/Device 1`, `docs/evidence/RESULTS.md` |
+| S3 | partial (harness verifies Node and matching guest/PTY fields on the Infinix X6870; production agent shell is wired, device comparison pending) | `tests/spikes/results/S3-shell.md`, `docs/evidence/Device 1`, `docs/evidence/RESULTS.md` |
 | S4 | pass (host, mock + real provider); app/UI pending | `tests/spikes/results/S4-sse.md` |
 | S5 | pass (host) | `tests/spikes/results/S5-endpoints-auth.md` |
 | S6 | blocked (no 2.x release asset); 1.x drift job added, latest 1.19.4 clean | `tests/spikes/results/S6-2.x.md` |

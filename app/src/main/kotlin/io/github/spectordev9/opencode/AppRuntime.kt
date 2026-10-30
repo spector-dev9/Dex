@@ -9,6 +9,8 @@ import io.github.spectordev9.opencode.chat.ProviderSettingsStore
 import io.github.spectordev9.opencode.chat.SharedPrefsProviderSettingsStore
 import io.github.spectordev9.opencode.chat.SharedPreferencesChatSessionStore
 import io.github.spectordev9.opencode.core.common.ApiResult
+import io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient
+import io.github.spectordev9.opencode.core.opencode.client.OpenCodeHttpClient
 import io.github.spectordev9.opencode.core.diagnostics.DiagnosticLevel
 import io.github.spectordev9.opencode.features.AdvancedTools
 import io.github.spectordev9.opencode.features.classifyFailure
@@ -30,6 +32,8 @@ import io.github.spectordev9.opencode.runtime.RuntimePaths
 import io.github.spectordev9.opencode.security.AndroidKeystoreSecretStore
 import io.github.spectordev9.opencode.server.LoopbackSecrets
 import io.github.spectordev9.opencode.server.ProductionServerLauncher
+import io.github.spectordev9.opencode.server.ServerConnectionManager
+import io.github.spectordev9.opencode.server.ServerTarget
 import io.github.spectordev9.opencode.terminal.ProductionPtyService
 import java.nio.file.Files
 import kotlinx.coroutines.CoroutineScope
@@ -138,6 +142,13 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     val extensions = ServerExtensionsController(scope)
 
+    private val connection = ServerConnectionManager(
+        scope = scope,
+        clientFactory = { endpoint, password -> OpenCodeHttpClient(endpoint, password) },
+        onAttached = ::onConnectionAttached,
+        onDetached = ::onConnectionDetached,
+    )
+
     val builds = BuildController(
         scope = scope,
         ptyService = terminal,
@@ -157,9 +168,6 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         compatibilityProbe = { DeviceCompatibility.probe(this.context) },
     )
 
-    private var lastAttachedEndpoint: String? = null
-    private var currentClient: io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient? = null
-    private var remoteProfileName: String? = null
     private var pendingSessionId: String? = null
 
     init {
@@ -174,54 +182,52 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
     private fun onServerState(state: ServerState) {
         // An explicitly connected remote profile stays authoritative until the
         // user switches back to the local runtime (F73).
-        if (remoteProfileName != null) return
+        if (connection.isRemote) return
         val endpoint = state.endpoint
         if (state.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY &&
             endpoint != null
         ) {
-            val endpointKey = "http://${endpoint.host}:${endpoint.port}"
-            if (endpointKey == lastAttachedEndpoint) return // avoid re-attach churn
             val password = secrets.passwordText() ?: return
-            val client = io.github.spectordev9.opencode.core.opencode.client.OpenCodeHttpClient(
-                baseUrl = endpointKey,
+            val attached = connection.connectLocal(
+                endpoint = "http://${endpoint.host}:${endpoint.port}",
                 password = password,
+                directory = projects.activeDirectory(),
+                version = state.version,
             )
-            currentClient = client
-            attachWorkspace(client)
-            lastAttachedEndpoint = endpointKey
-            pendingSessionId?.let { sessionID ->
-                pendingSessionId = null
-                scope.launch { chat.selectSession(sessionID) }
-            }
-            diagnostics.record(
-                DiagnosticLevel.INFO,
-                "server",
-                "Connected to loopback server",
-            )
-        } else {
-            if (lastAttachedEndpoint != null) {
+            if (attached) {
                 diagnostics.record(
-                    DiagnosticLevel.WARN,
+                    DiagnosticLevel.INFO,
                     "server",
-                    "Server connection lost",
+                    "Connected to loopback server",
                 )
             }
-            chat.detach()
-            files.detach()
-            extensions.detach()
-            currentClient = null
-            lastAttachedEndpoint = null
+        } else if (connection.disconnect("Local server is ${state.status.name.lowercase()}") != null) {
+            diagnostics.record(
+                DiagnosticLevel.WARN,
+                "server",
+                "Server connection lost",
+            )
         }
     }
 
-    private fun attachWorkspace(
-        client: io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient,
-        directoryOverride: String? = null,
+    private fun onConnectionAttached(
+        client: OpenCodeClient,
+        directory: String,
+        target: ServerTarget,
     ) {
-        val directory = directoryOverride ?: projects.activeDirectory()
         chat.attach(client, directory)
         files.attach(client, directory)
         extensions.attach(client, directory)
+        pendingSessionId?.let { sessionID ->
+            pendingSessionId = null
+            scope.launch { chat.selectSession(sessionID) }
+        }
+    }
+
+    private fun onConnectionDetached(target: ServerTarget) {
+        chat.detach()
+        files.detach()
+        extensions.detach()
     }
 
     /**
@@ -237,16 +243,15 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
             return "Custom base paths are not supported; use scheme://host:port"
         }
         val token = profiles.tokenFor(name).orEmpty()
-        val client = io.github.spectordev9.opencode.core.opencode.client.OpenCodeHttpClient(
-            baseUrl = profile.url,
-            password = token.ifBlank { "opencode" },
-        )
-        return when (val health = client.health()) {
+        return when (
+            val health = connection.connectRemote(
+                profileName = name,
+                endpoint = profile.url,
+                password = token.ifBlank { "opencode" },
+                directory = profile.directory.ifBlank { "." },
+            )
+        ) {
             is ApiResult.Success -> {
-                remoteProfileName = name
-                currentClient = client
-                lastAttachedEndpoint = null
-                attachWorkspace(client, profile.directory.ifBlank { "." })
                 profiles.select(name)
                 diagnostics.record(
                     DiagnosticLevel.INFO,
@@ -257,6 +262,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
                 "Connected to ${profile.name} (OpenCode ${health.value.version})"
             }
             is ApiResult.Failure -> {
+                onServerState(supervisor.state.value)
                 diagnostics.record(
                     DiagnosticLevel.ERROR,
                     "server",
@@ -270,12 +276,9 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     /** Returns to the supervised local runtime (F73). */
     fun disconnectProfile() {
-        remoteProfileName = null
-        currentClient = null
-        chat.detach()
-        files.detach()
-        extensions.detach()
-        lastAttachedEndpoint = null
+        if (connection.isRemote) {
+            connection.disconnect("Remote profile disconnected")
+        }
         val state = supervisor.state.value
         if (state.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY) {
             onServerState(state)
@@ -284,13 +287,13 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         }
     }
 
-    fun activeRemoteProfile(): String? = remoteProfileName
+    fun activeRemoteProfile(): String? = connection.activeRemoteProfile
 
     /** Routes a deep link to a session after the server is attached (F61). */
     fun openSession(sessionID: String) {
         val clean = sessionID.trim()
         if (clean.isEmpty() || clean.length > 256) return
-        if (currentClient == null) {
+        if (connection.client == null) {
             pendingSessionId = clean
         } else {
             scope.launch { chat.selectSession(clean) }
@@ -299,7 +302,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     /** Switches the active local project folder and reattaches chat/files (F10). */
     fun selectProject(id: String): ApiResult<io.github.spectordev9.opencode.features.ProjectWorkspace> {
-        if (remoteProfileName != null) {
+        if (connection.isRemote) {
             return ApiResult.Failure(
                 io.github.spectordev9.opencode.core.common.ApiError(
                     io.github.spectordev9.opencode.core.common.ErrorCode.E_CONFLICT,
@@ -309,7 +312,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         }
         val result = projects.select(id)
         if (result is ApiResult.Success) {
-            currentClient?.let(::attachWorkspace)
+            connection.updateLocalDirectory(projects.activeDirectory())
             builds.clear()
         }
         return result
@@ -317,7 +320,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
 
     /** Creates and selects a project folder inside the server workspace (F10). */
     fun createProject(name: String): ApiResult<io.github.spectordev9.opencode.features.ProjectWorkspace> {
-        if (remoteProfileName != null) {
+        if (connection.isRemote) {
             return ApiResult.Failure(
                 io.github.spectordev9.opencode.core.common.ApiError(
                     io.github.spectordev9.opencode.core.common.ErrorCode.E_CONFLICT,
@@ -327,7 +330,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         }
         val result = projects.create(name)
         if (result is ApiResult.Success) {
-            currentClient?.let(::attachWorkspace)
+            connection.updateLocalDirectory(projects.activeDirectory())
             builds.clear()
         }
         return result
@@ -338,7 +341,7 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
      * server. Remote profiles stay authoritative until disconnected.
      */
     suspend fun applyProviderSettings(): String {
-        if (remoteProfileName != null) {
+        if (connection.isRemote) {
             return "Disconnect the remote profile before applying provider settings"
         }
         if (!providerSettings.settings.value.configured) {
@@ -350,9 +353,14 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         }
     }
 
+    fun onBackground() {
+        connection.pauseRemoteMonitoring()
+    }
+
     /** Reconciles authoritative state after the app returns to the foreground (F48). */
     fun onForeground() {
-        if (remoteProfileName != null) {
+        if (connection.isRemote) {
+            connection.checkRemoteNow()
             scope.launch { chat.reconcile() }
             return
         }

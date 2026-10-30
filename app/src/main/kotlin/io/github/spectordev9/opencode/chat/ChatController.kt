@@ -13,11 +13,13 @@ import io.github.spectordev9.opencode.core.model.PermissionRequest
 import io.github.spectordev9.opencode.core.model.Part
 import io.github.spectordev9.opencode.core.model.Session
 import io.github.spectordev9.opencode.core.opencode.client.OpenCodeClient
+import io.github.spectordev9.opencode.core.opencode.client.OpenCodeClientException
 import io.github.spectordev9.opencode.core.opencode.client.PermissionResponse
 import io.github.spectordev9.opencode.core.opencode.client.PromptInput
 import io.github.spectordev9.opencode.core.opencode.client.PromptModel
 import io.github.spectordev9.opencode.core.opencode.client.PromptPart
 import io.github.spectordev9.opencode.core.opencode.client.SessionFileDiff
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -25,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -41,6 +44,8 @@ const val MAX_PROMPT_ATTACHMENTS = 5
 
 private const val REPLY_POLL_INTERVAL_MS = 1_500L
 private const val REPLY_POLL_TIMEOUT_MS = 180_000L
+private const val EVENT_RECONNECT_BASE_DELAY_MS = 500L
+private const val MAX_EVENT_RECONNECT_DELAY_MS = 30_000L
 private const val ON_DEVICE_MOCK_PROVIDER_ID = "opencode-mobile-mock"
 private const val MAX_COMMAND_NAME_CHARS = 128
 
@@ -140,10 +145,29 @@ class ChatController(
             )
         }
         eventsJob = scope.launch {
-            try {
-                client.events(directory).collect { event -> onEvent(event) }
-            } catch (_: Throwable) {
-                // Server went away; the supervisor state watcher will detach.
+            var failures = 0
+            while (isActive && this@ChatController.client === client) {
+                try {
+                    client.events(directory).collect { event ->
+                        failures = 0
+                        onEvent(event)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: OpenCodeClientException) {
+                    if (!failure.apiError.retryable) {
+                        detach()
+                        break
+                    }
+                } catch (_: Exception) {
+                }
+                if (!isActive || this@ChatController.client !== client) break
+                val backoff = minOf(
+                    MAX_EVENT_RECONNECT_DELAY_MS,
+                    EVENT_RECONNECT_BASE_DELAY_MS shl failures.coerceAtMost(6),
+                )
+                failures++
+                delay(backoff)
             }
         }
         reloadJob = scope.launch {

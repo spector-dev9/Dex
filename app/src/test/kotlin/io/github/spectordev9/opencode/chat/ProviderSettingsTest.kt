@@ -37,6 +37,29 @@ class ProviderSettingsTest {
     }
 
     @Test
+    fun `guest shell path is written for both provider configurations`() {
+        val shell = "/data/app/lib/arm64/libopencode_shell.so"
+        val custom = buildProviderConfig(
+            LocalProviderSettings(
+                baseUrl = "https://api.example.com/v1",
+                modelId = "vendor/model-1",
+            ),
+            apiKey = null,
+            mockBaseUrl = "http://127.0.0.1:1234/v1",
+            shellPath = shell,
+        )
+        val mock = buildProviderConfig(
+            LocalProviderSettings(),
+            apiKey = null,
+            mockBaseUrl = "http://127.0.0.1:1234/v1",
+            shellPath = shell,
+        )
+
+        assertTrue(custom.contains("\"shell\": \"$shell\""))
+        assertTrue(mock.contains("\"shell\": \"$shell\""))
+    }
+
+    @Test
     fun `model identifiers reject control characters and empty values`() {
         assertNull(SharedPrefsProviderSettingsStore.validateModelId(""))
         assertNull(SharedPrefsProviderSettingsStore.validateModelId("bad\nmodel"))

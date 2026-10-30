@@ -91,8 +91,10 @@ separately. Passing automated checks alone does not unblock G0.
   idle and shut down cleanly.
 - [ ] Explain battery-optimization exemption requests and document OEM
   autostart/background controls, including Infinix and Nothing.
-- [ ] On resume, health-check the process, reconnect SSE from the last event
-  ID, and re-fetch authoritative session state.
+- [~] On resume, health-check the process, reconnect SSE, and re-fetch
+  authoritative session state. `AppRuntime` probes remote health and
+  `ChatController` reconciles on `server.connected`; pinned 1.19.3 does not
+  support `Last-Event-ID` replay. Device verification is pending.
 - [ ] Test Android 12+ phantom-process-killer behavior for PRoot/Node children
   separately from foreground-service survival.
 - [ ] Keep the app-private workspace default; gate external/all-files access
@@ -102,8 +104,10 @@ separately. Passing automated checks alone does not unblock G0.
 
 - [x] Keep the authenticated HTTP/SSE client, typed contract, bounded JSON
   reads, streaming SSE, and reconnect/resync host tests.
-- [ ] Wire the client through the application service boundary and production
+- [~] Wire the client through the application service boundary and production
   authenticated loopback gateway; use an ephemeral port and per-launch secret.
+  `AppRuntime` now routes local and remote clients through
+  `ServerConnectionManager`; device authentication verification is pending.
 - [ ] Verify Basic auth on health, SSE, and every route; test rejection from a
   second app UID before treating loopback as protected.
 - [ ] Validate bounded response budgets against large-session and
@@ -174,8 +178,8 @@ separately. Passing automated checks alone does not unblock G0.
   start, RSS, 10k-file Git status, npm test, device behavior, and thermals;
   apply the documented rules.
 - [x] S3 harness evidence accepted for G0 (2026-10-27): guest-shell/native-PTY
-  behavior verified on the Infinix X6870; production agent-shell comparison is
-  a post-G0 follow-up.
+  behavior verified on the Infinix X6870; production agent-shell wiring is
+  implemented, with device comparison a post-G0 follow-up.
 - [x] S4 host SSE reconnect/resync and S5 host endpoint/auth contract evidence
   are recorded; app/UI and device acceptance remain separate.
 - [ ] Complete S6 only when a distributable 2.x artifact can be evaluated;

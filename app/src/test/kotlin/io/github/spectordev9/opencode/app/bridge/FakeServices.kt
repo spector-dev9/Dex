@@ -447,6 +447,8 @@ class FakeOpenCodeClient : OpenCodeClient {
     var lastPrompt: PromptInput? = null
     var promptCalls: Int = 0
     var lastPermission: Pair<String, PermissionResponse>? = null
+    var healthResult: ApiResult<GatewayHealth> =
+        ApiResult.Success(GatewayHealth(version = "1.19.3", endpointPort = 4097))
     private val serverEvents = MutableSharedFlow<ServerEvent>(extraBufferCapacity = 32)
 
     override suspend fun listSessions(directory: String): ApiResult<List<Session>> =
@@ -603,8 +605,7 @@ class FakeOpenCodeClient : OpenCodeClient {
         serverEvents.tryEmit(event)
     }
 
-    override suspend fun health(): ApiResult<GatewayHealth> =
-        ApiResult.Success(GatewayHealth(version = "1.19.3", endpointPort = 4097))
+    override suspend fun health(): ApiResult<GatewayHealth> = healthResult
 
     private fun message(sessionID: String): Message = Message(
         info = MessageInfo(

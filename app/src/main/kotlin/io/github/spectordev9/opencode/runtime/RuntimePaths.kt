@@ -26,6 +26,10 @@ object RuntimePaths {
 
     fun alpineRootfs(root: Path): Path = root.resolve("rootfs")
 
+    /** APK-native Profile A agent-shell wrapper (see cpp/guest_shell.c). */
+    fun guestShellWrapper(context: Context): File =
+        File(context.applicationInfo.nativeLibraryDir, "libopencode_shell.so")
+
     fun downloads(root: Path): Path = root.resolve("downloads")
 
     fun serverDirectory(root: Path): Path = root.resolve("server")
@@ -69,7 +73,9 @@ object RuntimePaths {
         return Files.isRegularFile(opencodeBinary(root)) &&
             Files.isRegularFile(alpineRootfs(root).resolve("bin/sh")) &&
             File(context.applicationInfo.nativeLibraryDir, "libldmusl.so").isFile &&
-            File(context.applicationInfo.nativeLibraryDir, "libproot.so").isFile
+            File(context.applicationInfo.nativeLibraryDir, "libproot.so").isFile &&
+            File(context.applicationInfo.nativeLibraryDir, "libproot_loader.so").isFile &&
+            guestShellWrapper(context).isFile
     }
 
     internal fun markExecutable(path: Path) {

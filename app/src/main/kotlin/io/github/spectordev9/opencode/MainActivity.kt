@@ -49,6 +49,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        appRuntime.onBackground()
+    }
+
     override fun onResume() {
         super.onResume()
         appRuntime.onForeground()

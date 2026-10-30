@@ -13,6 +13,7 @@ import io.github.spectordev9.opencode.core.supervisor.impl.ServerLauncher
 import io.github.spectordev9.opencode.core.supervisor.impl.StartedServer
 import io.github.spectordev9.opencode.chat.ProviderSettingsStore
 import io.github.spectordev9.opencode.chat.buildProviderConfig
+import io.github.spectordev9.opencode.runtime.GuestBootstrap
 import io.github.spectordev9.opencode.runtime.RuntimePaths
 import java.io.File
 import java.net.HttpURLConnection
@@ -72,28 +73,42 @@ class ProductionServerLauncher(
                 val workspace = serverDir.resolve("workspace")
                 val home = serverDir.resolve("home")
                 val tmp = serverDir.resolve("tmp")
+                val rootfs = RuntimePaths.alpineRootfs(root)
                 listOf(workspace, home.resolve(".config"), home.resolve(".local/share"),
                     home.resolve(".cache"), tmp).forEach { Files.createDirectories(it) }
+
+                val nativeDirectory = File(context.applicationInfo.nativeLibraryDir)
+                val loader = File(nativeDirectory, "libldmusl.so")
+                val proot = File(nativeDirectory, "libproot.so")
+                val prootLoader = File(nativeDirectory, "libproot_loader.so")
+                val shellWrapper = RuntimePaths.guestShellWrapper(context)
+                val runtimeDirectory = RuntimePaths.runtimeDirectory(root)
+                val binary = RuntimePaths.opencodeBinary(root)
+                if (!loader.isFile || !proot.isFile || !prootLoader.isFile ||
+                    !shellWrapper.isFile || !Files.isRegularFile(binary) ||
+                    !Files.isRegularFile(rootfs.resolve("bin/sh"))
+                ) {
+                    return@withContext ApiResult.Failure(
+                        ApiError(
+                            ErrorCode.E_RUNTIME_DOWN,
+                            "runtime executable, guest shell wrapper or Alpine rootfs is missing",
+                        ),
+                    )
+                }
+                GuestBootstrap.prepare(context, rootfs, workspace)
 
                 val configFile = serverDir.resolve("opencode.json")
                 val mockBaseUrl = "http://127.0.0.1:$mockPort/v1"
                 val config = providerSettings?.let { store ->
-                    buildProviderConfig(store.settings.value, store.apiKey(), mockBaseUrl)
+                    buildProviderConfig(store.settings.value, store.apiKey(), mockBaseUrl,
+                        shellWrapper.absolutePath)
                 } ?: buildProviderConfig(
                     io.github.spectordev9.opencode.chat.LocalProviderSettings(),
                     null,
                     mockBaseUrl,
+                    shellWrapper.absolutePath,
                 )
                 Files.write(configFile, config.toByteArray())
-
-                val loader = File(context.applicationInfo.nativeLibraryDir, "libldmusl.so")
-                val runtimeDirectory = RuntimePaths.runtimeDirectory(root)
-                val binary = RuntimePaths.opencodeBinary(root)
-                if (!loader.isFile || !Files.isRegularFile(binary)) {
-                    return@withContext ApiResult.Failure(
-                        ApiError(ErrorCode.E_RUNTIME_DOWN, "runtime executable or loader is missing"),
-                    )
-                }
 
                 val environment = RuntimePaths.baseEnvironment(context, home).apply {
                     put("XDG_CONFIG_HOME", home.resolve(".config").toString())
@@ -101,6 +116,13 @@ class ProductionServerLauncher(
                     put("XDG_CACHE_HOME", home.resolve(".cache").toString())
                     put("TMPDIR", tmp.toString())
                     put("XDG_RUNTIME_DIR", tmp.toString())
+                    put("SHELL", shellWrapper.absolutePath)
+                    put("DEX_GUEST_PROOT", proot.absolutePath)
+                    put("DEX_GUEST_LOADER", prootLoader.absolutePath)
+                    put("DEX_GUEST_ROOTFS", rootfs.toString())
+                    put("DEX_GUEST_WORKSPACE", workspace.toString())
+                    put("DEX_GUEST_TMP", tmp.toString())
+                    put("DEX_GUEST_RUNTIME", runtimeDirectory.toString())
                     put("OPENCODE_CONFIG", configFile.toString())
                     put("OPENCODE_SERVER_PASSWORD", secret.decodeToString())
                     put("OPENCODE_DISABLE_MODELS_FETCH", "1")

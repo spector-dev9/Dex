@@ -37,10 +37,18 @@ val stagedRuntimeAssets =
     File(rootProject.projectDir, "tests/spikes/harness/src/main/assets/runtime-libs")
 
 val generatedNativePayloadDir = layout.buildDirectory.dir("generated/runtime/jniLibs")
+val guestShellSource = File(rootProject.projectDir, "app/src/main/cpp/guest_shell.c")
+val guestShellScript = File(rootProject.projectDir, "scripts/build-guest-shell.py")
 val stageNativePayloads = tasks.register<Sync>("stageNativePayloads") {
     // Locals only: closures that capture script state break the
     // configuration cache.
     val stagedLoader = File(stagedNativePayloads, "libldmusl.so")
+    val wrapperSource = guestShellSource
+    val wrapperScript = guestShellScript
+    val wrapperOutput = generatedNativePayloadDir.get()
+        .dir("arm64-v8a").file("libopencode_shell.so").asFile
+    inputs.file(wrapperSource)
+    inputs.file(wrapperScript)
     doFirst {
         if (!stagedLoader.isFile) {
             throw GradleException(
@@ -53,6 +61,20 @@ val stageNativePayloads = tasks.register<Sync>("stageNativePayloads") {
         include("libldmusl.so", "libproot.so", "libproot_loader.so")
     }
     into(generatedNativePayloadDir.map { it.dir("arm64-v8a") })
+    doLast {
+        // OpenCode launches this wrapper as its agent shell. Compile it into
+        // the generated native-library directory so Android executes it from
+        // the APK's read-only nativeLibraryDir, never from writable storage.
+        val process = ProcessBuilder(
+            "python3",
+            wrapperScript.absolutePath,
+            "--source", wrapperSource.absolutePath,
+            "--output", wrapperOutput.absolutePath,
+        ).inheritIO().start()
+        if (process.waitFor() != 0) {
+            throw GradleException("guest shell wrapper build failed")
+        }
+    }
 }
 
 val generatedRuntimeLibAssetsDir = layout.buildDirectory.dir("generated/runtime/lib-assets")

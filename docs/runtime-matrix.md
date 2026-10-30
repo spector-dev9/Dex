@@ -43,7 +43,7 @@ must not be presented as .101 device evidence.
 | Property | Profile A (proposed default) | Profile B |
 | --- | --- | --- |
 | Server process | OpenCode runs directly through the bundled musl loader | Whole OpenCode server runs inside PRoot/Alpine |
-| Agent shell | Redirected to the Alpine/PRoot guest through a `SHELL` wrapper | Already inside the guest |
+| Agent shell | Redirected to the Alpine/PRoot guest through the APK-native `libopencode_shell.so` wrapper configured as OpenCode `shell`/`SHELL` | Already inside the guest |
 | Terminal | Native Android `PtyService` through PRoot; server PTY is not used | Same |
 | Git | Guest git through PRoot | Guest git inside the same guest |
 | Packaging | Loader, PRoot and helpers from `jniLibs`; no executable from writable storage | Same entry-point rule; guest binary/rootfs handling must still be proven |
@@ -123,8 +123,9 @@ status, run count, and whether the server, loader and PRoot came from
 
 - Does the app-sandbox loader/PRoot path start cleanly on targetSdk 36
   without `execute_no_trans` denials?
-- Does the `SHELL` wrapper survive the full app supervisor and OpenCode
-  config path, not only the host spike?
+- Does the production `libopencode_shell.so` wrapper survive the full app
+  supervisor and OpenCode config path, not only the host spike? It is
+  wired in `ProductionServerLauncher`; device comparison is still pending.
 - Can the guest binary and rootfs be packaged without violating D3, or
   does Profile B require a copy/bind model that needs its own review?
 - Does native `forkpty` through PRoot give identical `stty size`, signals
