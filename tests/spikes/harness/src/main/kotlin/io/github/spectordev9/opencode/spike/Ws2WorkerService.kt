@@ -24,10 +24,28 @@ class Ws2WorkerService : Service() {
                 directory.mkdirs()
                 writeStage(directory, run, size, "thread-start")
                 File(directory, PID_FILE).writeText(Process.myPid().toString())
-                writeStage(directory, run, size, "write-start")
+                writeStage(directory, run, size, "precondition-start")
                 val service = FileWorkspaceService(directory.toPath())
                 val result = runBlocking {
-                    service.write("target.bin", generatedContent(run, size), Precondition.None)
+                    val target = File(directory, "target.bin")
+                    val precondition = when (val current = service.stat("target.bin")) {
+                        is ApiResult.Success -> Precondition.Match(
+                            sizeBytes = current.value.sizeBytes,
+                            modifiedAtEpochMillis = current.value.modifiedAtEpochMillis,
+                            sha256 = G3Support.sha256(target),
+                        )
+                        is ApiResult.Failure -> {
+                            writeStage(directory, run, size, "precondition-fallback:${current.error.code}")
+                            Precondition.None
+                        }
+                    }
+                    writeStage(
+                        directory,
+                        run,
+                        size,
+                        "write-start precondition=${if (precondition is Precondition.Match) "match" else "none"}",
+                    )
+                    service.write("target.bin", generatedContent(run, size), precondition)
                 }
                 when (result) {
                     is ApiResult.Success -> writeStage(directory, run, size, "write-done")

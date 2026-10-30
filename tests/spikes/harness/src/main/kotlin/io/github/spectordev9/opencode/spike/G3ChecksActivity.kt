@@ -93,7 +93,10 @@ class G3ChecksActivity : Activity() {
         addButton(root, "LC-3 full: 50 SIGKILL restarts (background)") {
             startLongRun(G3LongRunService.ACTION_LC3, 50, 0)
         }
-        addButton(root, "LC-4: 10-minute idle CPU (background)") {
+        addButton(root, "LC-4 quick: 2-minute diagnostic (background)") {
+            startLongRun(G3LongRunService.ACTION_LC4, 0, 2)
+        }
+        addButton(root, "LC-4: 10-minute idle CPU acceptance (background)") {
             startLongRun(G3LongRunService.ACTION_LC4, 0, 10)
         }
         addButton(root, "SEC-2: APK, file, process and denial scan") {

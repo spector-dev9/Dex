@@ -111,7 +111,13 @@ internal object G3RecoveryChecks {
         }
         val average = if (samples.isEmpty()) 100.0 else samples.average()
         val maximum = samples.maxOrNull() ?: 100.0
+        val firstMinute = if (samples.isEmpty()) 100.0 else samples.take(12).average()
+        val lastFiveMinutes = if (samples.isEmpty()) 100.0 else samples.takeLast(60).average()
+        val p95 = percentile95(samples)
+        val processUsage = processDeltas(pid)
+        val threadUsage = threadDeltas(pid)
         val topThreads = topThreads(pid)
+        val serverLog = session.lastLog(1_200).replace('\n', ' ').replace(Regex("\\s+"), " ")
         val aliveBeforeStop = session.isAlive()
         val stopped = runCatching {
             session.stop()
@@ -123,9 +129,15 @@ internal object G3RecoveryChecks {
         val detail = buildString {
             append("idleMinutes=$minutes samples=${samples.size}")
             append(" avgCpu=${"%.3f".format(average)}% maxCpu=${"%.2f".format(maximum)}%")
+            append(" firstMinuteAvg=${"%.3f".format(firstMinute)}% lastFiveMinAvg=${"%.3f".format(lastFiveMinutes)}%")
+            append(" p95Cpu=${"%.2f".format(p95)}%")
             append(" stoppedAfterIdle=$stopped postStopTicks=$cpuAfterStop")
             append(" idleTimeout=10min default")
-            append(" topThreads=[${topThreads.joinToString("; ")}]")
+            append(" processDeltas=[${processUsage.joinToString("; ")}]")
+            append(" threadDeltas=[${threadUsage.joinToString("; ")}]")
+            append(" topSnapshot=[${topThreads.joinToString("; ")}]")
+            append(" serverLogTail=[${serverLog.take(1_200)}]")
+            append(" samplesCsv=[${samples.joinToString(",") { "%.2f".format(it) }}]")
         }
         return ProbeRecord("LC-4", pass, detail, durationMs = elapsed(started))
     }
@@ -137,11 +149,55 @@ internal object G3RecoveryChecks {
         val text = process.inputStream.bufferedReader().use { it.readText() }
         process.waitFor()
         text.lineSequence()
-            .filter { it.trim().firstOrNull()?.isDigit() == true }
+            .filter {
+                it.trim().firstOrNull()?.isDigit() == true &&
+                    !it.contains("%cpu", ignoreCase = true)
+            }
             .take(5)
             .map { it.replace(Regex("\\s+"), " ").trim().take(140) }
             .toList()
     }.getOrDefault(emptyList())
+
+    private fun processDeltas(rootPid: Int): List<String> {
+        val before = processTree(rootPid)
+        Thread.sleep(2_000)
+        val after = processTree(rootPid)
+        return after.values.mapNotNull { current ->
+            val previous = before[current.pid] ?: return@mapNotNull null
+            val delta = max(0L, current.ticks - previous.ticks)
+            if (delta == 0L) return@mapNotNull null
+            ProcessUsage(
+                pid = current.pid,
+                parent = current.parent,
+                comm = processComm(current.pid),
+                percent = delta * 100.0 / (2.0 * CLOCK_TICKS),
+                rssMiB = current.rssPages * PAGE_SIZE_BYTES / (1024 * 1024),
+            )
+        }.sortedByDescending { it.percent }
+            .take(8)
+            .map {
+                "pid=${it.pid} ppid=${it.parent} comm=${it.comm} " +
+                    "cpu=${"%.2f".format(it.percent)}% rssMiB=${it.rssMiB}"
+            }
+    }
+
+    private fun threadDeltas(pid: Int): List<String> {
+        val before = threadTicks(pid)
+        Thread.sleep(2_000)
+        val after = threadTicks(pid)
+        return after.mapNotNull { (tid, ticks) ->
+            val previous = before[tid] ?: return@mapNotNull null
+            val delta = max(0L, ticks - previous)
+            if (delta == 0L) return@mapNotNull null
+            ThreadUsage(
+                tid = tid,
+                comm = threadComm(pid, tid),
+                percent = delta * 100.0 / (2.0 * CLOCK_TICKS),
+            )
+        }.sortedByDescending { it.percent }
+            .take(10)
+            .map { "tid=${it.tid} comm=${it.comm} cpu=${"%.2f".format(it.percent)}%" }
+    }
 
     private fun percentile95(values: List<Long>): Long {
         if (values.isEmpty()) return Long.MAX_VALUE
@@ -150,22 +206,44 @@ internal object G3RecoveryChecks {
         return sorted[index]
     }
 
-    private fun processTreeTicks(rootPid: Int): Long {
-        val parents = mutableMapOf<Int, Int>()
+    private fun percentile95(values: List<Double>): Double {
+        if (values.isEmpty()) return 100.0
+        val sorted = values.sorted()
+        val index = (ceil(sorted.size * 0.95).toInt() - 1).coerceIn(0, sorted.lastIndex)
+        return sorted[index]
+    }
+
+    private fun processTreeTicks(rootPid: Int): Long =
+        processTree(rootPid).values.sumOf { it.ticks }
+
+    private fun processTree(rootPid: Int): Map<Int, ProcStat> {
+        val all = mutableMapOf<Int, ProcStat>()
         File("/proc").listFiles()?.forEach { entry ->
             val pid = entry.name.toIntOrNull() ?: return@forEach
-            readStat(pid)?.let { parents[pid] = it.first }
+            readProcStat(pid)?.let { all[pid] = it }
         }
         val tree = mutableSetOf(rootPid)
         var changed = true
         while (changed) {
             changed = false
-            parents.forEach { (pid, parent) ->
-                if (parent in tree && tree.add(pid)) changed = true
+            all.values.forEach { process ->
+                if (process.parent in tree && tree.add(process.pid)) changed = true
             }
         }
-        return tree.sumOf { readStat(it)?.second ?: 0L }
+        return tree.mapNotNull { pid -> all[pid]?.let { pid to it } }.toMap()
     }
+
+    private fun readProcStat(pid: Int): ProcStat? = runCatching {
+        val text = File("/proc/$pid/stat").readText()
+        val close = text.lastIndexOf(')')
+        if (close < 0) return null
+        val fields = text.substring(close + 2).split(' ')
+        if (fields.size < 22) return null
+        val parent = fields[1].toIntOrNull() ?: return null
+        val ticks = (fields[11].toLongOrNull() ?: 0L) + (fields[12].toLongOrNull() ?: 0L)
+        val rssPages = fields[21].toLongOrNull() ?: 0L
+        ProcStat(pid, parent, ticks, rssPages)
+    }.getOrNull()
 
     private fun readStat(pid: Int): Pair<Int, Long>? = runCatching {
         val text = File("/proc/$pid/stat").readText()
@@ -178,6 +256,44 @@ internal object G3RecoveryChecks {
         parent to ticks
     }.getOrNull()
 
+    private fun threadTicks(pid: Int): Map<Int, Long> = runCatching {
+        File("/proc/$pid/task").listFiles()?.mapNotNull { entry ->
+            val tid = entry.name.toIntOrNull() ?: return@mapNotNull null
+            val ticks = readStat(tid)?.second ?: return@mapNotNull null
+            tid to ticks
+        }?.toMap() ?: emptyMap()
+    }.getOrDefault(emptyMap())
+
+    private fun processComm(pid: Int): String = runCatching {
+        File("/proc/$pid/comm").readText().trim().replace(Regex("\\s+"), "_")
+    }.getOrDefault("?")
+
+    private fun threadComm(pid: Int, tid: Int): String = runCatching {
+        File("/proc/$pid/task/$tid/comm").readText().trim().replace(Regex("\\s+"), "_")
+    }.getOrDefault("?")
+
+    private data class ProcStat(
+        val pid: Int,
+        val parent: Int,
+        val ticks: Long,
+        val rssPages: Long,
+    )
+
+    private data class ProcessUsage(
+        val pid: Int,
+        val parent: Int,
+        val comm: String,
+        val percent: Double,
+        val rssMiB: Long,
+    )
+
+    private data class ThreadUsage(
+        val tid: Int,
+        val comm: String,
+        val percent: Double,
+    )
+
     private const val CLOCK_TICKS = 100.0
+    private const val PAGE_SIZE_BYTES = 4096L
     private fun elapsed(started: Long): Long = System.currentTimeMillis() - started
 }
