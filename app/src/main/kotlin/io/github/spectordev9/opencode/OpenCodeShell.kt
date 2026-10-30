@@ -222,6 +222,15 @@ private fun TopStatusPill(label: String, online: Boolean) {
 }
 
 @Composable
+private fun MenuAction(glyph: String, label: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(glyph, color = color, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(9.dp))
+        Text(label, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
 private fun StudioIconButton(
     glyph: String,
     onClick: () -> Unit,
