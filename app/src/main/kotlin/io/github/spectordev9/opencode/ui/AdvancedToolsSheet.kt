@@ -105,7 +105,7 @@ fun AdvancedToolsSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = palette.Panel2,
+        containerColor = palette.Panel,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
@@ -114,7 +114,25 @@ fun AdvancedToolsSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Advanced tools", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+            Text(
+                "POWER TOOLS",
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.2.sp,
+                color = palette.Accent,
+            )
+            Text(
+                "Advanced tools",
+                fontSize = 24.sp,
+                lineHeight = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = palette.TextCol,
+            )
+            Text(
+                "Projects, MCP servers, skills, builds, and environment.",
+                fontSize = 12.sp,
+                color = palette.Muted2,
+            )
             messages?.let { Text(it, color = palette.Accent, fontSize = 12.sp) }
 
             CompatibilitySection(compatibility)
@@ -468,13 +486,13 @@ fun AdvancedToolsSheet(
 }
 
 @Composable
-private fun SectionTitle(text: String) {
+internal fun SectionTitle(text: String) {
     val palette = LocalOpencodePalette.current
     Text(text, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
 }
 
 @Composable
-private fun CompatibilitySection(report: CompatibilityReport?) {
+internal fun CompatibilitySection(report: CompatibilityReport?) {
     val palette = LocalOpencodePalette.current
     if (report == null) {
         Text("Checking device compatibility…", color = palette.Muted, fontSize = 11.sp)
@@ -482,7 +500,7 @@ private fun CompatibilitySection(report: CompatibilityReport?) {
     }
     Text(
         "Runtime: ${if (report.supported) "ready" else "not ready"}  |  " +
-            "Android SDK ${report.sdkInt}  |  ${formatBytes(report.freeStorageBytes)} free",
+            "Android SDK ${report.sdkInt}  |  ${formatArtifactBytes(report.freeStorageBytes)} free",
         color = if (report.supported) palette.SuccessCol else palette.WarningCol,
         fontSize = 11.sp,
     )
@@ -491,7 +509,7 @@ private fun CompatibilitySection(report: CompatibilityReport?) {
 }
 
 @Composable
-private fun ProjectRow(project: ProjectWorkspace, onSelect: () -> Unit) {
+internal fun ProjectRow(project: ProjectWorkspace, onSelect: () -> Unit) {
     val palette = LocalOpencodePalette.current
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -510,7 +528,7 @@ private fun ProjectRow(project: ProjectWorkspace, onSelect: () -> Unit) {
 }
 
 @Composable
-private fun SkillRow(skill: ServerSkill) {
+internal fun SkillRow(skill: ServerSkill) {
     val palette = LocalOpencodePalette.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Text("/${skill.name}", color = palette.TextCol, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
@@ -520,7 +538,7 @@ private fun SkillRow(skill: ServerSkill) {
 }
 
 @Composable
-private fun CommandRow(command: ServerCommandInfo, onRun: () -> Unit) {
+internal fun CommandRow(command: ServerCommandInfo, onRun: () -> Unit) {
     val palette = LocalOpencodePalette.current
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -541,7 +559,7 @@ private fun CommandRow(command: ServerCommandInfo, onRun: () -> Unit) {
 }
 
 @Composable
-private fun McpRow(server: McpServerInfo, onToggle: (Boolean) -> Unit) {
+internal fun McpRow(server: McpServerInfo, onToggle: (Boolean) -> Unit) {
     val palette = LocalOpencodePalette.current
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -567,7 +585,7 @@ private fun McpRow(server: McpServerInfo, onToggle: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun ArtifactRow(artifact: BuildArtifact, onShare: () -> Unit) {
+internal fun ArtifactRow(artifact: BuildArtifact, onShare: () -> Unit) {
     val palette = LocalOpencodePalette.current
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -576,13 +594,13 @@ private fun ArtifactRow(artifact: BuildArtifact, onShare: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(artifact.path, color = palette.TextCol, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-            Text(formatBytes(artifact.sizeBytes), color = palette.Muted2, fontSize = 10.sp)
+            Text(formatArtifactBytes(artifact.sizeBytes), color = palette.Muted2, fontSize = 10.sp)
         }
         TextButton(onClick = onShare) { Text("Share", color = palette.Accent, fontSize = 11.sp) }
     }
 }
 
-private fun shareArtifact(context: Context, builds: BuildController, artifact: BuildArtifact): Boolean {
+internal fun shareArtifact(context: Context, builds: BuildController, artifact: BuildArtifact): Boolean {
     val file = builds.resolveArtifact(artifact.path) ?: return false
     return runCatching {
         val shareDirectory = File(context.cacheDir, "shared").apply { mkdirs() }
@@ -605,7 +623,7 @@ private fun shareArtifact(context: Context, builds: BuildController, artifact: B
     }.isSuccess
 }
 
-private fun formatBytes(bytes: Long): String = when {
+internal fun formatArtifactBytes(bytes: Long): String = when {
     bytes >= 1L shl 30 -> "%.1f GiB".format(bytes.toDouble() / (1L shl 30))
     bytes >= 1L shl 20 -> "%.1f MiB".format(bytes.toDouble() / (1L shl 20))
     bytes >= 1L shl 10 -> "%.1f KiB".format(bytes.toDouble() / (1L shl 10))

@@ -79,11 +79,11 @@ class SharedPrefsProviderSettingsStore(context: Context) : ProviderSettingsStore
         name: String,
         apiKey: String?,
     ): ApiResult<LocalProviderSettings> {
-        val cleanBaseUrl = SharedPrefsServerProfileStore.validateProfileEndpoint(baseUrl)
+        val cleanBaseUrl = SharedPrefsServerProfileStore.validateProviderEndpoint(baseUrl)
             ?: return ApiResult.Failure(
                 ApiError(
                     ErrorCode.E_PATH_DENIED,
-                    "Base URL must use HTTPS for remote hosts or HTTP only for loopback",
+                    "Base URL must use HTTPS for public hosts or a private LAN address",
                 ),
             )
         val cleanModel = validateModelId(modelId)
@@ -195,4 +195,4 @@ internal fun mockServerConfig(mockBaseUrl: String, shellPath: String? = null): S
 internal const val CUSTOM_PROVIDER_ID = "device"
 internal const val MOCK_PROVIDER_ID = "opencode-mobile-mock"
 internal const val PROVIDER_SETTINGS_NOTE =
-    "Custom endpoints use an OpenAI-compatible /v1 base URL. The API key is stored in app-private storage."
+    "Custom endpoints use an OpenAI-compatible /v1 base URL. HTTP is allowed for loopback or private LAN hosts; public hosts require HTTPS. The API key is stored in app-private storage."

@@ -449,6 +449,7 @@ class FakeOpenCodeClient : OpenCodeClient {
     var lastPermission: Pair<String, PermissionResponse>? = null
     var healthResult: ApiResult<GatewayHealth> =
         ApiResult.Success(GatewayHealth(version = "1.19.3", endpointPort = 4097))
+    val rawResponses = mutableMapOf<String, String>()
     private val serverEvents = MutableSharedFlow<ServerEvent>(extraBufferCapacity = 32)
 
     override suspend fun listSessions(directory: String): ApiResult<List<Session>> =
@@ -596,8 +597,22 @@ class FakeOpenCodeClient : OpenCodeClient {
     override suspend fun listFiles(path: String, directory: String): ApiResult<List<io.github.spectordev9.opencode.core.model.FileEntry>> =
         ApiResult.Success(emptyList())
 
-    override suspend fun <T> call(operation: GatewayOperation<T>): ApiResult<T> =
-        ApiResult.Failure(ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "not used by fake client"))
+    override suspend fun <T> call(operation: GatewayOperation<T>): ApiResult<T> {
+        val raw = rawResponses[operation.name]
+            ?: return ApiResult.Failure(ApiError(ErrorCode.E_UNSUPPORTED_VERSION, "not used by fake client"))
+        return try {
+            ApiResult.Success(operation.decoder.decode(200, raw.toByteArray()))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (exception: Exception) {
+            ApiResult.Failure(
+                ApiError(
+                    code = ErrorCode.E_UPSTREAM,
+                    message = exception.message ?: "fake response could not be decoded",
+                ),
+            )
+        }
+    }
 
     override fun events(directory: String?): Flow<ServerEvent> = serverEvents
 

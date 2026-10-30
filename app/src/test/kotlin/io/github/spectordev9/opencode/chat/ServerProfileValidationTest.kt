@@ -46,6 +46,46 @@ class ServerProfileValidationTest {
     }
 
     @Test
+    fun `provider endpoints allow private lan http but reject public http`() {
+        assertEquals(
+            "http://192.168.1.20:11434/v1",
+            SharedPrefsServerProfileStore.validateProviderEndpoint("http://192.168.1.20:11434/v1"),
+        )
+        assertEquals(
+            "http://10.0.0.5:1234/v1",
+            SharedPrefsServerProfileStore.validateProviderEndpoint("http://10.0.0.5:1234/v1/"),
+        )
+        assertEquals(
+            "http://my-pc.local:11434/v1",
+            SharedPrefsServerProfileStore.validateProviderEndpoint("my-pc.local:11434/v1"),
+        )
+        assertEquals(
+            "https://api.example.com/v1",
+            SharedPrefsServerProfileStore.validateProviderEndpoint("https://api.example.com/v1"),
+        )
+        assertNull(SharedPrefsServerProfileStore.validateProviderEndpoint("http://example.com/v1"))
+        assertNull(SharedPrefsServerProfileStore.validateProviderEndpoint("ftp://192.168.1.20/v1"))
+    }
+
+    @Test
+    fun `private host detection covers rfc1918 tailscale and local names`() {
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("10.1.2.3"))
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("172.16.0.1"))
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("172.31.255.254"))
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("192.168.0.2"))
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("100.100.1.2"))
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("169.254.10.20"))
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("fd00::1"))
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("fe80::1"))
+        assertEquals(true, SharedPrefsServerProfileStore.isPrivateNetworkHost("workstation.local"))
+        assertEquals(false, SharedPrefsServerProfileStore.isPrivateNetworkHost("172.15.0.1"))
+        assertEquals(false, SharedPrefsServerProfileStore.isPrivateNetworkHost("172.32.0.1"))
+        assertEquals(false, SharedPrefsServerProfileStore.isPrivateNetworkHost("8.8.8.8"))
+        assertEquals(false, SharedPrefsServerProfileStore.isPrivateNetworkHost("2001:db8::1"))
+        assertEquals(false, SharedPrefsServerProfileStore.isPrivateNetworkHost("example.com"))
+    }
+
+    @Test
     fun `remote directories are validated without local path resolution`() {
         assertEquals(".", SharedPrefsServerProfileStore.validateRemoteDirectory(null))
         assertEquals("/srv/projects/demo", SharedPrefsServerProfileStore.validateRemoteDirectory(" /srv/projects/demo "))

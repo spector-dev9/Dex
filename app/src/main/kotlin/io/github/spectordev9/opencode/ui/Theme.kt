@@ -2,7 +2,9 @@ package io.github.spectordev9.opencode.ui
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -12,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 
 /**
  * Extended palette for the app surfaces (F59). Field names intentionally
@@ -51,68 +54,68 @@ data class OpencodePalette(
 )
 
 fun darkPalette(): OpencodePalette = OpencodePalette(
-    DarkBg = Color(0xFF0E0C18),
-    Panel = Color(0xFF161222),
-    Panel2 = Color(0xFF1C1730),
-    Panel3 = Color(0xFF251F3D),
-    BorderCol = Color(0xFF2C2648),
-    BorderStrong = Color(0xFF4A4170),
-    TextCol = Color(0xFFF6F2FF),
-    Muted = Color(0xFFB8B1D2),
-    Muted2 = Color(0xFF8F87A8),
-    Accent = Color(0xFF9B7BFF),
-    AccentStrong = Color(0xFF7C5CFF),
-    AccentSoft = Color(0x2E9B7BFF),
-    Highlight = Color(0xFFC4A7FF),
-    SuccessCol = Color(0xFF55D6A0),
-    WarningCol = Color(0xFFE6B86B),
-    DangerCol = Color(0xFFF08B9D),
-    UserBubbleBg = Color(0xFF2B2354),
-    UserBubbleBorder = Color(0x665D4BEE),
-    ToolChipBg = Color(0xFF191522),
-    ToolChipBorder = Color(0xFF302A45),
-    CodeBg = Color(0xFF120F1C),
-    CodeBorder = Color(0xFF322B4E),
-    CodeText = Color(0xFFDCD6F0),
-    InlineCodeText = Color(0xFFE6C07B),
-    TopbarBg = Color(0xFF120F1E),
-    TerminalBlack = Color(0xFF0B0E14),
-    TerminalGreen = Color(0xFF68D6A4),
-    ErrorSurface = Color(0x12DF7B7B),
-    ErrorBorder = Color(0x52DF7B7B),
-    ErrorText = Color(0xFFE8B7B7),
+    DarkBg = Color(0xFF07090B),
+    Panel = Color(0xFF0D1114),
+    Panel2 = Color(0xFF12171B),
+    Panel3 = Color(0xFF192026),
+    BorderCol = Color(0xFF232D33),
+    BorderStrong = Color(0xFF35444C),
+    TextCol = Color(0xFFF2F7F5),
+    Muted = Color(0xFFA4B2AC),
+    Muted2 = Color(0xFF6F8079),
+    Accent = Color(0xFF7DF0C2),
+    AccentStrong = Color(0xFF2BD79A),
+    AccentSoft = Color(0x2E7DF0C2),
+    Highlight = Color(0xFFF4C77A),
+    SuccessCol = Color(0xFF7DF0C2),
+    WarningCol = Color(0xFFF4C77A),
+    DangerCol = Color(0xFFFF8393),
+    UserBubbleBg = Color(0xFF10261F),
+    UserBubbleBorder = Color(0x80408C70),
+    ToolChipBg = Color(0xFF0F1417),
+    ToolChipBorder = Color(0xFF253037),
+    CodeBg = Color(0xFF0A0E10),
+    CodeBorder = Color(0xFF223038),
+    CodeText = Color(0xFFD7E3DE),
+    InlineCodeText = Color(0xFFF4C77A),
+    TopbarBg = Color(0xFF080B0D),
+    TerminalBlack = Color(0xFF050708),
+    TerminalGreen = Color(0xFF8CF5C8),
+    ErrorSurface = Color(0x1AFF8393),
+    ErrorBorder = Color(0x59FF8393),
+    ErrorText = Color(0xFFFFB3BE),
 )
 
 fun lightPalette(): OpencodePalette = OpencodePalette(
-    DarkBg = Color(0xFFF6F5FC),
+    DarkBg = Color(0xFFF4F6F3),
     Panel = Color(0xFFFFFFFF),
-    Panel2 = Color(0xFFF2F1FA),
-    Panel3 = Color(0xFFE9E7F5),
-    BorderCol = Color(0xFFDDDBEE),
-    BorderStrong = Color(0xFFB9B5D8),
-    TextCol = Color(0xFF23233A),
-    Muted = Color(0xFF5B5A75),
-    Muted2 = Color(0xFF6F6E88),
-    Accent = Color(0xFF6A4DF0),
-    AccentStrong = Color(0xFF5938E8),
-    AccentSoft = Color(0x1A6A4DF0),
-    Highlight = Color(0xFF9333EA),
-    SuccessCol = Color(0xFF18855B),
-    WarningCol = Color(0xFFA16207),
-    DangerCol = Color(0xFFD64560),
-    UserBubbleBg = Color(0xFFE8E3FF),
-    UserBubbleBorder = Color(0xFFC4B8F5),
-    ToolChipBg = Color(0xFFF3F2FA),
-    ToolChipBorder = Color(0xFFE2E1EE),
-    CodeBg = Color(0xFFF6F5FC),
-    CodeBorder = Color(0xFFDEDCF0),
-    CodeText = Color(0xFF3A3A55),
-    InlineCodeText = Color(0xFF9A6A00),
-    TopbarBg = Color(0xFFF0EFF9),
-    TerminalBlack = Color(0xFF0B0E14),
-    TerminalGreen = Color(0xFF68D6A4),
-    ErrorSurface = Color(0x14DF7B7B),
-    ErrorBorder = Color(0x47DF7B7B),
+    Panel2 = Color(0xFFEEF2EE),
+    Panel3 = Color(0xFFE3EAE5),
+    BorderCol = Color(0xFFD7E0DA),
+    BorderStrong = Color(0xFFB6C4BC),
+    TextCol = Color(0xFF111815),
+    Muted = Color(0xFF4F5F57),
+    Muted2 = Color(0xFF72837A),
+    Accent = Color(0xFF087A57),
+    AccentStrong = Color(0xFF056647),
+    AccentSoft = Color(0xFFD9F2E7),
+    Highlight = Color(0xFF9A5B00),
+    SuccessCol = Color(0xFF087A57),
+    WarningCol = Color(0xFF8A5A00),
+    DangerCol = Color(0xFFC0364B),
+    UserBubbleBg = Color(0xFFE2F5EC),
+    UserBubbleBorder = Color(0xFFB9E0CE),
+    ToolChipBg = Color(0xFFF1F5F2),
+    ToolChipBorder = Color(0xFFDEE7E1),
+    CodeBg = Color(0xFFF7FAF8),
+    CodeBorder = Color(0xFFDCE5DF),
+    CodeText = Color(0xFF24312B),
+    InlineCodeText = Color(0xFF8A5500),
+    TopbarBg = Color(0xFFF8FAF7),
+    TerminalBlack = Color(0xFF080B0A),
+    TerminalGreen = Color(0xFF8CF5C8),
+    ErrorSurface = Color(0x14C0364B),
+    ErrorBorder = Color(0x47C0364B),
     ErrorText = Color(0xFFB23348),
 )
 
@@ -149,13 +152,14 @@ fun paletteFromScheme(scheme: ColorScheme): OpencodePalette = OpencodePalette(
     ErrorText = scheme.error,
 )
 
-fun materialScheme(palette: OpencodePalette, dark: Boolean): ColorScheme =
-    if (dark) {
+fun materialScheme(palette: OpencodePalette, dark: Boolean): ColorScheme {
+    val onAccent = if (dark) palette.DarkBg else Color.White
+    return if (dark) {
         darkColorScheme(
             primary = palette.Accent,
-            onPrimary = Color.White,
+            onPrimary = onAccent,
             secondary = palette.AccentStrong,
-            onSecondary = Color.White,
+            onSecondary = onAccent,
             tertiary = palette.Highlight,
             background = palette.DarkBg,
             surface = palette.Panel,
@@ -168,9 +172,9 @@ fun materialScheme(palette: OpencodePalette, dark: Boolean): ColorScheme =
     } else {
         lightColorScheme(
             primary = palette.Accent,
-            onPrimary = Color.White,
+            onPrimary = onAccent,
             secondary = palette.AccentStrong,
-            onSecondary = Color.White,
+            onSecondary = onAccent,
             tertiary = palette.Highlight,
             background = palette.DarkBg,
             surface = palette.Panel,
@@ -181,6 +185,15 @@ fun materialScheme(palette: OpencodePalette, dark: Boolean): ColorScheme =
             error = palette.DangerCol,
         )
     }
+}
+
+val StudioShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(32.dp),
+)
 
 val LocalOpencodePalette = staticCompositionLocalOf { darkPalette() }
 

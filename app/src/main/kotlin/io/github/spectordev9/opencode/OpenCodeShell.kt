@@ -32,12 +32,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -52,16 +50,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -69,6 +65,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -111,6 +108,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.withStyle
 import io.github.spectordev9.opencode.chat.MAX_SESSION_EXPORT_BYTES
 import io.github.spectordev9.opencode.chat.decodeSessionExport
@@ -157,14 +156,19 @@ import io.github.spectordev9.opencode.core.terminal.PtyService
 import io.github.spectordev9.opencode.core.terminal.PtySession
 import io.github.spectordev9.opencode.core.terminal.PtySize
 import io.github.spectordev9.opencode.core.terminal.PtySpec
-import io.github.spectordev9.opencode.ui.CodeBlock
-import io.github.spectordev9.opencode.ui.AdvancedToolsSheet
+import io.github.spectordev9.opencode.ui.BuildTestScreen
+import io.github.spectordev9.opencode.ui.DiagnosticsScreen
+import io.github.spectordev9.opencode.ui.IntegrationsScreen
 import io.github.spectordev9.opencode.ui.LocalOpencodePalette
-import io.github.spectordev9.opencode.ui.MdBlock
 import io.github.spectordev9.opencode.ui.MarkdownText
+import io.github.spectordev9.opencode.ui.OpenCodeDrawerSheet
 import io.github.spectordev9.opencode.ui.OpencodePalette
+import io.github.spectordev9.opencode.ui.ProjectConfigurationScreen
+import io.github.spectordev9.opencode.ui.RuntimeToolsScreen
+import io.github.spectordev9.opencode.ui.ShellDestination
+import io.github.spectordev9.opencode.ui.TasksActivityScreen
+import io.github.spectordev9.opencode.ui.StudioShapes
 import io.github.spectordev9.opencode.ui.UiPrefs
-import io.github.spectordev9.opencode.ui.copyToClipboard
 import io.github.spectordev9.opencode.ui.materialScheme
 import io.github.spectordev9.opencode.ui.rememberOpencodePalette
 import io.github.spectordev9.opencode.ui.shareText
@@ -176,13 +180,6 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
-
-private enum class AppTab(val label: String, val glyph: String) {
-    Chat("Chat", "◈"),
-    Files("Files", "◫"),
-    Git("Git", "⑂"),
-    Terminal("Terminal", "⌨"),
-}
 
 @Composable
 private fun OpenCodeMark(size: Dp) {
@@ -197,41 +194,142 @@ private fun OpenCodeMark(size: Dp) {
 @Composable
 private fun TopStatusPill(label: String, online: Boolean) {
     val palette = LocalOpencodePalette.current
+    val tone = if (online) palette.Accent else palette.WarningCol
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(palette.Panel2)
-            .border(1.dp, palette.BorderCol, RoundedCornerShape(50))
+            .background(if (online) palette.AccentSoft else palette.Panel2)
+            .border(1.dp, tone.copy(alpha = 0.32f), RoundedCornerShape(50))
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
-                .size(7.dp)
+                .size(6.dp)
                 .clip(RoundedCornerShape(50))
-                .background(if (online) palette.SuccessCol else palette.WarningCol),
+                .background(tone),
         )
         Spacer(Modifier.width(6.dp))
-        Text(label, color = palette.Muted, fontSize = 11.sp, maxLines = 1)
+        Text(
+            label.uppercase(),
+            color = if (online) palette.Accent else palette.WarningCol,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp,
+            maxLines = 1,
+        )
     }
 }
 
 @Composable
-private fun RoundIconButton(
+private fun StudioIconButton(
     glyph: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
+    accent: Boolean = false,
+    size: Dp = 38.dp,
+    label: String? = null,
 ) {
     val palette = LocalOpencodePalette.current
     Surface(
-        shape = RoundedCornerShape(50),
-        color = palette.Panel2,
-        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+        shape = RoundedCornerShape(13.dp),
+        color = if (accent) palette.AccentSoft else palette.Panel2.copy(alpha = 0.9f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (accent) palette.AccentStrong.copy(alpha = 0.35f) else palette.BorderCol,
+        ),
         modifier = Modifier
-            .size(38.dp)
-            .clickable(onClick = onClick),
+            .size(size)
+            .semantics { label?.let { contentDescription = it } }
+            .clickable(enabled = enabled, onClick = onClick),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(glyph, color = palette.Muted, fontSize = 16.sp)
+            Text(
+                glyph,
+                color = when {
+                    !enabled -> palette.Muted2.copy(alpha = 0.45f)
+                    accent -> palette.Accent
+                    else -> palette.Muted
+                },
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StudioActionChip(
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    accent: Boolean = false,
+) {
+    val palette = LocalOpencodePalette.current
+    Surface(
+        shape = RoundedCornerShape(11.dp),
+        color = if (accent) palette.AccentSoft else palette.Panel2,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (accent) palette.AccentStrong.copy(alpha = 0.3f) else palette.BorderCol,
+        ),
+        modifier = Modifier.clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Text(
+            label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            color = when {
+                !enabled -> palette.Muted2.copy(alpha = 0.45f)
+                accent -> palette.Accent
+                else -> palette.Muted
+            },
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun StudioScreenHeader(
+    kicker: String,
+    title: String,
+    subtitle: String,
+    subtitleMono: Boolean = false,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
+    val palette = LocalOpencodePalette.current
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            kicker,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 2.2.sp,
+            color = palette.Accent,
+        )
+        Text(
+            title,
+            fontSize = 26.sp,
+            lineHeight = 30.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.4).sp,
+            color = palette.TextCol,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                subtitle,
+                modifier = Modifier.weight(1f),
+                fontSize = 11.sp,
+                color = palette.Muted2,
+                fontFamily = if (subtitleMono) FontFamily.Monospace else FontFamily.Default,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            actions()
         }
     }
 }
@@ -240,113 +338,74 @@ private fun RoundIconButton(
 private fun OpenCodeTopBar(
     online: Boolean,
     statusLabel: String,
-    selectedTab: AppTab,
-    onSelectTab: (AppTab) -> Unit,
-    onRefresh: () -> Unit,
+    newSessionEnabled: Boolean,
+    onOpenDrawer: () -> Unit,
     onNewSession: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenTools: (() -> Unit)?,
-    onOpenLicenses: () -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
-    val toolsAction = onOpenTools
-    var menuExpanded by remember { mutableStateOf(false) }
     Column(
         Modifier
             .fillMaxWidth()
-            .background(palette.TopbarBg),
+            .background(palette.TopbarBg.copy(alpha = 0.96f)),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 12.dp, top = 8.dp, bottom = 6.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 9.dp, bottom = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OpenCodeMark(34.dp)
-            Spacer(Modifier.width(10.dp))
-            Text("OpenCode", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
-            Spacer(Modifier.weight(1f))
-            TopStatusPill(statusLabel, online)
-            Spacer(Modifier.width(8.dp))
-            RoundIconButton("↻", onRefresh)
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Box {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = palette.Panel2,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clickable { menuExpanded = true },
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("☰", color = palette.Muted, fontSize = 16.sp)
-                    }
-                }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Settings", color = palette.TextCol) },
-                        onClick = {
-                            menuExpanded = false
-                            onOpenSettings()
-                        },
-                    )
-                    if (toolsAction != null) {
-                        DropdownMenuItem(
-                            text = { Text("Tools", color = palette.TextCol) },
-                            onClick = {
-                                menuExpanded = false
-                                toolsAction()
-                            },
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Licenses", color = palette.TextCol) },
-                        onClick = {
-                            menuExpanded = false
-                            onOpenLicenses()
-                        },
-                    )
-                }
-            }
-            val chatSelected = selectedTab == AppTab.Chat
+            StudioIconButton(
+                glyph = "☰",
+                onClick = onOpenDrawer,
+                size = 40.dp,
+                label = "Open navigation",
+            )
+            Spacer(Modifier.width(9.dp))
             Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = if (chatSelected) palette.AccentSoft else palette.Panel2,
+                shape = RoundedCornerShape(13.dp),
+                color = palette.AccentSoft,
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp,
-                    if (chatSelected) palette.AccentStrong.copy(alpha = 0.55f) else palette.BorderCol,
+                    palette.AccentStrong.copy(alpha = 0.3f),
                 ),
-                modifier = Modifier.clickable { onSelectTab(AppTab.Chat) },
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 13.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text("✳", color = palette.Accent, fontSize = 13.sp)
-                    Text(
-                        "Chat",
-                        color = if (chatSelected) palette.TextCol else palette.Muted,
-                        fontSize = 12.sp,
-                        fontWeight = if (chatSelected) FontWeight.SemiBold else FontWeight.Normal,
-                    )
+                Box(Modifier.size(38.dp), contentAlignment = Alignment.Center) {
+                    OpenCodeMark(25.dp)
                 }
             }
-            Spacer(Modifier.weight(1f))
-            RoundIconButton("＋", onNewSession)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "OPENCODE",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                    color = palette.TextCol,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "MOBILE STUDIO",
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.7.sp,
+                    color = palette.Muted2,
+                    maxLines = 1,
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            TopStatusPill(statusLabel, online)
+            Spacer(Modifier.width(8.dp))
+            StudioIconButton(
+                glyph = "＋",
+                onClick = onNewSession,
+                enabled = newSessionEnabled,
+                accent = true,
+                size = 40.dp,
+                label = "New session",
+            )
         }
-        HorizontalDivider(color = palette.BorderCol)
+        HorizontalDivider(color = palette.BorderCol.copy(alpha = 0.7f))
     }
 }
 
@@ -374,11 +433,15 @@ fun OpenCodeShell(
     val runtimeState = runtimeStateFlow?.collectAsState()?.value
     val serverState = serverStateFlow?.collectAsState()?.value
     val chatState = chat?.state?.collectAsState()?.value
+    val buildState = advanced?.builds?.state?.collectAsState()?.value
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Chat) }
+    var selectedDestination by rememberSaveable { mutableStateOf(ShellDestination.CHAT) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
-    var showTools by rememberSaveable { mutableStateOf(false) }
+    var sessionsRequest by rememberSaveable { mutableIntStateOf(0) }
+    var drawerProjects by remember { mutableStateOf(advanced?.projects?.list().orEmpty()) }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val drawerScope = rememberCoroutineScope()
 
     val palette = rememberOpencodePalette(uiPrefs)
     val darkTheme = when (
@@ -389,6 +452,7 @@ fun OpenCodeShell(
         UiPrefs.ThemeMode.DARK -> true
     }
 
+    val connected = chatState?.connected == true
     val online = serverState?.status ==
         io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.HEALTHY
     val connectionLabel = when {
@@ -399,192 +463,419 @@ fun OpenCodeShell(
             serverState?.status == io.github.spectordev9.opencode.core.supervisor.ServerStateStatus.CRASH_LOOP -> "Starting"
         else -> "Offline"
     }
+    val runtimeLabel = when (runtimeState?.status) {
+        io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.READY -> "Ready"
+        io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.INSTALLING -> "Installing"
+        io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.FAILED -> "Failed"
+        io.github.spectordev9.opencode.core.runtime.RuntimeStateStatus.ABSENT -> "Not installed"
+        null -> "Unavailable"
+    }
+    val selectedProject = drawerProjects.firstOrNull { it.active } ?: drawerProjects.firstOrNull()
+
+    LaunchedEffect(drawerState.isOpen, advanced) {
+        if (drawerState.isOpen) {
+            drawerProjects = advanced?.projects?.list().orEmpty()
+        }
+    }
 
     MaterialTheme(
         colorScheme = materialScheme(palette, darkTheme),
+        shapes = StudioShapes,
     ) {
         CompositionLocalProvider(LocalOpencodePalette provides palette) {
-        Scaffold(
-            containerColor = palette.DarkBg,
-            topBar = {
-                if (!imeVisible) {
-                    OpenCodeTopBar(
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                gesturesEnabled = !imeVisible,
+                scrimColor = palette.DarkBg.copy(alpha = 0.62f),
+                drawerContent = {
+                    OpenCodeDrawerSheet(
+                        selected = selectedDestination,
                         online = online,
                         statusLabel = connectionLabel,
-                        selectedTab = selectedTab,
-                        onSelectTab = { selectedTab = it },
-                        onRefresh = onRetryRuntime,
-                        onNewSession = {
-                            if (chat != null) scope.launch { chat.newSession() }
-                        },
-                        onOpenSettings = { showSettings = true },
-                        onOpenTools = if (advanced != null) {
-                            { showTools = true }
-                        } else {
-                            null
-                        },
-                        onOpenLicenses = onOpenLicenses,
-                    )
-                }
-            },
-            bottomBar = {},
-        ) { padding ->
-            BoxWithConstraints(Modifier.padding(padding)) {
-                val wide = maxWidth >= ResponsiveBreakpoint
-                if (wide) {
-                    Row(Modifier.fillMaxSize()) {
-                        NavigationRail(containerColor = palette.Panel) {
-                            AppTab.entries.forEach { tab ->
-                                NavigationRailItem(
-                                    selected = selectedTab == tab,
-                                    onClick = { selectedTab = tab },
-                                    icon = {
-                                        Text(
-                                            tab.glyph,
-                                            fontSize = 16.sp,
-                                            color = if (selectedTab == tab) palette.Accent else palette.Muted2,
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            tab.label,
-                                            fontSize = 10.sp,
-                                            color = if (selectedTab == tab) palette.TextCol else palette.Muted2,
-                                        )
-                                    },
-                                )
+                        projects = drawerProjects,
+                        selectedProject = selectedProject,
+                        sessionCount = chatState?.sessions?.size ?: 0,
+                        buildRunning = buildState?.running == true,
+                        advancedAvailable = advanced != null,
+                        sessionsAvailable = connected,
+                        onSelect = { destination ->
+                            when (destination) {
+                                ShellDestination.SETTINGS -> showSettings = true
+                                ShellDestination.SESSIONS -> {
+                                    selectedDestination = ShellDestination.CHAT
+                                    sessionsRequest += 1
+                                }
+                                else -> selectedDestination = destination
                             }
-                        }
-                        // Wide screens keep the chat visible alongside the
-                        // selected secondary pane (F58).
-                        if (selectedTab == AppTab.Chat) {
-                            ChatHome(
-                                modifier = Modifier.weight(1f),
-                                chat = chat,
-                                runtimeState = runtimeState,
-                                serverState = serverState,
-                                uiPrefs = uiPrefs,
-                                onRetryRuntime = onRetryRuntime,
+                            drawerScope.launch { drawerState.close() }
+                        },
+                        onSelectProject = { project ->
+                            when (val result = advanced?.selectProject(project.id)) {
+                                is ApiResult.Success -> {
+                                    drawerProjects = advanced?.projects?.list().orEmpty()
+                                    null
+                                }
+                                is ApiResult.Failure -> result.error.message
+                                null -> "Project switching is unavailable"
+                            }
+                        },
+                        onNewSession = {
+                            if (connected && chat != null) {
+                                selectedDestination = ShellDestination.CHAT
+                                scope.launch { chat.newSession() }
+                                drawerScope.launch { drawerState.close() }
+                            }
+                        },
+                        onRefresh = onRetryRuntime,
+                        onOpenLicenses = {
+                            drawerScope.launch { drawerState.close() }
+                            onOpenLicenses()
+                        },
+                        onClose = { drawerScope.launch { drawerState.close() } },
+                    )
+                },
+            ) {
+                Scaffold(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    palette.DarkBg,
+                                    palette.Panel.copy(alpha = 0.45f),
+                                    palette.DarkBg,
+                                ),
+                            ),
+                        ),
+                    containerColor = Color.Transparent,
+                    topBar = {
+                        if (!imeVisible) {
+                            OpenCodeTopBar(
+                                online = online,
+                                statusLabel = connectionLabel,
+                                newSessionEnabled = connected,
+                                onOpenDrawer = { drawerScope.launch { drawerState.open() } },
+                                onNewSession = {
+                                    if (connected && chat != null) {
+                                        selectedDestination = ShellDestination.CHAT
+                                        scope.launch { chat.newSession() }
+                                    }
+                                },
                             )
-                        } else {
-                            Row(Modifier.weight(1f)) {
-                                ChatHome(
-                                    modifier = Modifier.weight(1f),
-                                    chat = chat,
-                                    runtimeState = runtimeState,
-                                    serverState = serverState,
-                                    uiPrefs = uiPrefs,
-                                    onRetryRuntime = onRetryRuntime,
-                                )
-                                VerticalDivider(color = palette.BorderCol)
-                                when (selectedTab) {
-                                    AppTab.Files -> FilesScreen(
+                        }
+                    },
+                ) { padding ->
+                    BoxWithConstraints(Modifier.padding(padding)) {
+                        val wide = maxWidth >= ResponsiveBreakpoint
+                        val secondary = when (selectedDestination) {
+                            ShellDestination.FILES,
+                            ShellDestination.GIT,
+                            ShellDestination.TERMINAL,
+                            -> selectedDestination
+                            else -> null
+                        }
+                        when {
+                            wide && secondary != null -> {
+                                Row(Modifier.fillMaxSize()) {
+                                    ChatHome(
                                         modifier = Modifier.weight(1f),
-                                        files = files,
+                                        chat = chat,
+                                        runtimeState = runtimeState,
+                                        serverState = serverState,
                                         uiPrefs = uiPrefs,
+                                        onRetryRuntime = onRetryRuntime,
+                                        openSessionsSignal = sessionsRequest,
                                     )
-                                    AppTab.Git -> GitScreen(
+                                    VerticalDivider(color = palette.BorderCol)
+                                    ShellDestinationContent(
+                                        destination = secondary,
                                         modifier = Modifier.weight(1f),
+                                        chat = chat,
+                                        chatState = chatState,
+                                        ptyService = ptyService,
+                                        files = files,
                                         git = git,
                                         uiPrefs = uiPrefs,
-                                    )
-                                    else -> TerminalScreen(
-                                        modifier = Modifier.weight(1f),
-                                        ptyService = ptyService,
-                                        uiPrefs = uiPrefs,
+                                        runtimeState = runtimeState,
+                                        serverState = serverState,
+                                        advanced = advanced,
+                                        connectionLabel = connectionLabel,
+                                        runtimeLabel = runtimeLabel,
+                                        sessionsRequest = sessionsRequest,
+                                        onRetryRuntime = onRetryRuntime,
                                     )
                                 }
                             }
-                        }
-                    }
-                } else {
-                    Column(Modifier.fillMaxSize()) {
-                        Box(Modifier.weight(1f)) {
-                            when (selectedTab) {
-                                AppTab.Chat -> ChatHome(
+                            selectedDestination == ShellDestination.CHAT -> {
+                                ChatHome(
                                     modifier = Modifier.fillMaxSize(),
                                     chat = chat,
                                     runtimeState = runtimeState,
                                     serverState = serverState,
                                     uiPrefs = uiPrefs,
                                     onRetryRuntime = onRetryRuntime,
-                                )
-                                AppTab.Files -> FilesScreen(
-                                    modifier = Modifier.fillMaxSize(),
-                                    files = files,
-                                    uiPrefs = uiPrefs,
-                                )
-                                AppTab.Git -> GitScreen(
-                                    modifier = Modifier.fillMaxSize(),
-                                    git = git,
-                                    uiPrefs = uiPrefs,
-                                )
-                                AppTab.Terminal -> TerminalScreen(
-                                    modifier = Modifier.fillMaxSize(),
-                                    ptyService = ptyService,
-                                    uiPrefs = uiPrefs,
+                                    openSessionsSignal = sessionsRequest,
                                 )
                             }
-                        }
-                        if (!imeVisible) {
-                            NavigationBar(containerColor = palette.Panel) {
-                                AppTab.entries.forEach { tab ->
-                                    NavigationBarItem(
-                                        selected = selectedTab == tab,
-                                        onClick = { selectedTab = tab },
-                                        icon = {
-                                            Text(
-                                                tab.glyph,
-                                                fontSize = 15.sp,
-                                                color = if (selectedTab == tab) palette.Accent else palette.Muted2,
-                                            )
-                                        },
-                                        label = {
-                                            Text(
-                                                tab.label,
-                                                fontSize = 10.sp,
-                                                color = if (selectedTab == tab) palette.TextCol else palette.Muted2,
-                                            )
-                                        },
-                                    )
-                                }
+                            else -> {
+                                ShellDestinationContent(
+                                    destination = selectedDestination,
+                                    modifier = Modifier.fillMaxSize(),
+                                    chat = chat,
+                                    chatState = chatState,
+                                    ptyService = ptyService,
+                                    files = files,
+                                    git = git,
+                                    uiPrefs = uiPrefs,
+                                    runtimeState = runtimeState,
+                                    serverState = serverState,
+                                    advanced = advanced,
+                                    connectionLabel = connectionLabel,
+                                    runtimeLabel = runtimeLabel,
+                                    sessionsRequest = sessionsRequest,
+                                    onRetryRuntime = onRetryRuntime,
+                                )
                             }
                         }
                     }
                 }
             }
         }
-        }
-
-        if (showTools && advanced != null) {
-            AdvancedToolsSheet(
-                tools = advanced,
-                chat = chat,
-                onDismiss = { showTools = false },
-            )
-        }
 
         if (showSettings) {
-            SettingsSheet(
-                chat = chat,
-                state = chatState ?: ChatUiState(),
-                uiPrefs = uiPrefs,
-                profiles = profiles,
-                cleaner = cleaner,
-                workspace = workspace,
-                isConnected = chatState?.connected == true,
-                onConnectProfile = onConnectProfile,
-                onDisconnectProfile = onDisconnectProfile,
-                providerSettings = providerSettings,
-                onApplyProviderSettings = onApplyProviderSettings,
-                onDismiss = { showSettings = false },
-            )
+            CompositionLocalProvider(LocalOpencodePalette provides palette) {
+                SettingsSheet(
+                    chat = chat,
+                    state = chatState ?: ChatUiState(),
+                    uiPrefs = uiPrefs,
+                    profiles = profiles,
+                    cleaner = cleaner,
+                    workspace = workspace,
+                    isConnected = chatState?.connected == true,
+                    onConnectProfile = onConnectProfile,
+                    onDisconnectProfile = onDisconnectProfile,
+                    providerSettings = providerSettings,
+                    onApplyProviderSettings = onApplyProviderSettings,
+                    onDismiss = { showSettings = false },
+                )
+            }
         }
     }
 }
 
-/** Width threshold (F58): below → bottom bar, at/above → rail + two panes. */
+/** Width threshold (F58): below → single pane, at/above → chat + secondary pane. */
 private val ResponsiveBreakpoint = 840.dp
+
+@Composable
+private fun ShellDestinationContent(
+    destination: ShellDestination,
+    modifier: Modifier,
+    chat: ChatController?,
+    chatState: ChatUiState?,
+    ptyService: PtyService?,
+    files: FilesController?,
+    git: GitController?,
+    uiPrefs: UiPrefs?,
+    runtimeState: io.github.spectordev9.opencode.core.runtime.RuntimeState?,
+    serverState: io.github.spectordev9.opencode.core.supervisor.ServerState?,
+    advanced: AdvancedTools?,
+    connectionLabel: String,
+    runtimeLabel: String,
+    sessionsRequest: Int,
+    onRetryRuntime: () -> Unit,
+) {
+    when (destination) {
+        ShellDestination.CHAT -> ChatHome(
+            modifier = modifier,
+            chat = chat,
+            runtimeState = runtimeState,
+            serverState = serverState,
+            uiPrefs = uiPrefs,
+            onRetryRuntime = onRetryRuntime,
+            openSessionsSignal = sessionsRequest,
+        )
+        ShellDestination.FILES -> FilesScreen(
+            modifier = modifier,
+            files = files,
+            uiPrefs = uiPrefs,
+        )
+        ShellDestination.GIT -> GitScreen(
+            modifier = modifier,
+            git = git,
+            uiPrefs = uiPrefs,
+        )
+        ShellDestination.TERMINAL -> TerminalScreen(
+            modifier = modifier,
+            ptyService = ptyService,
+            uiPrefs = uiPrefs,
+        )
+        ShellDestination.BUILD_TEST -> {
+            if (advanced != null) {
+                BuildTestScreen(advanced)
+            } else {
+                FeatureUnavailableScreen(
+                    title = "Build & Test unavailable",
+                    detail = "Build controllers are not attached to this shell.",
+                )
+            }
+        }
+        ShellDestination.TASKS -> {
+            if (advanced != null) {
+                TasksActivityScreen(chatState, advanced, connectionLabel)
+            } else {
+                FeatureUnavailableScreen(
+                    title = "Task activity unavailable",
+                    detail = "Diagnostics and build services are not attached to this shell.",
+                )
+            }
+        }
+        ShellDestination.RUNTIME -> {
+            if (advanced != null) {
+                RuntimeToolsScreen(advanced, runtimeLabel, connectionLabel)
+            } else {
+                FeatureUnavailableScreen(
+                    title = "Runtime tools unavailable",
+                    detail = "The advanced tools graph is not attached to this shell.",
+                )
+            }
+        }
+        ShellDestination.INTEGRATIONS -> {
+            if (advanced != null) {
+                IntegrationsScreen(advanced, chat)
+            } else {
+                FeatureUnavailableScreen(
+                    title = "Integrations unavailable",
+                    detail = "The extension controller is not attached to this shell.",
+                )
+            }
+        }
+        ShellDestination.PROJECT_CONFIG -> {
+            if (advanced != null) {
+                ProjectConfigurationScreen(advanced)
+            } else {
+                FeatureUnavailableScreen(
+                    title = "Project configuration unavailable",
+                    detail = "The workspace catalog is not attached to this shell.",
+                )
+            }
+        }
+        ShellDestination.APPEARANCE -> AppearanceScreen(uiPrefs)
+        ShellDestination.DIAGNOSTICS -> {
+            if (advanced != null) {
+                DiagnosticsScreen(advanced, runtimeLabel, connectionLabel)
+            } else {
+                FeatureUnavailableScreen(
+                    title = "Diagnostics unavailable",
+                    detail = "The diagnostics service is not attached to this shell.",
+                )
+            }
+        }
+        ShellDestination.PREVIEW -> FeatureUnavailableScreen(
+            title = "Preview unavailable",
+            detail = "No project preview backend is configured in this build.",
+        )
+        ShellDestination.SESSIONS -> ChatHome(
+            modifier = modifier,
+            chat = chat,
+            runtimeState = runtimeState,
+            serverState = serverState,
+            uiPrefs = uiPrefs,
+            onRetryRuntime = onRetryRuntime,
+            openSessionsSignal = sessionsRequest,
+        )
+        ShellDestination.SETTINGS -> ChatHome(
+            modifier = modifier,
+            chat = chat,
+            runtimeState = runtimeState,
+            serverState = serverState,
+            uiPrefs = uiPrefs,
+            onRetryRuntime = onRetryRuntime,
+            openSessionsSignal = sessionsRequest,
+        )
+    }
+}
+
+@Composable
+private fun AppearanceScreen(uiPrefs: UiPrefs?) {
+    val palette = LocalOpencodePalette.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        StudioScreenHeader(
+            kicker = "PREFERENCES",
+            title = "Appearance",
+            subtitle = "Theme, dynamic color, and readable type scales for chat, code, and terminal.",
+        )
+        HorizontalDivider(color = palette.BorderCol)
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = palette.Panel2.copy(alpha = 0.62f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(14.dp)) {
+                if (uiPrefs == null) {
+                    Text(
+                        "Appearance preferences are unavailable in this shell.",
+                        color = palette.Muted,
+                        fontSize = 12.sp,
+                    )
+                } else {
+                    AppearanceSection(uiPrefs)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Changes apply immediately and persist on this device.",
+                        color = palette.Muted2,
+                        fontSize = 10.sp,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun FeatureUnavailableScreen(title: String, detail: String) {
+    val palette = LocalOpencodePalette.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = palette.Panel2,
+            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+        ) {
+            Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                Text("⌁", color = palette.Muted2, fontSize = 20.sp)
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        Text(
+            title,
+            color = palette.TextCol,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            detail,
+            color = palette.Muted,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
 
 @Composable
 private fun ChatHome(
@@ -594,6 +885,7 @@ private fun ChatHome(
     serverState: io.github.spectordev9.opencode.core.supervisor.ServerState?,
     uiPrefs: UiPrefs? = null,
     onRetryRuntime: () -> Unit = {},
+    openSessionsSignal: Int = 0,
 ) {
     val palette = LocalOpencodePalette.current
     val banner = runtimeBanner(runtimeState, serverState, palette)
@@ -610,13 +902,13 @@ private fun ChatHome(
     ) {
         if (!imeVisible && !connected) {
             Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = palette.Panel,
+                shape = RoundedCornerShape(16.dp),
+                color = palette.Panel.copy(alpha = 0.85f),
                 border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
@@ -660,6 +952,7 @@ private fun ChatHome(
                 uiPrefs = uiPrefs,
                 serverVersion = banner.version,
                 modifier = Modifier.weight(1f),
+                openSessionsSignal = openSessionsSignal,
             )
         } else {
             RuntimeOfflinePanel(
@@ -694,14 +987,16 @@ private fun ChatTaskStatusChip(state: ChatUiState?) {
         io.github.spectordev9.opencode.chat.TaskStatus.IDLE -> palette.Muted2
     }
     Surface(
-        shape = RoundedCornerShape(7.dp),
+        shape = RoundedCornerShape(50),
         color = palette.Panel3,
-        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderStrong),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.35f)),
     ) {
         Text(
-            label,
+            label.uppercase(),
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-            fontSize = 10.sp,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.6.sp,
             color = color,
         )
     }
@@ -712,101 +1007,153 @@ private fun EmptyWorkspace(
     state: ChatUiState,
     serverVersion: String?,
     onNewSession: () -> Unit,
+    onUsePrompt: (String) -> Unit,
 ) {
     val palette = LocalOpencodePalette.current
     val project = state.directory.trimEnd('/').substringAfterLast('/').ifBlank { "Workspace" }
     val serverLabel = serverVersion?.takeIf { it.isNotBlank() }?.let { "Server v$it" } ?: "Server online"
+    val suggestions = listOf(
+        "Explain this project" to
+            "Give me a tour of this codebase: the architecture, entry points, and where I should start.",
+        "Find and fix a bug" to
+            "Review this workspace for the most likely bug, explain the cause, and fix it.",
+        "Write missing tests" to
+            "Find the most important untested behavior in this project and add focused tests.",
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 18.dp, bottom = 24.dp),
+            .padding(top = 8.dp, bottom = 24.dp),
     ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = palette.AccentSoft,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    palette.AccentStrong.copy(alpha = 0.3f),
+                ),
+            ) {
+                Box(Modifier.size(54.dp), contentAlignment = Alignment.Center) {
+                    OpenCodeMark(34.dp)
+                }
+            }
+            Spacer(Modifier.width(13.dp))
+            Column {
+                Text(
+                    "WORKSPACE",
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 2.2.sp,
+                    color = palette.Accent,
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    project,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = palette.TextCol,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Spacer(Modifier.height(22.dp))
         Text(
-            "YOUR WORKSPACE",
-            fontSize = 10.sp,
+            "Build something\nworth shipping.",
+            fontSize = 30.sp,
+            lineHeight = 34.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.8).sp,
+            color = palette.TextCol,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Ask the agent to explore, change, or explain your code. " +
+                "Pick a starting point below, or create a blank session.",
+            fontSize = 13.sp,
+            lineHeight = 20.sp,
+            color = palette.Muted,
+        )
+        Spacer(Modifier.height(18.dp))
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .background(Brush.linearGradient(listOf(palette.Accent, palette.AccentStrong)))
+                .clickable(onClick = onNewSession)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+        ) {
+            Text(
+                "＋  New session",
+                color = palette.DarkBg,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(
+            "QUICK STARTS",
+            fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.8.sp,
             color = palette.Muted2,
         )
-        Spacer(Modifier.height(7.dp))
-        Text(
-            "What are we building?",
-            fontSize = 28.sp,
-            lineHeight = 33.sp,
-            fontWeight = FontWeight.Bold,
-            color = palette.TextCol,
-        )
-        Spacer(Modifier.height(3.dp))
-        Text(
-            "Your coding agent, in a workspace of your own.",
-            fontSize = 14.sp,
-            color = palette.Muted,
-        )
-        Spacer(Modifier.height(12.dp))
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = palette.Panel2,
-            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text("◈", color = palette.Accent, fontSize = 12.sp)
-                Text(project, color = palette.Muted, fontSize = 12.sp, maxLines = 1)
-            }
-        }
-        Spacer(Modifier.height(30.dp))
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            OpenCodeMark(72.dp)
-            Spacer(Modifier.height(18.dp))
-            Text(
-                "Start a conversation.",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = palette.TextCol,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Create a session for this project. You can choose a model, send prompts, " +
-                    "use slash commands, and stop a running agent.",
-                fontSize = 13.sp,
-                lineHeight = 20.sp,
-                textAlign = TextAlign.Center,
-                color = palette.Muted,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-            Spacer(Modifier.height(18.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Brush.linearGradient(listOf(palette.Accent, palette.AccentStrong)))
-                    .clickable(onClick = onNewSession)
-                    .padding(horizontal = 26.dp, vertical = 13.dp),
-            ) {
-                Text(
-                    "＋  New session",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(
+        Spacer(Modifier.height(8.dp))
+        suggestions.forEach { (title, prompt) ->
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = palette.Panel.copy(alpha = 0.8f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                    .clickable { onUsePrompt(prompt) },
             ) {
-                MetaChip("◈ $serverLabel")
-                MetaChip("⌁ $project")
-                MetaChip("◫ Workspace")
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(palette.AccentSoft),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("↗", color = palette.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.width(11.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            title,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.TextCol,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            prompt,
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp,
+                            color = palette.Muted2,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text("→", color = palette.Muted2, fontSize = 14.sp)
+                }
             }
+            Spacer(Modifier.height(7.dp))
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            MetaChip("◈ $serverLabel")
+            MetaChip("⌁ $project")
         }
     }
 }
@@ -836,6 +1183,7 @@ private fun ChatScreen(
     uiPrefs: UiPrefs?,
     serverVersion: String? = null,
     modifier: Modifier = Modifier,
+    openSessionsSignal: Int = 0,
 ) {
     val palette = LocalOpencodePalette.current
     // Font sizes (F59): fall back to defaults when prefs are unavailable.
@@ -843,8 +1191,10 @@ private fun ChatScreen(
     val codeTextSize = uiPrefs?.codeTextSize?.collectAsState()?.value ?: 12
     val scope = rememberCoroutineScope()
     var showSessions by rememberSaveable { mutableStateOf(false) }
+    var handledSessionsSignal by rememberSaveable { mutableIntStateOf(0) }
     var showModelPicker by rememberSaveable { mutableStateOf(false) }
     var showModeMenu by rememberSaveable { mutableStateOf(false) }
+    var showSessionMenu by rememberSaveable { mutableStateOf(false) }
     var showDiffDialog by rememberSaveable { mutableStateOf(false) }
     var pendingExportSessionID by rememberSaveable { mutableStateOf<String?>(null) }
     var exportError by remember { mutableStateOf<String?>(null) }
@@ -854,6 +1204,13 @@ private fun ChatScreen(
     var attachments by remember { mutableStateOf(emptyList<PromptAttachment>()) }
     var attachmentError by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+
+    LaunchedEffect(openSessionsSignal) {
+        if (openSessionsSignal > handledSessionsSignal) {
+            handledSessionsSignal = openSessionsSignal
+            showSessions = true
+        }
+    }
     val exportPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
@@ -933,81 +1290,135 @@ private fun ChatScreen(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Surface(
-                shape = RoundedCornerShape(9.dp),
-                color = palette.Panel2,
-                border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .clip(RoundedCornerShape(9.dp))
-                    .clickable { showSessions = true },
-            ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (activeSession == null) "READY TO BUILD" else "ACTIVE SESSION",
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.6.sp,
+                    color = if (activeSession == null) palette.Muted2 else palette.Accent,
+                )
+                Spacer(Modifier.height(2.dp))
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showSessions = true }
+                        .padding(vertical = 1.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
                         activeSession?.title?.ifBlank { "Untitled session" } ?: "New session",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
                         color = palette.TextCol,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    Text("▾", color = palette.Muted2, fontSize = 12.sp)
+                    Spacer(Modifier.width(6.dp))
+                    Text("⌄", color = palette.Muted2, fontSize = 12.sp)
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val model = state.selectedModel ?: state.defaultModel
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = palette.AccentSoft,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            palette.AccentStrong.copy(alpha = 0.28f),
+                        ),
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clip(RoundedCornerShape(50))
+                            .clickable { showModelPicker = true },
+                    ) {
+                        Text(
+                            model?.modelID ?: "Select model",
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.Accent,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Text(
+                        if (state.messages.size == 1) "1 message" else "${state.messages.size} messages",
+                        fontSize = 9.sp,
+                        color = palette.Muted2,
+                        maxLines = 1,
+                    )
                 }
             }
-            Spacer(Modifier.weight(1f))
-            Surface(
-                shape = RoundedCornerShape(9.dp),
-                color = palette.Panel2,
-                border = androidx.compose.foundation.BorderStroke(1.dp, palette.AccentStrong.copy(alpha = 0.45f)),
-                modifier = Modifier
-                    .clip(RoundedCornerShape(9.dp))
-                    .clickable { showModelPicker = true },
-            ) {
-                val model = state.selectedModel ?: state.defaultModel
-                Text(
-                    model?.let { "${it.providerID}/${it.modelID}" } ?: "Model",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                    fontSize = 11.sp,
-                    color = palette.Muted,
-                    maxLines = 1,
-                )
-            }
-            TextButton(
-                onClick = {
-                    showDiffDialog = true
-                    scope.launch { chat.loadSessionDiff() }
-                },
-                enabled = activeSession != null,
-            ) {
-                Text("Diff", color = palette.Accent, fontSize = 11.sp)
-            }
-            TextButton(
-                onClick = {
-                    val session = activeSession ?: return@TextButton
-                    val baseName = session.title.ifBlank { session.slug }
-                        .replace(Regex("[^A-Za-z0-9._-]+"), "_")
-                        .trim('_')
-                        .take(64)
-                        .ifBlank { "session" }
-                    exportError = null
-                    pendingExportSessionID = session.id
-                    exportPicker.launch("$baseName.json")
-                },
-                enabled = activeSession != null && !state.sending,
-            ) {
-                Text("Export", color = palette.Accent, fontSize = 11.sp)
-            }
-            TextButton(
+            StudioIconButton(
+                glyph = "＋",
                 onClick = { scope.launch { chat.newSession() } },
                 enabled = !state.sending,
-            ) {
-                Text("＋", color = palette.Accent, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                accent = true,
+                size = 38.dp,
+                label = "New session",
+            )
+            Box {
+                StudioIconButton(
+                    glyph = "⋯",
+                    onClick = { showSessionMenu = true },
+                    size = 38.dp,
+                    label = "Session actions",
+                )
+                DropdownMenu(
+                    expanded = showSessionMenu,
+                    onDismissRequest = { showSessionMenu = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { MenuAction("☰", "Switch session", palette.Muted) },
+                        onClick = {
+                            showSessionMenu = false
+                            showSessions = true
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { MenuAction("±", "Session changes", palette.Muted) },
+                        enabled = activeSession != null,
+                        onClick = {
+                            showSessionMenu = false
+                            showDiffDialog = true
+                            scope.launch { chat.loadSessionDiff() }
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { MenuAction("↧", "Export session", palette.Muted) },
+                        enabled = activeSession != null && !state.sending,
+                        onClick = {
+                            showSessionMenu = false
+                            val session = activeSession
+                            if (session != null) {
+                                val baseName = session.title.ifBlank { session.slug }
+                                    .replace(Regex("[^A-Za-z0-9._-]+"), "_")
+                                    .trim('_')
+                                    .take(64)
+                                    .ifBlank { "session" }
+                                exportError = null
+                                pendingExportSessionID = session.id
+                                exportPicker.launch("$baseName.json")
+                            }
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { MenuAction("＋", "New session", palette.Accent) },
+                        enabled = !state.sending,
+                        onClick = {
+                            showSessionMenu = false
+                            scope.launch { chat.newSession() }
+                        },
+                    )
+                }
             }
         }
 
@@ -1055,6 +1466,11 @@ private fun ChatScreen(
                         state = state,
                         serverVersion = serverVersion,
                         onNewSession = { scope.launch { chat.newSession() } },
+                        onUsePrompt = { prompt ->
+                            draft = TextFieldValue(prompt)
+                            sessionDrafts = sessionDrafts +
+                                ((state.activeSessionId ?: NEW_SESSION_DRAFT_KEY) to prompt)
+                        },
                     )
                 }
             }
@@ -1092,11 +1508,11 @@ private fun ChatScreen(
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            color = palette.Panel2,
-            border = androidx.compose.foundation.BorderStroke(1.dp, palette.ToolChipBorder),
+            shape = RoundedCornerShape(22.dp),
+            color = palette.Panel,
+            border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
         ) {
-            Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                 val agentOptions = state.agents.ifEmpty {
                     listOf(
                         io.github.spectordev9.opencode.chat.AgentInfo("build", null, "primary"),
@@ -1110,23 +1526,24 @@ private fun ChatScreen(
                 ) {
                     Box {
                         Surface(
-                            shape = RoundedCornerShape(9.dp),
-                            color = palette.Panel3,
+                            shape = RoundedCornerShape(50),
+                            color = palette.Panel2,
                             border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
                             modifier = Modifier.clickable { showModeMenu = true },
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Text("◈", color = palette.Accent, fontSize = 11.sp)
+                                Text("◇", color = palette.Accent, fontSize = 10.sp)
                                 Text(
-                                    "AI Mode: ${currentMode.replaceFirstChar { it.uppercase() }}",
-                                    color = palette.Muted,
-                                    fontSize = 11.sp,
+                                    currentMode.replaceFirstChar { it.uppercase() },
+                                    color = palette.TextCol,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
                                 )
-                                Text("▾", color = palette.Muted2, fontSize = 9.sp)
+                                Text("▾", color = palette.Muted2, fontSize = 8.sp)
                             }
                         }
                         DropdownMenu(
@@ -1150,24 +1567,37 @@ private fun ChatScreen(
                         }
                     }
                     Spacer(Modifier.weight(1f))
+                    val composerModel = state.selectedModel ?: state.defaultModel
                     Surface(
-                        shape = RoundedCornerShape(9.dp),
-                        color = palette.Panel3,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
-                        modifier = Modifier.clickable { showModelPicker = true },
+                        shape = RoundedCornerShape(50),
+                        color = palette.AccentSoft,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            palette.AccentStrong.copy(alpha = 0.28f),
+                        ),
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clickable { showModelPicker = true },
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Text("◎", color = palette.Accent, fontSize = 11.sp)
-                            Text("AI Select", color = palette.Muted, fontSize = 11.sp)
-                            Text("▾", color = palette.Muted2, fontSize = 9.sp)
+                            Text("◎", color = palette.Accent, fontSize = 10.sp)
+                            Text(
+                                composerModel?.modelID ?: "Model",
+                                color = palette.Accent,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text("▾", color = palette.Accent.copy(alpha = 0.65f), fontSize = 8.sp)
                         }
                     }
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 if (attachments.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -1219,10 +1649,10 @@ private fun ChatScreen(
                     textStyle = TextStyle(color = palette.TextCol, fontSize = 14.sp, lineHeight = 20.sp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
                     decorationBox = { innerTextField ->
-                        Box(Modifier.heightIn(min = 42.dp)) {
+                        Box(Modifier.heightIn(min = 48.dp)) {
                             if (draft.text.isEmpty()) {
                                 Text(
-                                    "Ask OpenCode to inspect, explain, or change this project…",
+                                    "Message the agent…",
                                     color = palette.Muted2,
                                     fontSize = 13.sp,
                                 )
@@ -1238,8 +1668,8 @@ private fun ChatScreen(
                 ) {
                     val canAttach = !state.sending && attachments.size < MAX_PROMPT_ATTACHMENTS
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = palette.Panel3,
+                        shape = RoundedCornerShape(50),
+                        color = palette.Panel2,
                         border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
                         modifier = Modifier
                             .size(36.dp)
@@ -1249,17 +1679,22 @@ private fun ChatScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                "＋",
+                                "⊕",
                                 color = if (canAttach) palette.Muted else palette.Muted2.copy(alpha = 0.4f),
                                 fontSize = 16.sp,
                             )
                         }
                     }
+                    Text(
+                        if (attachments.isEmpty()) "Attach files" else "${attachments.size} attached",
+                        fontSize = 9.sp,
+                        color = palette.Muted2,
+                    )
                     Spacer(Modifier.weight(1f))
                     val canSend = !state.sending &&
                         (draft.text.isNotBlank() || attachments.isNotEmpty())
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(50),
                         color = when {
                             state.sending -> palette.ErrorSurface
                             canSend -> palette.Accent
@@ -1271,7 +1706,7 @@ private fun ChatScreen(
                             null
                         },
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(42.dp)
                             .clickable(enabled = state.sending || canSend) {
                                 if (state.sending) {
                                     scope.launch { chat.abort() }
@@ -1292,13 +1727,14 @@ private fun ChatScreen(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                if (state.sending) "■" else "➤",
+                                if (state.sending) "■" else "↑",
                                 color = when {
                                     state.sending -> palette.ErrorText
-                                    canSend -> Color.White
+                                    canSend -> palette.DarkBg
                                     else -> palette.Muted2
                                 },
-                                fontSize = 15.sp,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
@@ -1465,17 +1901,32 @@ private fun MessageRow(
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (!isUser) {
+                Box(
+                    Modifier
+                        .size(5.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(palette.Accent),
+                )
+            }
             Text(
-                if (isUser) "You" else "OpenCode",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = palette.Muted,
+                if (isUser) "YOU" else "OPENCODE",
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.3.sp,
+                color = if (isUser) palette.Muted2 else palette.TextCol,
             )
             if (!isUser && message.info.modelID != null) {
-                Text(message.info.modelID.orEmpty(), fontSize = 10.sp, color = palette.Muted2)
+                Text(
+                    message.info.modelID.orEmpty(),
+                    fontSize = 9.sp,
+                    color = palette.Muted2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         if (!isUser) {
@@ -1491,7 +1942,7 @@ private fun MessageRow(
             Box {
                 Surface(
                     shape = RoundedCornerShape(
-                        topStart = 14.dp, topEnd = 14.dp, bottomStart = 14.dp, bottomEnd = 4.dp,
+                        topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 6.dp,
                     ),
                     color = palette.UserBubbleBg,
                     border = androidx.compose.foundation.BorderStroke(1.dp, palette.UserBubbleBorder),
@@ -1499,7 +1950,7 @@ private fun MessageRow(
                     Column(
                         modifier = Modifier
                             .combinedClickable(onClick = {}, onLongClick = ::openMenu)
-                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                            .padding(horizontal = 15.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
                         if (text.isNotEmpty()) {
@@ -1974,42 +2425,64 @@ private fun SessionSheet(
     }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = palette.Panel2,
+        containerColor = palette.Panel,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 8.dp)) {
+            Text(
+                "CONVERSATIONS",
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.2.sp,
+                color = palette.Accent,
+            )
+            Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Sessions", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }) {
-                        Text("Import", color = palette.Muted, fontSize = 12.sp)
-                    }
-                    TextButton(onClick = onNew) { Text("＋ New session", color = palette.Accent) }
+                Text("Sessions", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    StudioActionChip(
+                        label = "Import",
+                        onClick = {
+                            importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                        },
+                    )
+                    StudioActionChip(
+                        label = "＋ New",
+                        onClick = onNew,
+                        accent = true,
+                    )
                 }
             }
-            BasicTextField(
-                value = sessionQuery,
-                onValueChange = { sessionQuery = it },
-                singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(
-                    color = palette.TextCol,
-                    fontSize = 12.sp,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, palette.BorderStrong, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                decorationBox = { inner ->
-                    if (sessionQuery.isEmpty()) {
-                        Text("Search sessions", color = palette.Muted2, fontSize = 12.sp)
-                    }
-                    inner()
-                },
-            )
+            Spacer(Modifier.height(10.dp))
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = palette.Panel2,
+                border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicTextField(
+                    value = sessionQuery,
+                    onValueChange = { sessionQuery = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(
+                        color = palette.TextCol,
+                        fontSize = 12.sp,
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 11.dp, vertical = 10.dp),
+                    decorationBox = { inner ->
+                        if (sessionQuery.isEmpty()) {
+                            Text("Search sessions", color = palette.Muted2, fontSize = 12.sp)
+                        }
+                        inner()
+                    },
+                )
+            }
             val visibleSessions = state.sessions.filter { session ->
                 sessionQuery.isBlank() ||
                     session.title.contains(sessionQuery.trim(), ignoreCase = true) ||
@@ -2366,7 +2839,7 @@ private fun SettingsSheet(
     var connectionStatus by remember { mutableStateOf<String?>(null) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = palette.Panel2,
+        containerColor = palette.Panel,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
@@ -2375,7 +2848,26 @@ private fun SettingsSheet(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Settings", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.TextCol)
+            Text(
+                "CONTROL CENTER",
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.2.sp,
+                color = palette.Accent,
+            )
+            Text(
+                "Settings",
+                fontSize = 24.sp,
+                lineHeight = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = palette.TextCol,
+            )
+            Text(
+                "Appearance, providers, connections, and local data.",
+                fontSize = 12.sp,
+                color = palette.Muted2,
+            )
+            Spacer(Modifier.height(4.dp))
             if (uiPrefs != null) {
                 AppearanceSection(uiPrefs)
                 HorizontalDivider(color = palette.BorderCol)
@@ -2657,7 +3149,7 @@ private fun LocalProviderSection(
             label = "Base URL",
             value = baseUrl,
             onValueChange = { baseUrl = it },
-            placeholder = "https://api.example.com/v1",
+            placeholder = "http://192.168.1.10:11434/v1 or https://api.example.com/v1",
         )
         ProfileInputField(
             label = "Model",
@@ -3281,7 +3773,7 @@ private fun RuntimeOfflinePanel(
                 onClick = onRetry,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = palette.Accent,
-                    contentColor = Color.White,
+                    contentColor = palette.DarkBg,
                 ),
             ) {
                 Text("Retry install")
@@ -3398,79 +3890,75 @@ private fun TerminalScreen(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+        StudioScreenHeader(
+            kicker = "SHELL",
+            title = "Terminal",
+            subtitle = status,
         ) {
-            Column {
-                Text("TERMINAL", fontSize = 20.sp, fontWeight = FontWeight.Black, color = palette.TextCol)
-                Text(status, fontSize = 12.sp, color = palette.Muted2)
-            }
-            Row {
-                Box {
-                    TextButton(onClick = { historyExpanded = true }, enabled = commandHistory.isNotEmpty()) {
-                        Text("History", color = palette.Accent)
-                    }
-                    androidx.compose.material3.DropdownMenu(
-                        expanded = historyExpanded,
-                        onDismissRequest = { historyExpanded = false },
-                    ) {
-                        commandHistory.forEach { command ->
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = {
-                                    Text(command, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                },
-                                onClick = { recallCommand(command) },
-                            )
-                        }
-                    }
-                }
-                TextButton(onClick = { focusRequester.requestFocus() }, enabled = session != null) {
-                    Text("Focus", color = palette.Accent)
-                }
-                TextButton(
-                    onClick = {
-                        session = null
-                        status = "Restarting terminal"
-                        output = "OpenCode Mobile terminal\n"
-                        input = TextFieldValue()
-                        forwardedInput = ""
-                        restartGeneration++
-                    },
-                    enabled = ptyService != null,
+            Box {
+                StudioActionChip(
+                    label = "History",
+                    onClick = { historyExpanded = true },
+                    enabled = commandHistory.isNotEmpty(),
+                )
+                DropdownMenu(
+                    expanded = historyExpanded,
+                    onDismissRequest = { historyExpanded = false },
                 ) {
-                    Text("Restart", color = palette.Accent)
+                    commandHistory.forEach { command ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(command, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            },
+                            onClick = { recallCommand(command) },
+                        )
+                    }
                 }
             }
+            StudioActionChip(
+                label = "Focus",
+                onClick = { focusRequester.requestFocus() },
+                enabled = session != null,
+            )
+            StudioActionChip(
+                label = "Restart",
+                onClick = {
+                    session = null
+                    status = "Restarting terminal"
+                    output = "OpenCode Mobile terminal\n"
+                    input = TextFieldValue()
+                    forwardedInput = ""
+                    restartGeneration++
+                },
+                enabled = ptyService != null,
+                accent = true,
+            )
         }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             // Selection + clipboard (F22): copy the scrollback buffer or
             // paste from the Android clipboard into the PTY.
-            TextButton(
+            StudioActionChip(
+                label = "Copy",
                 onClick = { clipboard.setText(AnnotatedString(output)) },
                 enabled = session != null && output.isNotBlank(),
-            ) {
-                Text("Copy", color = palette.Accent)
-            }
-            TextButton(
+            )
+            StudioActionChip(
+                label = "Paste",
                 onClick = {
                     val pasted = clipboard.getText()?.toString().orEmpty()
                     if (pasted.isNotEmpty()) write(pasted.toByteArray(Charsets.UTF_8))
                 },
                 enabled = session != null,
-            ) {
-                Text("Paste", color = palette.Accent)
-            }
-            TextButton(
+            )
+            StudioActionChip(
+                label = "Clear",
                 onClick = { confirmClear = true },
                 enabled = session != null,
-            ) {
-                Text("Clear", color = palette.Accent)
-            }
+            )
         }
 
         Box(Modifier.fillMaxWidth().weight(1f)) {
@@ -3478,7 +3966,7 @@ private fun TerminalScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxSize(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(18.dp),
                 color = palette.TerminalBlack,
                 border = androidx.compose.foundation.BorderStroke(1.dp, palette.BorderCol),
             ) {
@@ -3742,33 +4230,28 @@ private fun GitScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        StudioScreenHeader(
+            kicker = "SOURCE CONTROL",
+            title = "Git",
+            subtitle = gitState?.status?.branch ?: "no repository",
+            subtitleMono = true,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("GIT", fontSize = 20.sp, fontWeight = FontWeight.Black, color = palette.TextCol)
-                Text(
-                    gitState?.status?.branch ?: "no repository",
-                    fontSize = 12.sp,
-                    color = palette.Muted2,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1,
-                )
-            }
             if (gitState?.initialized == true) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TextButton(onClick = { scope.launch { git?.pull() } }, enabled = gitState?.busy == false) {
-                        Text("Pull", color = palette.Muted, fontSize = 12.sp)
-                    }
-                    TextButton(onClick = { scope.launch { git?.push() } }, enabled = gitState?.busy == false) {
-                        Text("Push", color = palette.Muted, fontSize = 12.sp)
-                    }
-                    TextButton(onClick = { scope.launch { git?.fetch() } }, enabled = gitState?.busy == false) {
-                        Text("Fetch", color = palette.Muted, fontSize = 12.sp)
-                    }
-                }
+                StudioActionChip(
+                    label = "Pull",
+                    onClick = { scope.launch { git?.pull() } },
+                    enabled = gitState?.busy == false,
+                )
+                StudioActionChip(
+                    label = "Push",
+                    onClick = { scope.launch { git?.push() } },
+                    enabled = gitState?.busy == false,
+                )
+                StudioActionChip(
+                    label = "Fetch",
+                    onClick = { scope.launch { git?.fetch() } },
+                    enabled = gitState?.busy == false,
+                )
             }
         }
 
@@ -4499,61 +4982,48 @@ private fun FilesScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        StudioScreenHeader(
+            kicker = "WORKSPACE",
+            title = "Files",
+            subtitle = filesState?.let { state ->
+                if (state.currentPath.isBlank()) "workspace/" else state.currentPath
+            } ?: "workspace",
+            subtitleMono = true,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("FILES", fontSize = 20.sp, fontWeight = FontWeight.Black, color = palette.TextCol)
-                Text(
-                    filesState?.let { state ->
-                        if (state.currentPath.isBlank()) "workspace/" else state.currentPath
-                    } ?: "workspace",
-                    fontSize = 12.sp,
-                    color = palette.Muted2,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            Box {
+                StudioActionChip(
+                    label = "＋ New",
+                    onClick = { createMenuExpanded = true },
+                    enabled = filesState?.connected == true,
+                    accent = true,
                 )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box {
-                    TextButton(
-                        onClick = { createMenuExpanded = true },
-                        enabled = filesState?.connected == true,
-                    ) {
-                        Text("＋", color = palette.Accent, fontSize = 17.sp)
-                    }
-                    androidx.compose.material3.DropdownMenu(
-                        expanded = createMenuExpanded,
-                        onDismissRequest = { createMenuExpanded = false },
-                    ) {
-                        androidx.compose.material3.DropdownMenuItem(
-                            text = { Text("New file") },
-                            onClick = {
-                                createKind = "file"
-                                createName = ""
-                                createMenuExpanded = false
-                            },
-                        )
-                        androidx.compose.material3.DropdownMenuItem(
-                            text = { Text("New folder") },
-                            onClick = {
-                                createKind = "folder"
-                                createName = ""
-                                createMenuExpanded = false
-                            },
-                        )
-                    }
-                }
-                TextButton(
-                    onClick = { scope.launch { files?.goUp() } },
-                    enabled = filesState?.let { it.connected && it.currentPath.isNotBlank() } == true,
+                DropdownMenu(
+                    expanded = createMenuExpanded,
+                    onDismissRequest = { createMenuExpanded = false },
                 ) {
-                    Text("Up", color = palette.Accent)
+                    DropdownMenuItem(
+                        text = { Text("New file") },
+                        onClick = {
+                            createKind = "file"
+                            createName = ""
+                            createMenuExpanded = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("New folder") },
+                        onClick = {
+                            createKind = "folder"
+                            createName = ""
+                            createMenuExpanded = false
+                        },
+                    )
                 }
             }
+            StudioActionChip(
+                label = "Up",
+                onClick = { scope.launch { files?.goUp() } },
+                enabled = filesState?.let { it.connected && it.currentPath.isNotBlank() } == true,
+            )
         }
 
         if (filesState?.connected == true) {

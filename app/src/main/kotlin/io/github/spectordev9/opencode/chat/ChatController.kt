@@ -435,7 +435,11 @@ class ChatController(
         val result = activeClient.call(providersOperation)
         if (result is ApiResult.Success) {
             val providers = parseProviders(json, result.value)
-            val default = parseDefaultModel(json, result.value)
+            val configured = when (val config = activeClient.call(configOperation(directory))) {
+                is ApiResult.Success -> parseConfigModel(json, config.value)
+                is ApiResult.Failure -> null
+            }
+            val default = configured ?: parseDefaultModel(json, result.value)
             val resolved = default ?: fallbackPromptModel(providers)
             _state.update {
                 it.copy(
@@ -455,10 +459,12 @@ class ChatController(
     }
 
     private fun fallbackPromptModel(providers: List<ProviderInfo>): PromptModel? {
-        // Prefer a real provider with a model; the offline mock is only a last resort.
-        val provider = providers.firstOrNull {
-            it.id != ON_DEVICE_MOCK_PROVIDER_ID && it.models.isNotEmpty()
-        } ?: providers.firstOrNull { it.models.isNotEmpty() } ?: return null
+        val available = providers.filter { it.models.isNotEmpty() }
+        val provider = available.firstOrNull { it.id == CUSTOM_PROVIDER_ID }
+            ?: available.firstOrNull { it.id == ON_DEVICE_MOCK_PROVIDER_ID }
+            ?: available.firstOrNull { it.id != "opencode" }
+            ?: available.firstOrNull()
+            ?: return null
         val firstModel = provider.models.firstOrNull() ?: return null
         return PromptModel(provider.id, firstModel.id)
     }
@@ -1061,6 +1067,18 @@ val providersOperation = GatewayOperation<String>(
     decoder = GatewayResponseDecoder { _, body -> String(body, Charsets.UTF_8) },
 )
 
+internal fun configOperation(directory: String): GatewayOperation<String> =
+    GatewayOperation(
+        name = "config.get",
+        request = GatewayRequest(
+            method = HttpMethod.GET,
+            path = "/config",
+            query = mapOf("directory" to directory),
+        ),
+        timeoutClass = TimeoutClass.LIST_GET,
+        decoder = GatewayResponseDecoder { _, body -> String(body, Charsets.UTF_8) },
+    )
+
 internal fun agentsOperation(directory: String): GatewayOperation<String> =
     GatewayOperation(
         name = "agent.list",
@@ -1106,6 +1124,16 @@ internal fun parseProviders(json: Json, raw: String): List<ProviderInfo> {
     }
 }
 
+internal fun parseConfigModel(json: Json, raw: String): PromptModel? {
+    val root = runCatching { json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return null
+    val value = root.string("model")?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    val separator = value.indexOf('/')
+    if (separator <= 0 || separator == value.lastIndex) return null
+    val providerID = value.substring(0, separator)
+    val modelID = value.substring(separator + 1)
+    return PromptModel(providerID, modelID)
+}
+
 internal fun parseDefaultModel(json: Json, raw: String): PromptModel? {
     val root = runCatching { json.parseToJsonElement(raw).jsonObject }.getOrNull() ?: return null
     val default = root["default"] as? JsonObject ?: return null
@@ -1114,9 +1142,14 @@ internal fun parseDefaultModel(json: Json, raw: String): PromptModel? {
     val modelID = default.string("modelID") ?: default.string("model")
     if (providerID != null && modelID != null) return PromptModel(providerID, modelID)
     // Contract shape for GET /config/providers: {"<providerID>": "<modelID>"}.
-    val entry = default.entries.firstOrNull { (_, value) ->
-        (value as? JsonPrimitive)?.isString == true
-    } ?: return null
+    val entries = default.entries.filter { (_, value) ->
+        val primitive = value as? JsonPrimitive
+        primitive != null && primitive.isString && primitive.content.isNotBlank()
+    }
+    val entry = entries.firstOrNull { it.key == CUSTOM_PROVIDER_ID }
+        ?: entries.firstOrNull { it.key == ON_DEVICE_MOCK_PROVIDER_ID }
+        ?: entries.firstOrNull()
+        ?: return null
     val selectedModelID = (entry.value as? JsonPrimitive)?.contentOrNull ?: return null
     return PromptModel(entry.key, selectedModelID)
 }

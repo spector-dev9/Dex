@@ -205,6 +205,36 @@ class SharedPrefsServerProfileStore(context: Context) : ServerProfileStore {
             return normalized
         }
 
+        fun validateProviderEndpoint(raw: String?): String? {
+            val normalized = normalizeProfileUrl(raw) ?: return null
+            val uri = runCatching { URI(normalized) }.getOrNull() ?: return null
+            if (uri.scheme.equals("http", ignoreCase = true) && !isPrivateNetworkHost(uri.host)) {
+                return null
+            }
+            return normalized
+        }
+
+        fun isPrivateNetworkHost(host: String?): Boolean {
+            val value = host?.trim()?.lowercase(Locale.US)?.removeSurrounding("[", "]") ?: return false
+            if (isLoopbackHost(value)) return true
+            if (value.endsWith(".local") || value.endsWith(".lan") || value.endsWith(".home.arpa")) {
+                return true
+            }
+            if (value.contains(':')) {
+                return value.startsWith("fc") || value.startsWith("fd") || value.startsWith("fe80:")
+            }
+            val octets = value.split('.').map { it.toIntOrNull() ?: return false }
+            if (octets.size != 4 || octets.any { it !in 0..255 }) return false
+            return when {
+                octets[0] == 10 -> true
+                octets[0] == 172 && octets[1] in 16..31 -> true
+                octets[0] == 192 && octets[1] == 168 -> true
+                octets[0] == 169 && octets[1] == 254 -> true
+                octets[0] == 100 && octets[1] in 64..127 -> true
+                else -> false
+            }
+        }
+
         /** Validates a remote server directory without treating it as a local path (F10/F73). */
         fun validateRemoteDirectory(raw: String?): String? {
             val directory = raw?.trim()?.takeIf { it.isNotEmpty() } ?: ServerProfile.DEFAULT_REMOTE_DIRECTORY

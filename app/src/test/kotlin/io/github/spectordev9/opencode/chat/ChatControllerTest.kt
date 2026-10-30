@@ -174,6 +174,95 @@ class ChatControllerTest {
     }
 
     @Test
+    fun `config model parser reads provider and model identifiers`() {
+        val model = parseConfigModel(Json, """{"model":"opencode-mobile-mock/mock"}""")
+
+        assertEquals("opencode-mobile-mock", model?.providerID)
+        assertEquals("mock", model?.modelID)
+    }
+
+    @Test
+    fun `config model parser keeps slashes inside the model identifier`() {
+        val model = parseConfigModel(Json, """{"model":"device/vendor/model-1"}""")
+
+        assertEquals("device", model?.providerID)
+        assertEquals("vendor/model-1", model?.modelID)
+    }
+
+    @Test
+    fun `config model parser ignores unusable model values`() {
+        assertEquals(null, parseConfigModel(Json, """{"model":""}"""))
+        assertEquals(null, parseConfigModel(Json, """{"model":"missing-provider"}"""))
+        assertEquals(null, parseConfigModel(Json, """{"model":"/missing-provider"}"""))
+        assertEquals(null, parseConfigModel(Json, """{"model":"device/"}"""))
+    }
+
+    @Test
+    fun `configured model overrides the first config providers default`() = runBlocking {
+        val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
+        val client = FakeOpenCodeClient().apply {
+            rawResponses["config.providers"] = """
+                {
+                  "providers": [
+                    {"id":"opencode","name":"OpenCode","models":{"big-pickle":{"name":"Big Pickle"}}},
+                    {"id":"opencode-mobile-mock","name":"Mock","models":{"mock":{"name":"Mock"}}}
+                  ],
+                  "default": {"opencode":"big-pickle","opencode-mobile-mock":"mock"}
+                }
+            """.trimIndent()
+            rawResponses["config.get"] = """{"model":"opencode-mobile-mock/mock"}"""
+        }
+        try {
+            val controller = ChatController(scope)
+            controller.attach(client, "/workspace")
+
+            assertEquals("opencode-mobile-mock", controller.state.value.defaultModel?.providerID)
+            assertEquals("opencode-mobile-mock", controller.state.value.selectedModel?.providerID)
+            assertTrue(controller.send("Use the configured model"))
+            assertEquals("opencode-mobile-mock", client.lastPrompt?.model?.providerID)
+            assertEquals("mock", client.lastPrompt?.model?.modelID)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `fallback model prefers the custom provider over the built-in provider`() = runBlocking {
+        val scope = CoroutineScope(coroutineContext + SupervisorJob() + Dispatchers.Unconfined)
+        val client = FakeOpenCodeClient().apply {
+            rawResponses["config.providers"] = """
+                {
+                  "providers": [
+                    {"id":"opencode","name":"OpenCode","models":{"big-pickle":{"name":"Big Pickle"}}},
+                    {"id":"device","name":"Device provider","models":{"local-model":{"name":"Local"}}}
+                  ]
+                }
+            """.trimIndent()
+        }
+        try {
+            val controller = ChatController(scope)
+            controller.attach(client, "/workspace")
+
+            assertTrue(controller.send("Use the local model"))
+            assertEquals("device", client.lastPrompt?.model?.providerID)
+            assertEquals("local-model", client.lastPrompt?.model?.modelID)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    @Test
+    fun `default model parser prefers the custom provider in the map`() {
+        val model = parseDefaultModel(
+            Json,
+            """{"default":{"opencode":"big-pickle","device":"local-model"}}""",
+        )
+
+        assertEquals("device", model?.providerID)
+        assertEquals("local-model", model?.modelID)
+    }
+
+    @Test
     fun `default model parser reads the config providers map shape`() {
         val model = parseDefaultModel(
             Json,
