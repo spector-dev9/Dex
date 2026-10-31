@@ -11,6 +11,7 @@ from pathlib import Path
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 ALLOWED_PERMISSIONS = {
     "android.permission.INTERNET",
+    "android.permission.ACCESS_NETWORK_STATE",
     "android.permission.POST_NOTIFICATIONS",
     "android.permission.FOREGROUND_SERVICE",
 }

@@ -16,7 +16,7 @@ class ChatStateTest {
     fun `active session resolved`() {
         val s = ChatState(
             sessionID = "s1",
-            sessions = listOf(SessionDto(id = "s1", info = SessionTimeDto()))
+            sessions = listOf(SessionDto(id = "s1"))
         )
         assertNotNull(s.activeSession)
         assertEquals("s1", s.activeSession!!.id)

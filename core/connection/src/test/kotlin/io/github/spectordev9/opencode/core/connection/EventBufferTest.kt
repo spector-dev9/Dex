@@ -1,6 +1,7 @@
 package io.github.spectordev9.opencode.core.connection
 
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -21,7 +22,7 @@ class EventBufferTest {
     fun `merge message part updated by key`() {
         val b = EventBuffer()
         val partId = "p1"
-        val props = buildJsonObject { put("part", buildJsonObject { put("id", partId) }) }
+        val props = buildJsonObject { put("part", buildJsonObject { put("id", JsonPrimitive(partId)) }) }
         b.add(EventDto(type = "message.part.updated", properties = props))
         b.add(EventDto(type = "message.part.updated", properties = props))
         assertEquals(1, b.size())
@@ -35,11 +36,5 @@ class EventBufferTest {
         b.add(EventDto(type = "message.updated", properties = JsonObject(emptyMap())))
         assertEquals(2, b.size())
         assertTrue(b.snapshot().any { it.type == "permission.asked" })
-    }
-
-    private fun buildJsonObject(map: Map<String, String>): kotlinx.serialization.json.JsonObject {
-        return kotlinx.serialization.json.buildJsonObject {
-            map.forEach { (k, v) -> put(k, v) }
-        }
     }
 }
