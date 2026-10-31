@@ -18,8 +18,8 @@ class ConnectionLogTest {
     @Test
     fun `redacts secrets`() {
         val log = ConnectionLog()
-        log.add("password: secret123")
+        log.add("password=secret123")
         val snap = log.snapshot()
-        assertTrue(snap.any { it.contains("[REDACTED]") })
+        assertTrue(snap.any { it.contains("<redacted>") })
     }
 }

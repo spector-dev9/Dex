@@ -15,7 +15,6 @@ import io.github.spectordev9.opencode.chat.ProviderSettingsStore
 import io.github.spectordev9.opencode.chat.buildProviderConfig
 import io.github.spectordev9.opencode.runtime.GuestBootstrap
 import io.github.spectordev9.opencode.runtime.RuntimePaths
-import io.github.spectordev9.opencode.runtime.SystemDnsServers
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.ServerSocket
@@ -27,11 +26,10 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
- * Starts the supervised OpenCode server inside the app sandbox using the
- * pinned A_DIRECT runtime: the musl loader loads the pinned binary, the
- * server binds an ephemeral loopback port, and the Basic password is the
- * per-launch D6 secret. Mirrors the proven spike server session
- * (`tests/spikes/harness/src/main/kotlin/.../G3ServerSession.kt`).
+ * Starts the supervised OpenCode server inside the app sandbox through the
+ * pinned Alpine rootfs: PRoot provides the guest `/etc/resolv.conf` that
+ * Bun's c-ares resolver requires on Android, the server binds an ephemeral
+ * loopback port, and the Basic password is the per-launch D6 secret.
  */
 class ProductionServerLauncher(
     private val context: Context,
@@ -111,11 +109,6 @@ class ProductionServerLauncher(
                 )
                 Files.write(configFile, config.toByteArray())
 
-                val dnsScript = serverDir.resolve("dns-set.js")
-                val dnsServers = SystemDnsServers.get(context)
-                val dnsContent = "try { require('dns').setServers([${dnsServers.joinToString(",") { "\"$it\"" }}]); } catch (_) {}\n"
-                Files.write(dnsScript, dnsContent.toByteArray())
-
                 val environment = RuntimePaths.baseEnvironment(context, home).apply {
                     put("XDG_CONFIG_HOME", home.resolve(".config").toString())
                     put("XDG_DATA_HOME", home.resolve(".local/share").toString())
@@ -136,18 +129,48 @@ class ProductionServerLauncher(
                     put("OPENCODE_DISABLE_DEFAULT_PLUGINS", "1")
                     put("OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER", "1")
                     put("OPENCODE_DISABLE_FFF", "1")
-                    put("BUN_OPTIONS", "--preload ${dnsScript.toAbsolutePath()}")
+                    put("PROOT_LOADER", prootLoader.absolutePath)
+                    put("PROOT_NO_SECCOMP", "1")
+                    put("PROOT_TMP_DIR", tmp.toString())
+                    put("LD_LIBRARY_PATH", "$runtimeDirectory:/usr/lib:/lib")
+                }
+
+                val arguments = buildList {
+                    add(proot.absolutePath)
+                    add("--kill-on-exit")
+                    add("-0")
+                    add("-r")
+                    add(rootfs.toString())
+                    listOf("/dev", "/proc", "/sys").forEach { path ->
+                        add("-b")
+                        add(path)
+                    }
+                    listOf(
+                        nativeDirectory.absolutePath,
+                        serverDir.toString(),
+                        workspace.toString(),
+                        runtimeDirectory.toString(),
+                        rootfs.toString(),
+                    ).forEach { path ->
+                        add("-b")
+                        add("$path:$path")
+                    }
+                    add("-w")
+                    add(workspace.toString())
+                    add(binary.toString())
+                    add("serve")
+                    add("--hostname")
+                    add(endpoint.host)
+                    add("--port")
+                    add(endpoint.port.toString())
+                    add("--print-logs")
+                    add("--log-level")
+                    add("ERROR")
                 }
 
                 val spec = ProcessSpec(
-                    executable = loader.absolutePath,
-                    arguments = listOf(
-                        "--library-path", runtimeDirectory.toString(), binary.toString(),
-                        "serve",
-                        "--hostname", endpoint.host,
-                        "--port", endpoint.port.toString(),
-                        "--print-logs", "--log-level", "ERROR",
-                    ),
+                    executable = proot.absolutePath,
+                    arguments = arguments,
                     environment = environment,
                     workingDirectory = workspace.toString(),
                 )

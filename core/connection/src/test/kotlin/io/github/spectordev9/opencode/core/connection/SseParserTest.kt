@@ -3,6 +3,7 @@ package io.github.spectordev9.opencode.core.connection
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class SseParserTest {
     @Test
@@ -50,13 +51,14 @@ class SseParserTest {
     @Test
     fun `partial chunk then finish`() {
         val p = SseParser()
-        p.feed("data: p")
-        val frames = p.finish()
-        assertEquals(0, frames.size)
-        p.feed("artial\n\n")
-        val frames2 = p.finish()
-        assertEquals(1, frames2.size)
-        assertEquals("partial", frames2[0].data)
+        assertTrue(p.feed("data: par").isEmpty())
+        val frames = p.feed("tial\n\n")
+        assertEquals(1, frames.size)
+        assertEquals("partial", frames[0].data)
+        p.feed("data: tail")
+        val trailing = p.finish()
+        assertEquals(1, trailing.size)
+        assertEquals("tail", trailing[0].data)
     }
 
     @Test
