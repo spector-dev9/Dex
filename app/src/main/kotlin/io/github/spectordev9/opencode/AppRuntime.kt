@@ -26,6 +26,7 @@ import io.github.spectordev9.opencode.features.WorkspaceCatalog
 import io.github.spectordev9.opencode.server.MockLlmServer
 import io.github.spectordev9.opencode.core.runtime.RuntimeState
 import io.github.spectordev9.opencode.core.supervisor.ServerState
+import io.github.spectordev9.opencode.core.supervisor.SupervisorConfig
 import io.github.spectordev9.opencode.core.supervisor.impl.ProcessServerSupervisor
 import io.github.spectordev9.opencode.runtime.ProductionRuntimeManager
 import io.github.spectordev9.opencode.runtime.RuntimePaths
@@ -84,7 +85,15 @@ class AppRuntime private constructor(context: Context, private val scope: Corout
         providerSettings = providerSettings,
     )
 
-    val supervisor = ProcessServerSupervisor(scope, serverLauncher)
+    val supervisor = ProcessServerSupervisor(
+        scope,
+        serverLauncher,
+        config = SupervisorConfig(
+            startupTimeoutMillis = 30_000,
+            healthTimeoutMillis = 5_000,
+            stopGraceMillis = 5_000,
+        ),
+    )
 
     val terminal: ProductionPtyService = ProductionPtyService(this.context)
 

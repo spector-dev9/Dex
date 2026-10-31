@@ -1,6 +1,7 @@
 package io.github.spectordev9.opencode.server
 
 import android.content.Context
+import io.github.spectordev9.opencode.AndroidManagedProcess
 import io.github.spectordev9.opencode.core.common.ApiError
 import io.github.spectordev9.opencode.core.common.ApiResult
 import io.github.spectordev9.opencode.core.common.ErrorCode
@@ -38,6 +39,7 @@ class ProductionServerLauncher(
     private val mockPort: Int,
     private val providerSettings: ProviderSettingsStore? = null,
 ) : ServerLauncher {
+    private var lastProcessLog: File? = null
 
     override suspend fun nextEndpoint(): ApiResult<ServerEndpoint> = withContext(Dispatchers.IO) {
         repeat(ENDPOINT_ATTEMPTS) {
@@ -176,6 +178,7 @@ class ProductionServerLauncher(
                 )
                 when (val started = processLauncher.launch(spec)) {
                     is ApiResult.Success -> {
+                        lastProcessLog = (started.value as? AndroidManagedProcess)?.logFile
                         secret.fill(0)
                         ApiResult.Success(
                             StartedServer(endpoint = endpoint, process = started.value),
@@ -199,13 +202,21 @@ class ProductionServerLauncher(
                 probeHttp(
                     "http://${endpoint.host}:${endpoint.port}/global/health",
                     authorization = secrets.authorizationHeader(),
-                    timeoutMs = 2_000,
+                    timeoutMs = 3_000,
                 )
             } catch (t: Throwable) {
                 null
             }
             if (result == null || result.status != 200) {
-                ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, "server health probe failed"))
+                val logTail = lastProcessLog
+                    ?.let { file -> runCatching { file.readText().takeLast(LOG_TAIL_CHARS) }.getOrNull() }
+                    ?.trim()
+                val detail = if (logTail.isNullOrBlank()) {
+                    "server health probe failed"
+                } else {
+                    "server health probe failed: ${redact(logTail)}"
+                }
+                ApiResult.Failure(ApiError(ErrorCode.E_RUNTIME_DOWN, detail))
             } else {
                 ApiResult.Success(
                     ServerHealth(
@@ -222,6 +233,11 @@ class ProductionServerLauncher(
         RuntimePaths.serverDirectory(RuntimePaths.runtimeRoot(context)).resolve("logs")
 
     private data class ProbeResult(val status: Int, val body: String)
+
+    private fun redact(value: String): String =
+        value.replace(
+            Regex("(?i)(password|token|secret|key|authorization)=([^\\s]+)"),
+        ) { match -> "${match.groupValues[1]}=<redacted>" }
 
     private fun probeHttp(
         target: String,
@@ -251,5 +267,6 @@ class ProductionServerLauncher(
 
     private companion object {
         const val ENDPOINT_ATTEMPTS = 5
+        const val LOG_TAIL_CHARS = 2_000
     }
 }
