@@ -136,7 +136,7 @@ class ProductionServerLauncher(
                     put("OPENCODE_DISABLE_DEFAULT_PLUGINS", "1")
                     put("OPENCODE_EXPERIMENTAL_DISABLE_FILEWATCHER", "1")
                     put("OPENCODE_DISABLE_FFF", "1")
-                    put("BUN_OPTIONS", "--preload ${dnsScript.absolutePath}")
+                    put("BUN_OPTIONS", "--preload ${dnsScript.toAbsolutePath()}")
                 }
 
                 val spec = ProcessSpec(
